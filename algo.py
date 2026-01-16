@@ -1,5 +1,5 @@
 import numpy as np
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point
 from utils import (
     LIDAR_RADIUS,
     START_POSITION,
@@ -18,6 +18,7 @@ from utils import (
     BoundaryGraph,
     add_visited,
     visited_to_file,
+    grid_to_file,
 )
 
 
@@ -130,8 +131,8 @@ class ExplorationBot:
             if wall_points:
                 # Get angle to nearest wall point
                 wall_center = Point(
-                    np.mean([p.x for p in wall_points]),
-                    np.mean([p.y for p in wall_points]),
+                    float(np.mean([p.x for p in wall_points])),
+                    float(np.mean([p.y for p in wall_points])),
                 )
                 target_heading = compute_angle_to_point(self.position, wall_center)
 
@@ -317,15 +318,22 @@ class ExplorationBot:
 def main():
     bot = ExplorationBot(START_POSITION, START_DIRECTION.value, grid_resolution=0.1)
 
-    success = bot.run_exploration()
+    try:
+        success = bot.run_exploration()
 
-    visited_to_file("out/visited_positions.csv")
-    print(f"Visited positions saved to visited_positions.csv")
+        visited_to_file("out/visited_positions.csv")
+        print(f"Visited positions saved to visited_positions.csv")
 
-    if success:
-        print("Exploration successful!")
-    else:
-        print("Exploration encountered issues")
+        grid_to_file(bot.occupancy_grid, "out/occupancy_grid.csv")
+
+        if success:
+            print("Exploration successful!")
+        else:
+            print("Exploration encountered issues")
+    except KeyboardInterrupt:
+        print("Exploration interrupted by user")
+        visited_to_file("out/visited_positions.csv")
+        print(f"Visited positions saved to visited_positions.csv")
 
 
 if __name__ == "__main__":

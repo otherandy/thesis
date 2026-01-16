@@ -1,4 +1,4 @@
-from shapely.geometry import Point, Polygon, LineString
+from shapely.geometry import Point, Polygon
 import numpy as np
 import enum
 from collections import defaultdict
@@ -142,7 +142,7 @@ def extract_wall_points(
         if cluster:
             cx = np.mean([p.x for p in cluster])
             cy = np.mean([p.y for p in cluster])
-            wall_points.append(Point(cx, cy))
+            wall_points.append(Point(float(cx), float(cy)))
             skip_until = j
 
     return wall_points
@@ -173,7 +173,7 @@ def move_forward(position: Point, heading: float, distance: float) -> Point:
     return Point(new_x, new_y)
 
 
-def get_nearest_frontier(current_pos: Point, frontiers: list[Point]) -> Point:
+def get_nearest_frontier(current_pos: Point, frontiers: list[Point]) -> Point | None:
     if not frontiers:
         return None
     return min(frontiers, key=lambda p: current_pos.distance(p))
@@ -182,6 +182,7 @@ def get_nearest_frontier(current_pos: Point, frontiers: list[Point]) -> Point:
 def sample_lidar(position: Point, num_samples=360) -> list[Point]:
     angles = np.linspace(0, 2 * np.pi, num_samples, endpoint=False)
     points = []
+    sample_point = position  # Default in case no obstacle is found
     for angle in angles:
         for step in np.linspace(0, LIDAR_RADIUS, 100):
             sample_point = Point(
@@ -258,3 +259,19 @@ def visited_to_file(filename: str) -> None:
     with open(filename, "w") as f:
         for vx, vy in visited:
             f.write(f"{vx},{vy}\n")
+
+
+def grid_to_file(occupancy_grid: OccupancyGrid, filename: str) -> None:
+    with open(filename, "w") as f:
+        for (gx, gy), status in occupancy_grid.grid.items():
+            wx = gx * occupancy_grid.resolution
+            wy = gy * occupancy_grid.resolution
+            f.write(f"{wx},{wy},{status}\n")
+
+
+def graph_to_file(boundary_graph: BoundaryGraph, filename: str) -> None:
+    with open(filename, "w") as f:
+        for i, node in enumerate(boundary_graph.nodes):
+            f.write(f"NODE,{i},{node.position.x},{node.position.y},{node.heading}\n")
+        for idx1, idx2, dist in boundary_graph.edges:
+            f.write(f"EDGE,{idx1},{idx2},{dist}\n")
