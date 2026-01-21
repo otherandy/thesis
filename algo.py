@@ -4,6 +4,7 @@ from utils import (
     LIDAR_RADIUS,
     START_POSITION,
     START_DIRECTION,
+    graph_to_file,
     sample_lidar,
     extract_wall_points,
     compute_angle_to_point,
@@ -73,9 +74,7 @@ class ExplorationBot:
                 self.wall_points = wall_points
 
                 # Create initial boundary node
-                node_idx = self.boundary_graph.add_node(
-                    BoundaryNode(self.position, self.heading)
-                )
+                node_idx = self.boundary_graph.add_node(BoundaryNode(self.position))
                 self.wall_point_indices = [node_idx]
 
                 add_visited(self.position)
@@ -98,7 +97,7 @@ class ExplorationBot:
         print("\n=== Phase 2: Boundary Tracking ===")
 
         step_distance = 0.05
-        min_return_distance = 0.15  # Distance threshold to consider as "returned"
+        min_return_distance = 0.25  # Distance threshold to consider as "returned"
         tracking_steps = 0
         max_steps = 5000  # Safety limit
         min_steps_before_return = 100  # Minimum steps before checking return
@@ -184,62 +183,85 @@ class ExplorationBot:
     def phase3_boundary_graph_construction(self):
         """
         Phase 3: Construct boundary graph.
-        - Convert wall points to nodes (at corners/turning points)
-        - Create edges representing wall connections
+        - Identify all frontiers: boundaries between known free cells and unknown cells
+        - Divide them into disjoint groups (connected components)
+        - Construct graph where each node represents a distinct frontier region
         """
         print("\n=== Phase 3: Boundary Graph Construction ===")
 
-        if len(self.wall_points) < 3:
-            print("Not enough wall points to construct graph")
+        # Get all frontier cells (unknown cells adjacent to free cells)
+        frontier_cells = self.occupancy_grid.get_frontier_cells()
+
+        if not frontier_cells:
+            print("No frontier cells found")
             return False
 
-        # Cluster wall points to find distinct corners
-        corner_threshold = 0.3
-        nodes_added = []
+        print(f"Found {len(frontier_cells)} frontier cells")
 
-        for i, point in enumerate(self.wall_points):
-            is_corner = True
+        # Cluster frontier cells into connected regions
+        # Two frontier cells are in the same region if they are adjacent
+        visited_frontiers = set()
+        regions = []
 
-            # Check if this point is a corner (significant change in direction)
-            if i > 0 and i < len(self.wall_points) - 1:
-                prev_point = self.wall_points[i - 1]
-                next_point = self.wall_points[i + 1]
+        def get_connected_region(start_point: Point) -> list[Point]:
+            """BFS to find all frontier cells connected to start_point."""
+            region = []
+            queue = [start_point]
+            visited_frontiers.add((start_point.x, start_point.y))
 
-                angle1 = compute_angle_to_point(prev_point, point)
-                angle2 = compute_angle_to_point(point, next_point)
-                angle_change = abs(angle_difference(angle1, angle2))
+            while queue:
+                current = queue.pop(0)
+                region.append(current)
 
-                # Only add as node if significant direction change
-                if angle_change < 0.3:  # Small change, likely collinear
-                    is_corner = False
+                # Check all frontier cells for adjacency
+                for frontier in frontier_cells:
+                    coord = (frontier.x, frontier.y)
+                    if coord in visited_frontiers:
+                        continue
 
-            if is_corner:
-                # Check if far enough from existing nodes
-                too_close = False
-                for existing_node in nodes_added:
-                    if point.distance(existing_node.position) < corner_threshold:
-                        too_close = True
-                        break
+                    # Check if adjacent (within grid resolution distance)
+                    dist = current.distance(frontier)
+                    if dist < self.occupancy_grid.resolution * 1.5:  # Adjacent cells
+                        visited_frontiers.add(coord)
+                        queue.append(frontier)
 
-                if not too_close:
-                    heading = compute_angle_to_point(self.position, point)
-                    node = BoundaryNode(point, heading)
-                    idx = self.boundary_graph.add_node(node)
-                    nodes_added.append(node)
+            return region
 
-        # Connect nearby nodes as edges
+        # Find all connected regions
+        for frontier in frontier_cells:
+            coord = (frontier.x, frontier.y)
+            if coord not in visited_frontiers:
+                region = get_connected_region(frontier)
+                regions.append(region)
+
+        print(f"Identified {len(regions)} distinct frontier regions")
+
+        # Create a graph node for each region
+        # Use centroid of region as representative position
+        for region in regions:
+            cx = float(np.mean([p.x for p in region]))
+            cy = float(np.mean([p.y for p in region]))
+            centroid = Point(cx, cy)
+
+            # Use heading toward centroid from current position
+            heading = compute_angle_to_point(self.position, centroid)
+            node = BoundaryNode(centroid)
+            self.boundary_graph.add_node(node)
+
+        # Optionally connect regions that are close to each other
+        # This helps with navigation planning between regions
         for i in range(len(self.boundary_graph.nodes)):
             for j in range(i + 1, len(self.boundary_graph.nodes)):
                 dist = self.boundary_graph.nodes[i].position.distance(
                     self.boundary_graph.nodes[j].position
                 )
-                # Connect if reasonably close
-                if dist < 1.0:
+                # Connect if reasonably close (within 2x lidar range)
+                if dist < LIDAR_RADIUS * 2:
                     self.boundary_graph.add_edge(i, j)
 
         print(
-            f"Graph constructed: {len(self.boundary_graph.nodes)} nodes, "
-            f"{len(self.boundary_graph.edges)} edges"
+            f"Graph constructed: {len(self.boundary_graph.nodes)} regions, "
+            f"{len(self.boundary_graph.edges)} connections"
         )
         return True
 
@@ -352,11 +374,6 @@ def main():
     try:
         success = bot.run_exploration()
 
-        visited_to_file("out/visited_positions.csv")
-        print(f"Visited positions saved to visited_positions.csv")
-
-        grid_to_file(bot.occupancy_grid, "out/occupancy_grid.csv")
-
         if success:
             print("Exploration successful!")
         else:
@@ -364,10 +381,16 @@ def main():
     except KeyboardInterrupt:
         print("Exploration interrupted by user")
 
+    finally:
+        # Save outputs
         visited_to_file("out/visited_positions.csv")
         print(f"Visited positions saved to visited_positions.csv")
 
         grid_to_file(bot.occupancy_grid, "out/occupancy_grid.csv")
+        print(f"Occupancy grid saved to occupancy_grid.csv")
+
+        graph_to_file(bot.boundary_graph, "out/boundary_graph.csv")
+        print(f"Boundary graph saved to boundary_graph.csv")
 
 
 if __name__ == "__main__":

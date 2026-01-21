@@ -82,13 +82,12 @@ class OccupancyGrid:
 
 
 class BoundaryNode:
-    def __init__(self, position: Point, heading: float):
+    def __init__(self, position: Point):
         self.position = position
-        self.heading = heading
         self.edges = []  # Connected nodes
 
     def __repr__(self):
-        return f"BoundaryNode(pos=({self.position.x:.2f},{self.position.y:.2f}), heading={self.heading:.3f})"
+        return f"BoundaryNode(pos=({self.position.x:.2f},{self.position.y:.2f}))"
 
 
 class BoundaryGraph:
@@ -272,6 +271,6 @@ def grid_to_file(occupancy_grid: OccupancyGrid, filename: str) -> None:
 def graph_to_file(boundary_graph: BoundaryGraph, filename: str) -> None:
     with open(filename, "w") as f:
         for i, node in enumerate(boundary_graph.nodes):
-            f.write(f"NODE,{i},{node.position.x},{node.position.y},{node.heading}\n")
+            f.write(f"NODE,{i},{node.position.x},{node.position.y}\n")
         for idx1, idx2, dist in boundary_graph.edges:
             f.write(f"EDGE,{idx1},{idx2},{dist}\n")
