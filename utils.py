@@ -167,6 +167,7 @@ def angle_difference(angle1: float, angle2: float) -> float:
 
 
 def move_forward(position: Point, heading: float, distance: float) -> Point:
+    add_visited(position)
     new_x = position.x + distance * np.cos(heading)
     new_y = position.y + distance * np.sin(heading)
     return Point(new_x, new_y)

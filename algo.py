@@ -4,6 +4,9 @@ from utils import (
     LIDAR_RADIUS,
     START_POSITION,
     START_DIRECTION,
+    OccupancyGrid,
+    BoundaryNode,
+    BoundaryGraph,
     graph_to_file,
     sample_lidar,
     extract_wall_points,
@@ -14,10 +17,6 @@ from utils import (
     get_nearest_frontier,
     update_occupancy_from_lidar,
     has_obstacle_ahead,
-    OccupancyGrid,
-    BoundaryNode,
-    BoundaryGraph,
-    add_visited,
     visited_to_file,
     grid_to_file,
 )
@@ -77,12 +76,10 @@ class ExplorationBot:
                 node_idx = self.boundary_graph.add_node(BoundaryNode(self.position))
                 self.wall_point_indices = [node_idx]
 
-                add_visited(self.position)
                 return True
 
             # Move forward
             self.position = move_forward(self.position, self.heading, step_distance)
-            add_visited(self.position)
 
         print("No wall found in exploration radius")
         return False
@@ -174,7 +171,6 @@ class ExplorationBot:
 
             # Move forward
             self.position = move_forward(self.position, self.heading, step_distance)
-            add_visited(self.position)
 
         # Failed to return to start within max steps
         print(f"Failed to return to start after {max_steps} steps")
@@ -338,7 +334,6 @@ class ExplorationBot:
                     + np.clip(angle_difference(self.heading, target_heading), -0.3, 0.3)
                 )
                 self.position = move_forward(self.position, self.heading, step_distance)
-                add_visited(self.position)
 
         print(
             f"Frontier exploration complete after {exploration_iterations} iterations"
