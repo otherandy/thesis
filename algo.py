@@ -91,26 +91,27 @@ class ExplorationBot:
     def phase2_boundary_tracking(self):
         """
         Phase 2: Boundary tracking (wall following).
-        - Use wall-following behavior with lidar
+        - Follow the wall using right-hand rule (keep wall on right side)
         - Update occupancy grid as exploring
         - Detect when returning to start point
         """
         print("\n=== Phase 2: Boundary Tracking ===")
 
         step_distance = 0.05
-        min_return_distance = 0.2  # Distance threshold to consider as "returned"
-        max_steps_tracking = 500
+        min_return_distance = 0.15  # Distance threshold to consider as "returned"
         tracking_steps = 0
+        max_steps = 5000  # Safety limit
+        min_steps_before_return = 100  # Minimum steps before checking return
 
-        # Wall-following parameters
-        target_wall_distance = LIDAR_RADIUS * 0.6
+        # Wall-following parameters (right-hand rule)
+        target_wall_distance = LIDAR_RADIUS * 0.6  # Desired distance to wall
 
-        while tracking_steps < max_steps_tracking:
+        while tracking_steps < max_steps:
             tracking_steps += 1
 
             # Take lidar reading
             lidar_points = self.take_lidar_reading()
-            wall_points = extract_wall_points(lidar_points, distance_threshold=0.15)
+            num_samples = len(lidar_points)
 
             # Update occupancy grid
             update_occupancy_from_lidar(
@@ -118,37 +119,67 @@ class ExplorationBot:
             )
 
             # Store wall points
+            wall_points = extract_wall_points(lidar_points, distance_threshold=0.15)
             self.wall_points.extend(wall_points)
 
-            # Detect if we've returned to start
-            if tracking_steps > 50:  # Wait for some tracking before checking
+            # Detect if we've returned to start (only after substantial movement)
+            if tracking_steps > min_steps_before_return:
                 dist_to_start = self.position.distance(self.first_contact_pos)
                 if dist_to_start < min_return_distance:
                     print(f"Returned to start after {tracking_steps} steps")
-                    break
+                    return True
 
-            # Simple wall-following: find wall direction and follow it
-            if wall_points:
-                # Get angle to nearest wall point
-                wall_center = Point(
-                    float(np.mean([p.x for p in wall_points])),
-                    float(np.mean([p.y for p in wall_points])),
-                )
-                target_heading = compute_angle_to_point(self.position, wall_center)
+            # Right-hand wall following: get distance to nearest obstacle from robot position
+            # in key directions relative to current heading
 
-                # Smoothly turn toward wall
-                heading_diff = angle_difference(self.heading, target_heading)
-                turn_amount = np.clip(heading_diff, -0.2, 0.2)  # Limit turning rate
-                self.heading = normalize_angle(self.heading + turn_amount)
+            def get_min_distance_in_direction(angle_offset, cone_width=np.pi / 8):
+                """Get minimum distance in a cone around angle_offset from heading."""
+                min_dist = LIDAR_RADIUS
+                target_angle = normalize_angle(self.heading + angle_offset)
+
+                for i, point in enumerate(lidar_points):
+                    # Calculate angle from robot to this lidar point
+                    point_angle = compute_angle_to_point(self.position, point)
+                    angle_diff = abs(angle_difference(point_angle, target_angle))
+
+                    if angle_diff < cone_width:
+                        dist = self.position.distance(point)
+                        min_dist = min(min_dist, dist)
+
+                return min_dist
+
+            # Get distances in key directions relative to robot's heading
+            dist_front = get_min_distance_in_direction(0)
+            dist_right = get_min_distance_in_direction(-np.pi / 2)
+            dist_front_right = get_min_distance_in_direction(-np.pi / 4)
+
+            # Simplified wall-following decision logic (right-hand rule)
+            # Priority: avoid collision, then maintain wall distance
+
+            if dist_front < target_wall_distance * 0.8:
+                # Wall ahead - turn left away from it
+                self.heading = normalize_angle(self.heading + 0.35)
+            elif dist_front_right < target_wall_distance * 0.7:
+                # Corner approaching - turn left
+                self.heading = normalize_angle(self.heading + 0.25)
+            elif dist_right > target_wall_distance * 1.5:
+                # Lost the wall - turn right to find it
+                self.heading = normalize_angle(self.heading - 0.25)
+            elif dist_right < target_wall_distance * 0.5:
+                # Too close to wall - turn left slightly
+                self.heading = normalize_angle(self.heading + 0.15)
+            elif dist_right > target_wall_distance * 1.1:
+                # Drifting from wall - turn right gently
+                self.heading = normalize_angle(self.heading - 0.1)
+            # else: maintain current heading
 
             # Move forward
             self.position = move_forward(self.position, self.heading, step_distance)
             add_visited(self.position)
 
-        print(
-            f"Boundary tracking complete. Collected {len(self.wall_points)} wall points"
-        )
-        return True
+        # Failed to return to start within max steps
+        print(f"Failed to return to start after {max_steps} steps")
+        return False
 
     def phase3_boundary_graph_construction(self):
         """
@@ -332,8 +363,11 @@ def main():
             print("Exploration encountered issues")
     except KeyboardInterrupt:
         print("Exploration interrupted by user")
+
         visited_to_file("out/visited_positions.csv")
         print(f"Visited positions saved to visited_positions.csv")
+
+        grid_to_file(bot.occupancy_grid, "out/occupancy_grid.csv")
 
 
 if __name__ == "__main__":
