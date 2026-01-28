@@ -70,7 +70,7 @@ class ExplorationBot:
                 # Store first wall contact
                 self.first_contact_pos = self.position
                 self.first_contact_heading = self.heading
-                self.wall_points = wall_points
+                self.wall_points = list({(p.x, p.y): p for p in wall_points}.values())
 
                 # Create initial boundary node
                 node_idx = self.boundary_graph.add_node(BoundaryNode(self.position))
@@ -116,7 +116,13 @@ class ExplorationBot:
 
             # Store wall points
             wall_points = extract_wall_points(lidar_points, distance_threshold=0.15)
-            self.wall_points.extend(wall_points)
+            self.wall_points.extend(
+                [
+                    p
+                    for p in wall_points
+                    if (p.x, p.y) not in {(wp.x, wp.y) for wp in self.wall_points}
+                ]
+            )
 
             # Detect if we've returned to start (only after substantial movement)
             if tracking_steps > min_steps_before_return:
@@ -377,15 +383,10 @@ def main():
         print("Exploration interrupted by user")
 
     finally:
-        # Save outputs
         visited_to_file("out/visited_positions.csv")
-        print(f"Visited positions saved to visited_positions.csv")
-
         grid_to_file(bot.occupancy_grid, "out/occupancy_grid.csv")
-        print(f"Occupancy grid saved to occupancy_grid.csv")
-
         graph_to_file(bot.boundary_graph, "out/boundary_graph.csv")
-        print(f"Boundary graph saved to boundary_graph.csv")
+        print("Saved: visited_positions.csv, occupancy_grid.csv, boundary_graph.csv")
 
 
 if __name__ == "__main__":
