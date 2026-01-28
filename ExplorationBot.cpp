@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <raylib-cpp.hpp>
 
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;
@@ -19,6 +20,9 @@ const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
 const double SPEED = 0.05;
 const double EXPLORATION_RADIUS = 10.0;
 const Point START_POSITION(1.0, 1.0);
+const double WINDOW_SCALE = 50.0;
+const double WINDOW_OFFSET_X = 50.0;
+const double WINDOW_OFFSET_Y = 50.0;
 
 // --- Utility Functions ---
 double compute_angle_to_point(const Point &from, const Point &to)
@@ -154,6 +158,38 @@ public:
   }
 };
 
+class PlayerBot
+{
+public:
+  Point position;
+
+  PlayerBot(const Point &start_pos)
+      : position(start_pos)
+  {
+  }
+
+  void get_input_and_move()
+  {
+    if (IsKeyDown(KEY_W))
+      position = Point(position.x(), position.y() - SPEED);
+    if (IsKeyDown(KEY_S))
+      position = Point(position.x(), position.y() + SPEED);
+    if (IsKeyDown(KEY_A))
+      position = Point(position.x() - SPEED, position.y());
+    if (IsKeyDown(KEY_D))
+      position = Point(position.x() + SPEED, position.y());
+  }
+
+  void draw()
+  {
+    // Bot body
+    DrawCircle(position.x() * WINDOW_SCALE + WINDOW_OFFSET_X, position.y() * WINDOW_SCALE + WINDOW_OFFSET_Y, 5, RED);
+
+    // LIDAR radius
+    DrawCircleLines(position.x() * WINDOW_SCALE + WINDOW_OFFSET_X, position.y() * WINDOW_SCALE + WINDOW_OFFSET_Y, LIDAR_RADIUS * WINDOW_SCALE, BLUE);
+  }
+};
+
 // --- File Output ---
 void visited_to_file(const std::string &filename, const std::vector<Point> &visited)
 {
@@ -166,7 +202,7 @@ void visited_to_file(const std::string &filename, const std::vector<Point> &visi
 
 int main()
 {
-  // Define environment polygon
+  // Define environment
   ENVIRONMENT.push_back(Point(0, 0));
   ENVIRONMENT.push_back(Point(8, 0));
   ENVIRONMENT.push_back(Point(8, 6));
@@ -176,12 +212,49 @@ int main()
   ENVIRONMENT.push_back(Point(4, 6));
   ENVIRONMENT.push_back(Point(0, 6));
 
+  int screenWidth = 800;
+  int screenHeight = 800;
+
+  raylib::Window window(screenWidth, screenHeight, "Exploration Bot Simulation");
+  SetTargetFPS(60);
+
   // Start bot
-  ExplorationBot bot(START_POSITION);
-  bot.run_exploration();
+  // ExplorationBot bot(START_POSITION);
+  // bot.run_exploration();
+
+  PlayerBot player(START_POSITION);
+
+  while (!window.ShouldClose())
+  {
+    window.BeginDrawing();
+    window.ClearBackground(RAYWHITE);
+
+    // Draw environment
+    for (size_t i = 0; i < ENVIRONMENT.size(); ++i)
+    {
+      Point p1 = ENVIRONMENT[i];
+      Point p2 = ENVIRONMENT[(i + 1) % ENVIRONMENT.size()];
+      DrawLine(p1.x() * WINDOW_SCALE + WINDOW_OFFSET_X, p1.y() * WINDOW_SCALE + WINDOW_OFFSET_Y, p2.x() * WINDOW_SCALE + WINDOW_OFFSET_X, p2.y() * WINDOW_SCALE + WINDOW_OFFSET_Y, BLACK);
+    }
+
+    // Draw bot path
+    /*
+    for (size_t i = 1; i < bot.visited_positions.size(); ++i)
+    {
+      Point p1 = bot.visited_positions[i - 1];
+      Point p2 = bot.visited_positions[i];
+      window.DrawLine(p1.x() * 50, p1.y() * 50, p2.x() * 50, p2.y() * 50, RED);
+    }
+    */
+
+    player.get_input_and_move();
+    player.draw();
+
+    window.EndDrawing();
+  }
 
   // Save results
-  visited_to_file("out/visited_positions.csv", bot.visited_positions);
-  std::cout << "Saved: visited_positions.csv\n";
+  // visited_to_file("out/visited_positions.csv", bot.visited_positions);
+  // std::cout << "Saved: visited_positions.csv\n";
   return 0;
 }
