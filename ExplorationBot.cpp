@@ -35,39 +35,6 @@ bool point_in_environment(const Point &p)
   return ENVIRONMENT.bounded_side(p) == CGAL::ON_BOUNDED_SIDE;
 }
 
-// --- Wall Point Extraction ---
-std::vector<Point> extract_wall_points(const std::vector<Point> &lidar_points, double distance_threshold = 0.15)
-{
-  std::vector<Point> wall_points;
-  size_t i = 0;
-
-  while (i < lidar_points.size())
-  {
-    std::vector<Point> cluster;
-    cluster.push_back(lidar_points[i]);
-    size_t j = i + 1;
-
-    while (j < lidar_points.size() && std::sqrt(CGAL::squared_distance(lidar_points[i], lidar_points[j])) < distance_threshold)
-    {
-      cluster.push_back(lidar_points[j]);
-      ++j;
-    }
-
-    double cx = 0, cy = 0;
-    for (const auto &p : cluster)
-    {
-      cx += p.x();
-      cy += p.y();
-    }
-
-    cx /= cluster.size();
-    cy /= cluster.size();
-    wall_points.push_back(Point(cx, cy));
-    i = j;
-  }
-  return wall_points;
-}
-
 class ExplorationBot
 {
 public:
@@ -128,9 +95,6 @@ public:
         if (std::sqrt(CGAL::squared_distance(position, p)) < LIDAR_RADIUS - 0.1)
         {
           std::cout << "Wall detected at position (" << position.x() << ", " << position.y() << ")\n";
-          std::vector<Point> wall_pts = extract_wall_points(lidar_points);
-          for (const auto &wp : wall_pts)
-            wall_points.insert(wp);
           first_contact_pos = position;
           first_contact_heading = heading;
           return true;
