@@ -64,10 +64,11 @@ public:
   const double lidar_reading_threshold = 0.1;
   const double speed = 0.05;
 
+  Point first_contact_pos;
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
   std::vector<Point> visited_positions;
 
-  Point first_contact_pos;
+  Reading closest_wall_reading{0, lidar_radius};
 
   ExplorationBot(const Point &start_pos)
       : position(start_pos)
@@ -97,6 +98,23 @@ public:
     }
 
     return;
+  }
+
+  void find_closest_wall_reading()
+  {
+    double min_distance = lidar_radius;
+    Reading closest_reading = {0, lidar_radius};
+
+    for (const auto &r : current_readings)
+    {
+      if (r.distance < min_distance)
+      {
+        min_distance = r.distance;
+        closest_reading = r;
+      }
+    }
+
+    closest_wall_reading = closest_reading;
   }
 
   void move(const Direction &dir)
@@ -189,6 +207,17 @@ public:
                end_x, end_y,
                GRAY);
     }
+
+    if (closest_wall_reading.distance == lidar_radius)
+      return;
+
+    float closest_end_x = pos + closest_wall_reading.distance * scale_factor * cos(closest_wall_reading.angle);
+    float closest_end_y = pos + closest_wall_reading.distance * scale_factor * sin(closest_wall_reading.angle);
+
+    DrawCircle(closest_end_x,
+               closest_end_y,
+               5,
+               RED);
   }
 
   void draw(float scale_factor, const Vector2 &offset)
@@ -247,6 +276,7 @@ int main()
     // -- Update --
     bot.get_input_and_move();
     bot.take_lidar_readings();
+    bot.find_closest_wall_reading();
 
     // -- Draw --
     window.BeginDrawing();
