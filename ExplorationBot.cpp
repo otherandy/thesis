@@ -13,16 +13,20 @@ using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;
 using Polygon = CGAL::Polygon_2<Kernel>;
 
-// --- Environment Setup ---
-Polygon ENVIRONMENT;
-const double LIDAR_RADIUS = 1.5;
-const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
-const double SPEED = 0.05;
-const double EXPLORATION_RADIUS = 10.0;
+// --- Setup ---
+Point ENV_POINTS[] = {Point(0, 0),
+                      Point(8, 0),
+                      Point(8, 6),
+                      Point(12, 6),
+                      Point(12, 12),
+                      Point(4, 12),
+                      Point(4, 6),
+                      Point(0, 6)};
+Polygon ENVIRONMENT(ENV_POINTS,
+                    ENV_POINTS + sizeof(ENV_POINTS) / sizeof(ENV_POINTS[0]));
 const Point START_POSITION(1.0, 1.0);
-const double WINDOW_SCALE = 50.0;
-const double WINDOW_OFFSET_X = 50.0;
-const double WINDOW_OFFSET_Y = 50.0;
+const double EXPLORATION_RADIUS = 10.0;
+const float WINDOW_PADDING = 10.0f;
 
 // --- Utility Functions ---
 double compute_angle_to_point(const Point &from, const Point &to)
@@ -35,6 +39,7 @@ bool point_in_environment(const Point &p)
   return ENVIRONMENT.bounded_side(p) == CGAL::ON_BOUNDED_SIDE;
 }
 
+// --- Classes ---
 class ExplorationBot
 {
 public:
@@ -42,7 +47,10 @@ public:
   double heading;
   bool playerControlling = true;
 
-  std::set<Point> wall_points;
+  const double lidar_radius = 1.5;
+  const double lidar_resolution = lidar_radius / 100.0;
+  const double speed = 0.05;
+
   std::vector<Point> visited_positions;
 
   Point first_contact_pos;
@@ -62,7 +70,7 @@ public:
       double angle = 2 * M_PI * i / num_samples;
       Point sample_point = position;
 
-      for (double step = 0; step <= LIDAR_RADIUS; step += LIDAR_RESOLUTION)
+      for (double step = 0; step <= lidar_radius; step += lidar_resolution)
       {
         sample_point = Point(position.x() + step * cos(angle), position.y() + step * sin(angle));
         if (!point_in_environment(sample_point))
@@ -80,6 +88,10 @@ public:
     // visited_positions.push_back(position);
     double new_x = position.x() + distance * cos(heading);
     double new_y = position.y() + distance * sin(heading);
+
+    if (!point_in_environment(Point(new_x, new_y)))
+      return;
+
     position = Point(new_x, new_y);
   }
 
@@ -90,11 +102,11 @@ public:
 
     if (IsKeyDown(KEY_W))
     {
-      move_forward(SPEED);
+      move_forward(speed);
     }
     if (IsKeyDown(KEY_S))
     {
-      move_forward(-SPEED);
+      move_forward(-speed);
     }
     if (IsKeyDown(KEY_A))
     {
@@ -116,7 +128,7 @@ public:
       std::vector<Point> lidar_points = take_lidar_reading();
       for (const auto &p : lidar_points)
       {
-        if (std::sqrt(CGAL::squared_distance(position, p)) < LIDAR_RADIUS - 0.1)
+        if (std::sqrt(CGAL::squared_distance(position, p)) < lidar_radius - 0.1)
         {
           std::cout << "Wall detected at position (" << position.x() << ", " << position.y() << ")\n";
           first_contact_pos = position;
@@ -124,7 +136,7 @@ public:
           return true;
         }
       }
-      move_forward(SPEED);
+      move_forward(speed);
     }
 
     std::cout << "No wall found in exploration radius\n";
@@ -145,21 +157,32 @@ public:
     return true;
   }
 
-  void draw()
+  void draw(float scale_factor)
   {
     // Bot body
-    DrawCircle(position.x() * WINDOW_SCALE + WINDOW_OFFSET_X, position.y() * WINDOW_SCALE + WINDOW_OFFSET_Y, 5, RED);
+    DrawCircle(position.x() * scale_factor, position.y() * scale_factor, 5, RED);
 
     // LIDAR radius
-    DrawCircleLines(position.x() * WINDOW_SCALE + WINDOW_OFFSET_X, position.y() * WINDOW_SCALE + WINDOW_OFFSET_Y, LIDAR_RADIUS * WINDOW_SCALE, BLUE);
+    DrawCircleLines(position.x() * scale_factor, position.y() * scale_factor, lidar_radius * scale_factor, BLUE);
 
     // Heading line
-    DrawLine(position.x() * WINDOW_SCALE + WINDOW_OFFSET_X, position.y() * WINDOW_SCALE + WINDOW_OFFSET_Y,
-             (position.x() + cos(heading) * 0.5) * WINDOW_SCALE + WINDOW_OFFSET_X,
-             (position.y() + sin(heading) * 0.5) * WINDOW_SCALE + WINDOW_OFFSET_Y,
+    DrawLine(position.x() * scale_factor, position.y() * scale_factor,
+             (position.x() + cos(heading) * 0.5) * scale_factor,
+             (position.y() + sin(heading) * 0.5) * scale_factor,
              BLACK);
   }
 };
+
+// --- Drawing Functions ---
+void draw_environment(float scale_factor)
+{
+  for (size_t i = 0; i < ENVIRONMENT.size(); ++i)
+  {
+    Point p1 = ENVIRONMENT[i];
+    Point p2 = ENVIRONMENT[(i + 1) % ENVIRONMENT.size()];
+    DrawLine(p1.x() * scale_factor, p1.y() * scale_factor, p2.x() * scale_factor, p2.y() * scale_factor, BLACK);
+  }
+}
 
 // --- File Output ---
 void visited_to_file(const std::string &filename, const std::vector<Point> &visited)
@@ -173,35 +196,30 @@ void visited_to_file(const std::string &filename, const std::vector<Point> &visi
 
 int main()
 {
-  // Define environment
-  ENVIRONMENT.push_back(Point(0, 0));
-  ENVIRONMENT.push_back(Point(8, 0));
-  ENVIRONMENT.push_back(Point(8, 6));
-  ENVIRONMENT.push_back(Point(12, 6));
-  ENVIRONMENT.push_back(Point(12, 12));
-  ENVIRONMENT.push_back(Point(4, 12));
-  ENVIRONMENT.push_back(Point(4, 6));
-  ENVIRONMENT.push_back(Point(0, 6));
 
-  int screenWidth = 800;
-  int screenHeight = 800;
-
-  raylib::Window window(screenWidth, screenHeight, "Exploration Bot Simulation");
+  raylib::Window window(800, 600, "Exploration Bot Simulation");
   SetTargetFPS(60);
+
+  const int env_width = ENVIRONMENT.bbox().xmax() - ENVIRONMENT.bbox().xmin();
+  const int env_height = ENVIRONMENT.bbox().ymax() - ENVIRONMENT.bbox().ymin();
+
+  float scale_factor;
 
   ExplorationBot bot(START_POSITION);
 
   while (!window.ShouldClose())
   {
+    // -- Update --
+    bot.get_input_and_move();
+
+    // -- Draw --
     window.BeginDrawing();
     window.ClearBackground(RAYWHITE);
 
-    for (size_t i = 0; i < ENVIRONMENT.size(); ++i)
-    {
-      Point p1 = ENVIRONMENT[i];
-      Point p2 = ENVIRONMENT[(i + 1) % ENVIRONMENT.size()];
-      DrawLine(p1.x() * WINDOW_SCALE + WINDOW_OFFSET_X, p1.y() * WINDOW_SCALE + WINDOW_OFFSET_Y, p2.x() * WINDOW_SCALE + WINDOW_OFFSET_X, p2.y() * WINDOW_SCALE + WINDOW_OFFSET_Y, BLACK);
-    }
+    scale_factor = std::min(window.GetWidth() / (float)env_width,
+                            window.GetHeight() / (float)env_height);
+
+    draw_environment(scale_factor);
 
     // Draw bot path
     /*
@@ -213,8 +231,7 @@ int main()
     }
     */
 
-    bot.get_input_and_move();
-    bot.draw();
+    bot.draw(scale_factor);
 
     window.EndDrawing();
   }
@@ -222,5 +239,7 @@ int main()
   // Save results
   // visited_to_file("out/visited_positions.csv", bot.visited_positions);
   // std::cout << "Saved: visited_positions.csv\n";
+
+  CloseWindow();
   return 0;
 }
