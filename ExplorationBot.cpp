@@ -157,30 +157,41 @@ public:
     return true;
   }
 
-  void draw(float scale_factor)
+  void draw(float scale_factor, const Vector2 &offset)
   {
     // Bot body
-    DrawCircle(position.x() * scale_factor, position.y() * scale_factor, 5, RED);
+    DrawCircle(position.x() * scale_factor + offset.x,
+               position.y() * scale_factor + offset.y,
+               5,
+               RED);
 
     // LIDAR radius
-    DrawCircleLines(position.x() * scale_factor, position.y() * scale_factor, lidar_radius * scale_factor, BLUE);
+    DrawCircleLines(position.x() * scale_factor + offset.x,
+                    position.y() * scale_factor + offset.y,
+                    lidar_radius * scale_factor,
+                    BLUE);
 
     // Heading line
-    DrawLine(position.x() * scale_factor, position.y() * scale_factor,
-             (position.x() + cos(heading) * 0.5) * scale_factor,
-             (position.y() + sin(heading) * 0.5) * scale_factor,
+    DrawLine(position.x() * scale_factor + offset.x,
+             position.y() * scale_factor + offset.y,
+             (position.x() + cos(heading) * 0.5) * scale_factor + offset.x,
+             (position.y() + sin(heading) * 0.5) * scale_factor + offset.y,
              BLACK);
   }
 };
 
 // --- Drawing Functions ---
-void draw_environment(float scale_factor)
+void draw_environment(float scale_factor, const Vector2 &offset)
 {
   for (size_t i = 0; i < ENVIRONMENT.size(); ++i)
   {
     Point p1 = ENVIRONMENT[i];
     Point p2 = ENVIRONMENT[(i + 1) % ENVIRONMENT.size()];
-    DrawLine(p1.x() * scale_factor, p1.y() * scale_factor, p2.x() * scale_factor, p2.y() * scale_factor, BLACK);
+    DrawLine(p1.x() * scale_factor + offset.x,
+             p1.y() * scale_factor + offset.y,
+             p2.x() * scale_factor + offset.x,
+             p2.y() * scale_factor + offset.y,
+             BLACK);
   }
 }
 
@@ -196,14 +207,11 @@ void visited_to_file(const std::string &filename, const std::vector<Point> &visi
 
 int main()
 {
-
   raylib::Window window(800, 600, "Exploration Bot Simulation");
   SetTargetFPS(60);
 
-  const int env_width = ENVIRONMENT.bbox().xmax() - ENVIRONMENT.bbox().xmin();
-  const int env_height = ENVIRONMENT.bbox().ymax() - ENVIRONMENT.bbox().ymin();
-
-  float scale_factor;
+  const float env_width = ENVIRONMENT.bbox().xmax() - ENVIRONMENT.bbox().xmin();
+  const float env_height = ENVIRONMENT.bbox().ymax() - ENVIRONMENT.bbox().ymin();
 
   ExplorationBot bot(START_POSITION);
 
@@ -216,10 +224,20 @@ int main()
     window.BeginDrawing();
     window.ClearBackground(RAYWHITE);
 
-    scale_factor = std::min(window.GetWidth() / (float)env_width,
-                            window.GetHeight() / (float)env_height);
+    const float padded_width = window.GetWidth() - 2.0f * WINDOW_PADDING;
+    const float padded_height = window.GetHeight() - 2.0f * WINDOW_PADDING;
 
-    draw_environment(scale_factor);
+    const float scale_factor = std::min(padded_width / env_width,
+                                        padded_height / env_height);
+
+    const float draw_width = env_width * scale_factor;
+    const float draw_height = env_height * scale_factor;
+
+    const Vector2 offset = {
+        (window.GetWidth() - draw_width) * 0.5f,
+        (window.GetHeight() - draw_height) * 0.5f};
+
+    draw_environment(scale_factor, offset);
 
     // Draw bot path
     /*
@@ -231,7 +249,7 @@ int main()
     }
     */
 
-    bot.draw(scale_factor);
+    bot.draw(scale_factor, offset);
 
     window.EndDrawing();
   }
