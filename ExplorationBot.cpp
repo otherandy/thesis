@@ -40,6 +40,7 @@ class ExplorationBot
 public:
   Point position;
   double heading;
+  bool playerControlling = true;
 
   std::set<Point> wall_points;
   std::vector<Point> visited_positions;
@@ -76,10 +77,33 @@ public:
 
   void move_forward(double distance)
   {
+    // visited_positions.push_back(position);
     double new_x = position.x() + distance * cos(heading);
     double new_y = position.y() + distance * sin(heading);
-    visited_positions.push_back(position);
     position = Point(new_x, new_y);
+  }
+
+  void get_input_and_move()
+  {
+    if (!playerControlling)
+      return;
+
+    if (IsKeyDown(KEY_W))
+    {
+      move_forward(SPEED);
+    }
+    if (IsKeyDown(KEY_S))
+    {
+      move_forward(-SPEED);
+    }
+    if (IsKeyDown(KEY_A))
+    {
+      heading -= 0.05;
+    }
+    if (IsKeyDown(KEY_D))
+    {
+      heading += 0.05;
+    }
   }
 
   bool phase1_initial_wall_discovery()
@@ -120,29 +144,6 @@ public:
     std::cout << "\n=== Exploration Complete ===\n";
     return true;
   }
-};
-
-class PlayerBot
-{
-public:
-  Point position;
-
-  PlayerBot(const Point &start_pos)
-      : position(start_pos)
-  {
-  }
-
-  void get_input_and_move()
-  {
-    if (IsKeyDown(KEY_W))
-      position = Point(position.x(), position.y() - SPEED);
-    if (IsKeyDown(KEY_S))
-      position = Point(position.x(), position.y() + SPEED);
-    if (IsKeyDown(KEY_A))
-      position = Point(position.x() - SPEED, position.y());
-    if (IsKeyDown(KEY_D))
-      position = Point(position.x() + SPEED, position.y());
-  }
 
   void draw()
   {
@@ -151,6 +152,12 @@ public:
 
     // LIDAR radius
     DrawCircleLines(position.x() * WINDOW_SCALE + WINDOW_OFFSET_X, position.y() * WINDOW_SCALE + WINDOW_OFFSET_Y, LIDAR_RADIUS * WINDOW_SCALE, BLUE);
+
+    // Heading line
+    DrawLine(position.x() * WINDOW_SCALE + WINDOW_OFFSET_X, position.y() * WINDOW_SCALE + WINDOW_OFFSET_Y,
+             (position.x() + cos(heading) * 0.5) * WINDOW_SCALE + WINDOW_OFFSET_X,
+             (position.y() + sin(heading) * 0.5) * WINDOW_SCALE + WINDOW_OFFSET_Y,
+             BLACK);
   }
 };
 
@@ -182,18 +189,13 @@ int main()
   raylib::Window window(screenWidth, screenHeight, "Exploration Bot Simulation");
   SetTargetFPS(60);
 
-  // Start bot
-  // ExplorationBot bot(START_POSITION);
-  // bot.run_exploration();
-
-  PlayerBot player(START_POSITION);
+  ExplorationBot bot(START_POSITION);
 
   while (!window.ShouldClose())
   {
     window.BeginDrawing();
     window.ClearBackground(RAYWHITE);
 
-    // Draw environment
     for (size_t i = 0; i < ENVIRONMENT.size(); ++i)
     {
       Point p1 = ENVIRONMENT[i];
@@ -211,8 +213,8 @@ int main()
     }
     */
 
-    player.get_input_and_move();
-    player.draw();
+    bot.get_input_and_move();
+    bot.draw();
 
     window.EndDrawing();
   }
