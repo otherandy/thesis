@@ -12,6 +12,8 @@
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;
 using Polygon = CGAL::Polygon_2<Kernel>;
+using Direction = Kernel::Direction_2;
+
 struct Reading
 {
   double angle;
@@ -34,6 +36,11 @@ const int MAX_LIDAR_SAMPLES = 360 / 8;
 const double EXPLORATION_RADIUS = 10.0;
 const float WINDOW_PADDING = 10.0f;
 
+const Direction NORTH(0, -1);
+const Direction SOUTH(0, 1);
+const Direction WEST(-1, 0);
+const Direction EAST(1, 0);
+
 // --- Utility Functions ---
 double compute_angle_to_point(const Point &from, const Point &to)
 {
@@ -50,7 +57,6 @@ class ExplorationBot
 {
 public:
   Point position;
-  double heading;
   bool playerControlling = true;
 
   const double lidar_radius = 1.5;
@@ -62,7 +68,6 @@ public:
   std::vector<Point> visited_positions;
 
   Point first_contact_pos;
-  double first_contact_heading;
 
   ExplorationBot(const Point &start_pos)
       : position(start_pos)
@@ -94,11 +99,13 @@ public:
     return;
   }
 
-  void move_forward(double distance)
+  void move(const Direction &dir)
   {
-    // visited_positions.push_back(position);
-    double new_x = position.x() + distance * cos(heading);
-    double new_y = position.y() + distance * sin(heading);
+    double delta_x = dir.dx() * speed;
+    double delta_y = dir.dy() * speed;
+
+    double new_x = position.x() + delta_x;
+    double new_y = position.y() + delta_y;
 
     if (!point_in_environment(Point(new_x, new_y)))
       return;
@@ -113,26 +120,27 @@ public:
 
     if (IsKeyDown(KEY_W))
     {
-      move_forward(speed);
+      move(NORTH);
     }
     if (IsKeyDown(KEY_S))
     {
-      move_forward(-speed);
+      move(SOUTH);
     }
     if (IsKeyDown(KEY_A))
     {
-      heading -= 0.05;
+      move(WEST);
     }
     if (IsKeyDown(KEY_D))
     {
-      heading += 0.05;
+      move(EAST);
     }
   }
 
-  bool phase1_initial_wall_discovery()
+  bool
+  phase1_initial_wall_discovery()
   {
     std::cout << "=== Phase 1: Initial Wall Discovery ===\n";
-    heading = ((double)rand() / RAND_MAX) * 2 * M_PI;
+    const double heading = ((double)rand() / RAND_MAX) * 2 * M_PI;
 
     while (std::sqrt(CGAL::squared_distance(START_POSITION, position)) < EXPLORATION_RADIUS)
     {
@@ -143,11 +151,10 @@ public:
         {
           std::cout << "Wall detected at position (" << position.x() << ", " << position.y() << ")\n";
           first_contact_pos = position;
-          first_contact_heading = heading;
           return true;
         }
       }
-      move_forward(speed);
+      move(Direction(cos(heading), sin(heading)));
     }
 
     std::cout << "No wall found in exploration radius\n";
@@ -177,7 +184,7 @@ public:
       float end_x = pos + r.distance * scale_factor * cos(r.angle);
       float end_y = pos + r.distance * scale_factor * sin(r.angle);
 
-            DrawLine(pos,
+      DrawLine(pos,
                pos,
                end_x, end_y,
                GRAY);
@@ -197,13 +204,6 @@ public:
                     position.y() * scale_factor + offset.y,
                     lidar_radius * scale_factor,
                     BLUE);
-
-    // Heading line
-    DrawLine(position.x() * scale_factor + offset.x,
-             position.y() * scale_factor + offset.y,
-             (position.x() + cos(heading) * 0.5) * scale_factor + offset.x,
-             (position.y() + sin(heading) * 0.5) * scale_factor + offset.y,
-             BLACK);
   }
 };
 
