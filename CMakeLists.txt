@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1...3.23)
-project( ExplorationBot )
+project(ExplorationBot)
 
 
 # CGAL
@@ -8,7 +8,6 @@ if (NOT CGAL_FOUND)
   message(STATUS "This project requires the CGAL library, and will not be compiled.")
   return()
 endif()
-
 
 # Boost
 find_package(Boost REQUIRED)
@@ -39,7 +38,7 @@ FetchContent_MakeAvailable(raylib_cpp)
 
 # ############################
 
-set (SOURCES ExplorationBot.cpp)
+set(SOURCES ExplorationBot.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 add_to_cached_list(CGAL_EXECUTABLE_TARGETS ${PROJECT_NAME})
