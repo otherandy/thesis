@@ -12,6 +12,11 @@
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;
 using Polygon = CGAL::Polygon_2<Kernel>;
+struct Reading
+{
+  double angle;
+  double distance;
+};
 
 // --- Setup ---
 Point ENV_POINTS[] = {Point(0, 0),
@@ -25,6 +30,7 @@ Point ENV_POINTS[] = {Point(0, 0),
 Polygon ENVIRONMENT(ENV_POINTS,
                     ENV_POINTS + sizeof(ENV_POINTS) / sizeof(ENV_POINTS[0]));
 const Point START_POSITION(1.0, 1.0);
+const int MAX_LIDAR_SAMPLES = 360 / 8;
 const double EXPLORATION_RADIUS = 10.0;
 const float WINDOW_PADDING = 10.0f;
 
@@ -49,8 +55,10 @@ public:
 
   const double lidar_radius = 1.5;
   const double lidar_resolution = lidar_radius / 100.0;
+  const double lidar_reading_threshold = 0.1;
   const double speed = 0.05;
 
+  std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
   std::vector<Point> visited_positions;
 
   Point first_contact_pos;
@@ -62,25 +70,28 @@ public:
     visited_positions.push_back(start_pos);
   }
 
-  std::vector<Point> take_lidar_reading(int num_samples = 360)
+  void take_lidar_readings(int num_samples = MAX_LIDAR_SAMPLES)
   {
-    std::vector<Point> points;
+    current_readings.fill({0, 0});
+
     for (int i = 0; i < num_samples; ++i)
     {
       double angle = 2 * M_PI * i / num_samples;
-      Point sample_point = position;
+      double distance;
 
-      for (double step = 0; step <= lidar_radius; step += lidar_resolution)
+      for (distance = lidar_resolution; distance < lidar_radius; distance += lidar_resolution)
       {
-        sample_point = Point(position.x() + step * cos(angle), position.y() + step * sin(angle));
-        if (!point_in_environment(sample_point))
+        double sample_x = position.x() + distance * cos(angle);
+        double sample_y = position.y() + distance * sin(angle);
+
+        if (!point_in_environment(Point(sample_x, sample_y)))
           break;
       }
 
-      points.push_back(sample_point);
+      current_readings[i] = Reading{angle, distance};
     }
 
-    return points;
+    return;
   }
 
   void move_forward(double distance)
@@ -125,10 +136,10 @@ public:
 
     while (std::sqrt(CGAL::squared_distance(START_POSITION, position)) < EXPLORATION_RADIUS)
     {
-      std::vector<Point> lidar_points = take_lidar_reading();
-      for (const auto &p : lidar_points)
+      take_lidar_readings();
+      for (const auto &r : current_readings)
       {
-        if (std::sqrt(CGAL::squared_distance(position, p)) < lidar_radius - 0.1)
+        if (r.distance < lidar_radius - lidar_reading_threshold)
         {
           std::cout << "Wall detected at position (" << position.x() << ", " << position.y() << ")\n";
           first_contact_pos = position;
@@ -155,6 +166,22 @@ public:
 
     std::cout << "\n=== Exploration Complete ===\n";
     return true;
+  }
+
+  void draw_readings(float scale_factor)
+  {
+    float pos = lidar_radius * scale_factor + WINDOW_PADDING;
+
+    for (const auto &r : current_readings)
+    {
+      float end_x = pos + r.distance * scale_factor * cos(r.angle);
+      float end_y = pos + r.distance * scale_factor * sin(r.angle);
+
+            DrawLine(pos,
+               pos,
+               end_x, end_y,
+               GRAY);
+    }
   }
 
   void draw(float scale_factor, const Vector2 &offset)
@@ -219,6 +246,7 @@ int main()
   {
     // -- Update --
     bot.get_input_and_move();
+    bot.take_lidar_readings();
 
     // -- Draw --
     window.BeginDrawing();
@@ -249,6 +277,7 @@ int main()
     }
     */
 
+    bot.draw_readings(scale_factor);
     bot.draw(scale_factor, offset);
 
     window.EndDrawing();
