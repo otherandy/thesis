@@ -13,6 +13,7 @@ using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;
 using Polygon = CGAL::Polygon_2<Kernel>;
 using Direction = Kernel::Direction_2;
+using Vector = Kernel::Vector_2;
 
 struct Reading
 {
@@ -33,7 +34,7 @@ Polygon ENVIRONMENT(ENV_POINTS,
                     ENV_POINTS + sizeof(ENV_POINTS) / sizeof(ENV_POINTS[0]));
 const Point START_POSITION(1.0, 1.0);
 const int MAX_LIDAR_SAMPLES = 360 / 8;
-const double EXPLORATION_RADIUS = 10.0;
+const double INIT_EXPLORATION_RADIUS = 10.0;
 const float WINDOW_PADDING = 10.0f;
 
 const Direction NORTH(0, -1);
@@ -57,7 +58,8 @@ class ExplorationBot
 {
 public:
   Point position;
-  bool playerControlling = true;
+  bool player_controlling = true;
+  bool draw_as_hud = true;
 
   const double lidar_radius = 1.5;
   const double lidar_resolution = lidar_radius / 100.0;
@@ -68,7 +70,9 @@ public:
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
   std::vector<Point> visited_positions;
 
-  Reading closest_wall_reading{0, lidar_radius};
+  int closest_wall_reading_index = -1;
+  int clockwise_disconnect_reading_index = -1;
+  Vector current_follow_vector;
 
   ExplorationBot(const Point &start_pos)
       : position(start_pos)
@@ -79,13 +83,14 @@ public:
   void take_lidar_readings(int num_samples = MAX_LIDAR_SAMPLES)
   {
     current_readings.fill({0, 0});
+    closest_wall_reading_index = -1;
 
     for (int i = 0; i < num_samples; ++i)
     {
       double angle = 2 * M_PI * i / num_samples;
       double distance;
 
-      for (distance = lidar_resolution; distance < lidar_radius; distance += lidar_resolution)
+      for (distance = lidar_resolution; distance <= lidar_radius; distance += lidar_resolution)
       {
         double sample_x = position.x() + distance * cos(angle);
         double sample_y = position.y() + distance * sin(angle);
@@ -94,27 +99,56 @@ public:
           break;
       }
 
+      if (closest_wall_reading_index == -1 ||
+          distance < current_readings[closest_wall_reading_index].distance)
+      {
+        closest_wall_reading_index = i;
+      }
+
       current_readings[i] = Reading{angle, distance};
     }
 
     return;
   }
 
-  void find_closest_wall_reading()
+  void find_clockwise_disconnect_reading()
   {
-    double min_distance = lidar_radius;
-    Reading closest_reading = {0, lidar_radius};
-
-    for (const auto &r : current_readings)
+    for (int i = closest_wall_reading_index; i >= 0; --i)
     {
-      if (r.distance < min_distance)
+      if (current_readings[i].distance >= lidar_radius)
       {
-        min_distance = r.distance;
-        closest_reading = r;
+        clockwise_disconnect_reading_index = i;
+        return;
       }
     }
 
-    closest_wall_reading = closest_reading;
+    for (int i = MAX_LIDAR_SAMPLES - 1; i > closest_wall_reading_index; --i)
+    {
+      if (current_readings[i].distance >= lidar_radius)
+      {
+        clockwise_disconnect_reading_index = i;
+        return;
+      }
+    }
+  }
+
+  void create_follow_vector()
+  {
+    // Closest wall reading to clockwise disconnect reading
+
+    if (closest_wall_reading_index == -1 || clockwise_disconnect_reading_index == -1)
+      return;
+
+    const Reading closest_reading = current_readings[closest_wall_reading_index];
+    const Reading clockwise_reading = current_readings[clockwise_disconnect_reading_index];
+
+    const Point closest_point(position.x() + closest_reading.distance * cos(closest_reading.angle),
+                              position.y() + closest_reading.distance * sin(closest_reading.angle));
+
+    const Point clockwise_point(position.x() + clockwise_reading.distance * cos(clockwise_reading.angle),
+                                position.y() + clockwise_reading.distance * sin(clockwise_reading.angle));
+
+    current_follow_vector = clockwise_point - closest_point;
   }
 
   void move(const Direction &dir)
@@ -133,7 +167,12 @@ public:
 
   void get_input_and_move()
   {
-    if (!playerControlling)
+    if (IsKeyDown(KEY_R))
+    {
+      draw_as_hud = !draw_as_hud;
+    }
+
+    if (!player_controlling)
       return;
 
     if (IsKeyDown(KEY_W))
@@ -154,13 +193,12 @@ public:
     }
   }
 
-  bool
-  phase1_initial_wall_discovery()
+  bool phase1_initial_wall_discovery()
   {
     std::cout << "=== Phase 1: Initial Wall Discovery ===\n";
     const double heading = ((double)rand() / RAND_MAX) * 2 * M_PI;
 
-    while (std::sqrt(CGAL::squared_distance(START_POSITION, position)) < EXPLORATION_RADIUS)
+    while (std::sqrt(CGAL::squared_distance(START_POSITION, position)) < INIT_EXPLORATION_RADIUS)
     {
       take_lidar_readings();
       for (const auto &r : current_readings)
@@ -193,31 +231,59 @@ public:
     return true;
   }
 
-  void draw_readings(float scale_factor)
+  void draw_readings(float scale_factor, const Vector2 &offset)
   {
-    float pos = lidar_radius * scale_factor + WINDOW_PADDING;
+    float pos_x = position.x() * scale_factor + offset.x;
+    float pos_y = position.y() * scale_factor + offset.y;
+
+    if (draw_as_hud)
+    {
+      pos_x = lidar_radius * scale_factor + WINDOW_PADDING;
+      pos_y = lidar_radius * scale_factor + WINDOW_PADDING;
+    }
 
     for (const auto &r : current_readings)
     {
-      float end_x = pos + r.distance * scale_factor * cos(r.angle);
-      float end_y = pos + r.distance * scale_factor * sin(r.angle);
+      float end_x = pos_x + r.distance * scale_factor * cos(r.angle);
+      float end_y = pos_y + r.distance * scale_factor * sin(r.angle);
 
-      DrawLine(pos,
-               pos,
+      DrawLine(pos_x,
+               pos_y,
                end_x, end_y,
                GRAY);
     }
 
-    if (closest_wall_reading.distance == lidar_radius)
+    if (closest_wall_reading_index == -1)
       return;
 
-    float closest_end_x = pos + closest_wall_reading.distance * scale_factor * cos(closest_wall_reading.angle);
-    float closest_end_y = pos + closest_wall_reading.distance * scale_factor * sin(closest_wall_reading.angle);
+    const Reading closest_reading = current_readings[closest_wall_reading_index];
+
+    if (closest_reading.distance == lidar_radius)
+      return;
+
+    float closest_end_x = pos_x + closest_reading.distance * scale_factor * cos(closest_reading.angle);
+    float closest_end_y = pos_y + closest_reading.distance * scale_factor * sin(closest_reading.angle);
 
     DrawCircle(closest_end_x,
                closest_end_y,
                5,
                RED);
+
+    if (clockwise_disconnect_reading_index == -1)
+      return;
+
+    const Reading clockwise_reading = current_readings[clockwise_disconnect_reading_index];
+
+    if (clockwise_reading.distance == lidar_radius)
+      return;
+
+    float clockwise_end_x = pos_x + clockwise_reading.distance * scale_factor * cos(clockwise_reading.angle);
+    float clockwise_end_y = pos_y + clockwise_reading.distance * scale_factor * sin(clockwise_reading.angle);
+
+    DrawCircle(clockwise_end_x,
+               clockwise_end_y,
+               5,
+               ORANGE);
   }
 
   void draw(float scale_factor, const Vector2 &offset)
@@ -233,6 +299,17 @@ public:
                     position.y() * scale_factor + offset.y,
                     lidar_radius * scale_factor,
                     BLUE);
+  }
+
+  void draw_follow_vector(float scale_factor, const Vector2 &offset)
+  {
+    Point end_point = position + current_follow_vector;
+
+    DrawLine(position.x() * scale_factor + offset.x,
+             position.y() * scale_factor + offset.y,
+             end_point.x() * scale_factor + offset.x,
+             end_point.y() * scale_factor + offset.y,
+             GREEN);
   }
 };
 
@@ -276,7 +353,8 @@ int main()
     // -- Update --
     bot.get_input_and_move();
     bot.take_lidar_readings();
-    bot.find_closest_wall_reading();
+    bot.find_clockwise_disconnect_reading();
+    bot.create_follow_vector();
 
     // -- Draw --
     window.BeginDrawing();
@@ -307,8 +385,9 @@ int main()
     }
     */
 
-    bot.draw_readings(scale_factor);
+    bot.draw_readings(scale_factor, offset);
     bot.draw(scale_factor, offset);
+    bot.draw_follow_vector(scale_factor, offset);
 
     window.EndDrawing();
   }
