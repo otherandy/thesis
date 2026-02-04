@@ -413,6 +413,8 @@ void visited_to_file(const std::string &filename, const std::vector<Point> &visi
   {
     f << v.x() << "," << v.y() << "\n";
   }
+  f.close();
+  std::cout << "BOT: Saved visited positions to " << filename << std::endl;
 }
 
 int main()
@@ -463,9 +465,7 @@ int main()
     window.EndDrawing();
   }
 
-  // Save results
-  // visited_to_file("out/visited_positions.csv", bot.visited_positions);
-  // std::cout << "Saved: visited_positions.csv\n";
+  // visited_to_file("Testing/visited_positions.csv", bot.visited_positions);
 
   CloseWindow();
   return 0;
