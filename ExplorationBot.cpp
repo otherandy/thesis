@@ -170,6 +170,9 @@ public:
       return;
 
     position = Point(new_x, new_y);
+
+    if (exploration_phase != 0)
+      visited_positions.push_back(position);
   }
 
   void get_input_and_move()
@@ -228,7 +231,7 @@ public:
   {
     move(current_follow_vector.direction());
 
-    if (std::sqrt(CGAL::squared_distance(first_contact, position)) <= lidar_radius - lidar_reading_threshold - speed)
+    if (std::sqrt(CGAL::squared_distance(first_contact, position)) <= lidar_reading_threshold + speed)
     {
       if (!left_first_contact)
         return;
@@ -351,6 +354,23 @@ public:
                5,
                PURPLE);
   }
+
+  void draw_path(float scale_factor, const Vector2 &offset)
+  {
+    if (visited_positions.size() < 2)
+      return;
+
+    for (size_t i = 1; i < visited_positions.size(); ++i)
+    {
+      Point p1 = visited_positions[i - 1];
+      Point p2 = visited_positions[i];
+      DrawLine(p1.x() * scale_factor + offset.x,
+               p1.y() * scale_factor + offset.y,
+               p2.x() * scale_factor + offset.x,
+               p2.y() * scale_factor + offset.y,
+               RED);
+    }
+  }
 };
 
 // --- Drawing Functions ---
@@ -417,20 +437,11 @@ int main()
 
     draw_environment(scale_factor, offset);
 
-    // Draw bot path
-    /*
-    for (size_t i = 1; i < bot.visited_positions.size(); ++i)
-    {
-      Point p1 = bot.visited_positions[i - 1];
-      Point p2 = bot.visited_positions[i];
-      window.DrawLine(p1.x() * 50, p1.y() * 50, p2.x() * 50, p2.y() * 50, RED);
-    }
-    */
-
+    bot.draw_first_contact_point(scale_factor, offset);
+    bot.draw_path(scale_factor, offset);
     bot.draw_readings(scale_factor, offset);
     bot.draw(scale_factor, offset);
     bot.draw_follow_vector(scale_factor, offset);
-    bot.draw_first_contact_point(scale_factor, offset);
 
     window.EndDrawing();
   }
