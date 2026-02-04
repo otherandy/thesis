@@ -58,15 +58,17 @@ class ExplorationBot
 {
 public:
   Point position;
-  bool player_controlling = true;
   bool draw_as_hud = true;
+
+  int exploration_phase = 0;
+  bool left_first_contact = false;
 
   const double lidar_radius = 1.5;
   const double lidar_resolution = lidar_radius / 100.0;
   const double lidar_reading_threshold = 0.1;
   const double speed = 0.05;
 
-  Point first_contact_pos;
+  Point first_contact = Point(-1, -1);
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
   std::vector<Point> visited_positions;
 
@@ -74,10 +76,15 @@ public:
   int clockwise_disconnect_reading_index = -1;
   Vector current_follow_vector;
 
+  Direction random_direction;
+
   ExplorationBot(const Point &start_pos)
       : position(start_pos)
   {
     visited_positions.push_back(start_pos);
+
+    const double heading = ((double)rand() / RAND_MAX) * 2 * M_PI;
+    random_direction = Direction(cos(heading), sin(heading));
   }
 
   void take_lidar_readings(int num_samples = MAX_LIDAR_SAMPLES)
@@ -172,8 +179,13 @@ public:
       draw_as_hud = !draw_as_hud;
     }
 
-    if (!player_controlling)
+    if (exploration_phase != 0)
       return;
+
+    if (IsKeyDown(KEY_SPACE))
+    {
+      exploration_phase = 1;
+    }
 
     if (IsKeyDown(KEY_W))
     {
@@ -193,44 +205,61 @@ public:
     }
   }
 
-  bool phase1_initial_wall_discovery()
+  // --- Exploration Methods ---
+  void phase1_wall_discovery()
   {
-    std::cout << "=== Phase 1: Initial Wall Discovery ===\n";
-    const double heading = ((double)rand() / RAND_MAX) * 2 * M_PI;
+    if (std::sqrt(CGAL::squared_distance(START_POSITION, position)) >= INIT_EXPLORATION_RADIUS)
+      return;
 
-    while (std::sqrt(CGAL::squared_distance(START_POSITION, position)) < INIT_EXPLORATION_RADIUS)
+    for (const auto &r : current_readings)
     {
-      take_lidar_readings();
-      for (const auto &r : current_readings)
+      if (r.distance < lidar_radius - lidar_reading_threshold)
       {
-        if (r.distance < lidar_radius - lidar_reading_threshold)
-        {
-          std::cout << "Wall detected at position (" << position.x() << ", " << position.y() << ")\n";
-          first_contact_pos = position;
-          return true;
-        }
+        std::cout << "EXPLORATION: Wall detected at position (" << position.x() << ", " << position.y() << ")\n";
+        first_contact = position;
+        exploration_phase = 2;
+        return;
       }
-      move(Direction(cos(heading), sin(heading)));
     }
-
-    std::cout << "No wall found in exploration radius\n";
-    return false;
+    move(random_direction);
   }
 
-  bool run_exploration()
+  void phase2_wall_following()
   {
-    std::cout << "Starting exploration algorithm...\n";
+    move(current_follow_vector.direction());
 
-    if (!phase1_initial_wall_discovery())
+    if (std::sqrt(CGAL::squared_distance(first_contact, position)) <= lidar_radius - lidar_reading_threshold - speed)
     {
-      std::cout << "Failed at phase 1\n";
-      return false;
+      if (!left_first_contact)
+        return;
+
+      std::cout << "EXPLORATION: Completed wall following loop.\n";
+      exploration_phase = 3;
+      return;
     }
 
-    std::cout << "\n=== Exploration Complete ===\n";
-    return true;
+    left_first_contact = true;
   }
 
+  void run_exploration()
+  {
+    if (exploration_phase == 0)
+      return;
+
+    if (exploration_phase == 1)
+    {
+      phase1_wall_discovery();
+      return;
+    }
+
+    if (exploration_phase == 2)
+    {
+      phase2_wall_following();
+      return;
+    }
+  }
+
+  // --- Drawing Methods ---
   void draw_readings(float scale_factor, const Vector2 &offset)
   {
     float pos_x = position.x() * scale_factor + offset.x;
@@ -311,6 +340,17 @@ public:
              end_point.y() * scale_factor + offset.y,
              GREEN);
   }
+
+  void draw_first_contact_point(float scale_factor, const Vector2 &offset)
+  {
+    if (exploration_phase < 2)
+      return;
+
+    DrawCircle(first_contact.x() * scale_factor + offset.x,
+               first_contact.y() * scale_factor + offset.y,
+               5,
+               PURPLE);
+  }
 };
 
 // --- Drawing Functions ---
@@ -356,6 +396,8 @@ int main()
     bot.find_clockwise_disconnect_reading();
     bot.create_follow_vector();
 
+    bot.run_exploration();
+
     // -- Draw --
     window.BeginDrawing();
     window.ClearBackground(RAYWHITE);
@@ -388,6 +430,7 @@ int main()
     bot.draw_readings(scale_factor, offset);
     bot.draw(scale_factor, offset);
     bot.draw_follow_vector(scale_factor, offset);
+    bot.draw_first_contact_point(scale_factor, offset);
 
     window.EndDrawing();
   }
