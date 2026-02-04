@@ -40,14 +40,14 @@ Point TRIANGLE_ENV_POINTS[] = {Point(0, 0),
                                Point(10, 0),
                                Point(5, 8)};
 
-// Polygon ENVIRONMENT(POLY_ENV_POINTS,
-//                     POLY_ENV_POINTS + sizeof(POLY_ENV_POINTS) / sizeof(POLY_ENV_POINTS[0]));
+Polygon ENVIRONMENT(POLY_ENV_POINTS,
+                    POLY_ENV_POINTS + sizeof(POLY_ENV_POINTS) / sizeof(POLY_ENV_POINTS[0]));
 
 // Polygon ENVIRONMENT(SQUARE_ENV_POINTS,
 //                     SQUARE_ENV_POINTS + sizeof(SQUARE_ENV_POINTS) / sizeof(SQUARE_ENV_POINTS[0]));
 
-Polygon ENVIRONMENT(TRIANGLE_ENV_POINTS,
-                    TRIANGLE_ENV_POINTS + sizeof(TRIANGLE_ENV_POINTS) / sizeof(TRIANGLE_ENV_POINTS[0]));
+// Polygon ENVIRONMENT(TRIANGLE_ENV_POINTS,
+//                     TRIANGLE_ENV_POINTS + sizeof(TRIANGLE_ENV_POINTS) / sizeof(TRIANGLE_ENV_POINTS[0]));
 
 const Point START_POSITION(1.0, 1.0);
 const int MAX_LIDAR_SAMPLES = 360 / 8;
@@ -188,8 +188,8 @@ public:
 
     position = Point(new_x, new_y);
 
-    if (exploration_phase != 0)
-      visited_positions.push_back(position);
+    // if (exploration_phase != 0)
+    //   visited_positions.push_back(position);
   }
 
   void get_input_and_move()
@@ -347,6 +347,12 @@ public:
     DrawCircleLines(position.x() * scale_factor + offset.x,
                     position.y() * scale_factor + offset.y,
                     lidar_radius * scale_factor,
+                    BLUE);
+
+    // LIDAR threshold
+    DrawCircleLines(position.x() * scale_factor + offset.x,
+                    position.y() * scale_factor + offset.y,
+                    (lidar_radius - lidar_reading_threshold) * scale_factor,
                     BLUE);
   }
 
