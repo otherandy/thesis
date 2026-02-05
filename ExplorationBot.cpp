@@ -22,26 +22,31 @@ struct Reading
 };
 
 // --- Setup ---
-Point ENV_POINTS[] = {Point(0, 0),
-                      Point(8, 0),
-                      Point(8, 6),
-                      Point(12, 6),
-                      Point(12, 12),
-                      Point(4, 12),
-                      Point(4, 6),
-                      Point(0, 6)};
+const Point ENV_POINTS[] = {Point(0, 0),
+                            Point(8, 0),
+                            Point(8, 6),
+                            Point(12, 6),
+                            Point(12, 12),
+                            Point(4, 12),
+                            Point(4, 6),
+                            Point(0, 6)};
 
-Point SQUARE_ENV_POINTS[] = {Point(0, 0),
-                             Point(10, 0),
-                             Point(10, 10),
-                             Point(0, 10)};
+const Point SQUARE_ENV_POINTS[] = {Point(0, 0),
+                                   Point(10, 0),
+                                   Point(10, 10),
+                                   Point(0, 10)};
 
-Point TRIANGLE_ENV_POINTS[] = {Point(0, 0),
-                               Point(10, 0),
-                               Point(5, 8)};
+const Point TRIANGLE_ENV_POINTS[] = {Point(0, 0),
+                                     Point(10, 0),
+                                     Point(5, 8)};
 
-Polygon ENVIRONMENT(ENV_POINTS,
-                    ENV_POINTS + sizeof(ENV_POINTS) / sizeof(ENV_POINTS[0]));
+const Polygon ENVIRONMENT(ENV_POINTS,
+                          ENV_POINTS + sizeof(ENV_POINTS) / sizeof(ENV_POINTS[0]));
+
+const float ENV_WIDTH = ENVIRONMENT.bbox().xmax() -
+                        ENVIRONMENT.bbox().xmin();
+const float ENV_HEIGHT = ENVIRONMENT.bbox().ymax() -
+                         ENVIRONMENT.bbox().ymin();
 
 const double EXPLORATION_RADIUS = std::sqrt(
                                       std::pow(
@@ -50,7 +55,10 @@ const double EXPLORATION_RADIUS = std::sqrt(
                                           ENVIRONMENT.bbox().ymax() - ENVIRONMENT.bbox().ymin(), 2)) /
                                   2.0;
 
+const int WINDOW_WIDTH = 800;
+const int WINDOW_HEIGHT = 600;
 const float WINDOW_PADDING = 10.0f;
+const int FRAME_RATE = 60;
 
 const Point START_POSITION(1.0, 1.0);
 const int MAX_LIDAR_SAMPLES = 360 / 8;
@@ -154,6 +162,12 @@ protected:
     }
   }
 
+  inline Point reading_index_to_point(int index)
+  {
+    const Reading r = current_readings[index];
+    return point_at_reading(position, r);
+  }
+
   void move(const Direction &dir)
   {
     Vector delta = normalize_vector(dir.to_vector()) * speed;
@@ -237,34 +251,21 @@ public:
 
   void create_follow_vector()
   {
-    // Closest wall reading to clockwise disconnect reading
-
     if (closest_wall_reading_index == -1)
       return;
 
-    // const Reading closest_reading = current_readings[closest_wall_reading_index];
-    // const Point closest_point = point_at_reading(position, closest_reading);
-
     const int cw_epsilon_index = closest_wall_reading_index - LIDAR_EPSILON < 0 ? MAX_LIDAR_SAMPLES - 1 : closest_wall_reading_index - LIDAR_EPSILON;
-    const Reading cw_epsilon_reading = current_readings[cw_epsilon_index];
-    const Point clockwise_point = point_at_reading(position, cw_epsilon_reading);
+    const Point clockwise_point = reading_index_to_point(cw_epsilon_index);
 
     const int ccw_epsilon_index = closest_wall_reading_index + LIDAR_EPSILON >= MAX_LIDAR_SAMPLES ? 0 : closest_wall_reading_index + LIDAR_EPSILON;
-    const Reading ccw_epsilon_reading = current_readings[ccw_epsilon_index];
-    const Point counterclockwise_point = point_at_reading(position, ccw_epsilon_reading);
-
-    // const Reading clockwise_reading = current_readings[cw_disconnect_reading_index];
-    // const Reading counterclockwise_reading = current_readings[ccw_disconnect_reading_index];
-
-    // const Point clockwise_point = point_at_reading(position, clockwise_reading);
-    // const Point counterclockwise_point = point_at_reading(position, counterclockwise_reading);
+    const Point counterclockwise_point = reading_index_to_point(ccw_epsilon_index);
 
     current_follow_vector = clockwise_point - counterclockwise_point;
   }
 
   void get_input_and_move()
   {
-    if (IsKeyDown(KEY_R))
+    if (IsKeyPressed(KEY_R))
     {
       draw_as_hud = !draw_as_hud;
     }
@@ -272,7 +273,7 @@ public:
     if (exploration_phase != 0)
       return;
 
-    if (IsKeyDown(KEY_SPACE))
+    if (IsKeyPressed(KEY_SPACE))
     {
       exploration_phase = 1;
     }
@@ -471,15 +472,30 @@ void draw_environment(float scale_factor, const Vector2 &offset)
   }
 }
 
+inline float calculate_scale_factor(const raylib::Window &window)
+{
+  const float padded_width = window.GetWidth() - 2.0f * WINDOW_PADDING;
+  const float padded_height = window.GetHeight() - 2.0f * WINDOW_PADDING;
+
+  return std::min(padded_width / ENV_WIDTH,
+                  padded_height / ENV_HEIGHT);
+}
+
+inline Vector2 calculate_offset(const raylib::Window &window, float scale_factor)
+{
+  const float draw_width = ENV_WIDTH * scale_factor;
+  const float draw_height = ENV_HEIGHT * scale_factor;
+
+  return Vector2{
+      (window.GetWidth() - draw_width) * 0.5f,
+      (window.GetHeight() - draw_height) * 0.5f};
+}
+
 int main()
 {
-  raylib::Window window(800, 600, "Exploration Bot Simulation");
-  SetTargetFPS(60);
-
-  const float env_width = ENVIRONMENT.bbox().xmax() -
-                          ENVIRONMENT.bbox().xmin();
-  const float env_height = ENVIRONMENT.bbox().ymax() -
-                           ENVIRONMENT.bbox().ymin();
+  raylib::Window window(WINDOW_WIDTH, WINDOW_HEIGHT,
+                        "Exploration Bot Simulation");
+  SetTargetFPS(FRAME_RATE);
 
   ExplorationBot bot(START_POSITION);
 
@@ -497,18 +513,8 @@ int main()
     window.BeginDrawing();
     window.ClearBackground(RAYWHITE);
 
-    const float padded_width = window.GetWidth() - 2.0f * WINDOW_PADDING;
-    const float padded_height = window.GetHeight() - 2.0f * WINDOW_PADDING;
-
-    const float scale_factor = std::min(padded_width / env_width,
-                                        padded_height / env_height);
-
-    const float draw_width = env_width * scale_factor;
-    const float draw_height = env_height * scale_factor;
-
-    const Vector2 offset = {
-        (window.GetWidth() - draw_width) * 0.5f,
-        (window.GetHeight() - draw_height) * 0.5f};
+    const float scale_factor = calculate_scale_factor(window);
+    const Vector2 offset = calculate_offset(window, scale_factor);
 
     draw_environment(scale_factor, offset);
 
