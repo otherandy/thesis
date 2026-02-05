@@ -23,7 +23,6 @@
 *.dll
 *.so.*
 
-
 # Fortran module files
 *.mod
 *.smod
@@ -38,6 +37,7 @@
 *.exe
 *.out
 *.app
+ExplorationBot
 
 # Build directories
 build/
@@ -68,6 +68,7 @@ vcpkg_installed/
 Testing/
 .cache/
 
+# Ignore CMake user-specific files
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles

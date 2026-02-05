@@ -44,13 +44,19 @@ Polygon ENVIRONMENT(ENV_POINTS,
                     ENV_POINTS + sizeof(ENV_POINTS) / sizeof(ENV_POINTS[0]));
 
 const double EXPLORATION_RADIUS = std::sqrt(
-                                      std::pow(ENVIRONMENT.bbox().xmax() - ENVIRONMENT.bbox().xmin(), 2) +
-                                      std::pow(ENVIRONMENT.bbox().ymax() - ENVIRONMENT.bbox().ymin(), 2)) /
+                                      std::pow(
+                                          ENVIRONMENT.bbox().xmax() - ENVIRONMENT.bbox().xmin(), 2) +
+                                      std::pow(
+                                          ENVIRONMENT.bbox().ymax() - ENVIRONMENT.bbox().ymin(), 2)) /
                                   2.0;
+
+const float WINDOW_PADDING = 10.0f;
 
 const Point START_POSITION(1.0, 1.0);
 const int MAX_LIDAR_SAMPLES = 360 / 8;
-const float WINDOW_PADDING = 10.0f;
+const double LIDAR_RADIUS = 1.5;
+const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
+const double LIDAR_READING_THRESHOLD = 0.1;
 
 const Direction NORTH(0, -1);
 const Direction SOUTH(0, 1);
@@ -58,14 +64,20 @@ const Direction WEST(-1, 0);
 const Direction EAST(1, 0);
 
 // --- Utility Functions ---
-double compute_angle_to_point(const Point &from, const Point &to)
+inline double compute_angle_to_point(const Point &from, const Point &to)
 {
   return atan2(to.y() - from.y(), to.x() - from.x());
 }
 
-bool point_in_environment(const Point &p)
+inline bool point_in_environment(const Point &p)
 {
   return ENVIRONMENT.bounded_side(p) == CGAL::ON_BOUNDED_SIDE;
+}
+
+inline Point point_at_reading(const Point &origin, const Reading &r)
+{
+  return Point(origin.x() + r.distance * cos(r.angle),
+               origin.y() + r.distance * sin(r.angle));
 }
 
 // --- Classes ---
@@ -76,9 +88,6 @@ private:
   Point position;
   bool draw_as_hud = true;
 
-  const double lidar_radius = 1.5;
-  const double lidar_resolution = lidar_radius / 100.0;
-  const double lidar_reading_threshold = 0.1;
   const double speed = 0.05;
 
   int exploration_phase = 0;
@@ -100,7 +109,7 @@ protected:
   {
     for (int i = closest_wall_reading_index; i >= 0; --i)
     {
-      if (current_readings[i].distance >= lidar_radius)
+      if (current_readings[i].distance >= LIDAR_RADIUS)
       {
         cw_disconnect_reading_index = i;
         return;
@@ -109,7 +118,7 @@ protected:
 
     for (int i = MAX_LIDAR_SAMPLES - 1; i > closest_wall_reading_index; --i)
     {
-      if (current_readings[i].distance >= lidar_radius)
+      if (current_readings[i].distance >= LIDAR_RADIUS)
       {
         cw_disconnect_reading_index = i;
         return;
@@ -121,7 +130,7 @@ protected:
   {
     for (int i = closest_wall_reading_index; i < MAX_LIDAR_SAMPLES; ++i)
     {
-      if (current_readings[i].distance >= lidar_radius)
+      if (current_readings[i].distance >= LIDAR_RADIUS)
       {
         ccw_disconnect_reading_index = i;
         return;
@@ -130,7 +139,7 @@ protected:
 
     for (int i = 0; i < closest_wall_reading_index; ++i)
     {
-      if (current_readings[i].distance >= lidar_radius)
+      if (current_readings[i].distance >= LIDAR_RADIUS)
       {
         ccw_disconnect_reading_index = i;
         return;
@@ -155,11 +164,30 @@ protected:
       visited_positions.push_back(position);
   }
 
+  void draw_specific_reading(int index, Vector2 &pos, float scale_factor, const Vector2 &offset, Color color)
+  {
+    if (index == -1)
+      return;
+
+    const Reading r = current_readings[index];
+
+    if (r.distance == LIDAR_RADIUS)
+      return;
+
+    float end_x = pos.x + r.distance * scale_factor * cos(r.angle);
+    float end_y = pos.y + r.distance * scale_factor * sin(r.angle);
+
+    DrawCircle(end_x,
+               end_y,
+               5,
+               color);
+  }
+
 public:
   ExplorationBot(const Point &start_pos)
       : position(start_pos)
   {
-    current_readings.fill({lidar_radius, lidar_radius});
+    current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
 
     const double heading = ((double)rand() / RAND_MAX) * 2 * M_PI;
     random_direction = Direction(cos(heading), sin(heading));
@@ -174,7 +202,9 @@ public:
       double angle = 2 * M_PI * i / num_samples;
       double distance;
 
-      for (distance = lidar_resolution; distance <= lidar_radius; distance += lidar_resolution)
+      for (distance = LIDAR_RESOLUTION;
+           distance <= LIDAR_RADIUS;
+           distance += LIDAR_RESOLUTION)
       {
         double sample_x = position.x() + distance * cos(angle);
         double sample_y = position.y() + distance * sin(angle);
@@ -208,18 +238,14 @@ public:
     if (closest_wall_reading_index == -1)
       return;
 
-    const Reading closest_reading = current_readings[closest_wall_reading_index];
+    // const Reading closest_reading = current_readings[closest_wall_reading_index];
+    // const Point closest_point = point_at_reading(position, closest_reading);
+
     const Reading clockwise_reading = current_readings[cw_disconnect_reading_index];
     const Reading counterclockwise_reading = current_readings[ccw_disconnect_reading_index];
 
-    // const Point closest_point(position.x() + closest_reading.distance * cos(closest_reading.angle),
-    //                           position.y() + closest_reading.distance * sin(closest_reading.angle));
-
-    const Point clockwise_point(position.x() + clockwise_reading.distance * cos(clockwise_reading.angle),
-                                position.y() + clockwise_reading.distance * sin(clockwise_reading.angle));
-
-    const Point counterclockwise_point(position.x() + counterclockwise_reading.distance * cos(counterclockwise_reading.angle),
-                                       position.y() + counterclockwise_reading.distance * sin(counterclockwise_reading.angle));
+    const Point clockwise_point = point_at_reading(position, clockwise_reading);
+    const Point counterclockwise_point = point_at_reading(position, counterclockwise_reading);
 
     current_follow_vector = clockwise_point - counterclockwise_point;
   }
@@ -257,6 +283,17 @@ public:
     }
   }
 
+  void visited_to_file(const std::string &filename)
+  {
+    std::ofstream f(filename);
+    for (const auto &v : visited_positions)
+    {
+      f << v.x() << "," << v.y() << "\n";
+    }
+    f.close();
+    std::cout << "BOT: Saved visited positions to " << filename << std::endl;
+  }
+
   // --- Exploration Methods ---
   void phase1_wall_discovery()
   {
@@ -265,9 +302,10 @@ public:
 
     for (const auto &r : current_readings)
     {
-      if (r.distance < lidar_radius - lidar_reading_threshold)
+      if (r.distance < LIDAR_RADIUS - LIDAR_READING_THRESHOLD)
       {
-        std::cout << "EXPLORATION: Wall detected at position (" << position.x() << ", " << position.y() << ")\n";
+        std::cout << "EXPLORATION: Wall detected at position ("
+                  << position.x() << ", " << position.y() << ")\n";
         first_contact = position;
         exploration_phase = 2;
         return;
@@ -280,7 +318,8 @@ public:
   {
     move(current_follow_vector.direction());
 
-    if (std::sqrt(CGAL::squared_distance(first_contact, position)) <= lidar_reading_threshold + speed)
+    if (std::sqrt(CGAL::squared_distance(first_contact, position)) <=
+        LIDAR_READING_THRESHOLD + speed)
     {
       if (!left_first_contact)
         return;
@@ -314,73 +353,31 @@ public:
   // --- Drawing Methods ---
   void draw_readings(float scale_factor, const Vector2 &offset)
   {
-    float pos_x = position.x() * scale_factor + offset.x;
-    float pos_y = position.y() * scale_factor + offset.y;
+    Vector2 pos;
+
+    pos.x = position.x() * scale_factor + offset.x;
+    pos.y = position.y() * scale_factor + offset.y;
 
     if (draw_as_hud)
     {
-      pos_x = lidar_radius * scale_factor + WINDOW_PADDING;
-      pos_y = lidar_radius * scale_factor + WINDOW_PADDING;
+      pos.x = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
+      pos.y = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
     }
 
     for (const auto &r : current_readings)
     {
-      float end_x = pos_x + r.distance * scale_factor * cos(r.angle);
-      float end_y = pos_y + r.distance * scale_factor * sin(r.angle);
+      float end_x = pos.x + r.distance * scale_factor * cos(r.angle);
+      float end_y = pos.y + r.distance * scale_factor * sin(r.angle);
 
-      DrawLine(pos_x,
-               pos_y,
+      DrawLine(pos.x,
+               pos.y,
                end_x, end_y,
                GRAY);
     }
 
-    if (closest_wall_reading_index == -1)
-      return;
-
-    const Reading closest_reading = current_readings[closest_wall_reading_index];
-
-    if (closest_reading.distance == lidar_radius)
-      return;
-
-    float closest_end_x = pos_x + closest_reading.distance * scale_factor * cos(closest_reading.angle);
-    float closest_end_y = pos_y + closest_reading.distance * scale_factor * sin(closest_reading.angle);
-
-    DrawCircle(closest_end_x,
-               closest_end_y,
-               5,
-               RED);
-
-    if (cw_disconnect_reading_index == -1)
-      return;
-
-    const Reading clockwise_reading = current_readings[cw_disconnect_reading_index];
-
-    if (clockwise_reading.distance == lidar_radius)
-      return;
-
-    float clockwise_end_x = pos_x + clockwise_reading.distance * scale_factor * cos(clockwise_reading.angle);
-    float clockwise_end_y = pos_y + clockwise_reading.distance * scale_factor * sin(clockwise_reading.angle);
-
-    DrawCircle(clockwise_end_x,
-               clockwise_end_y,
-               5,
-               ORANGE);
-
-    if (ccw_disconnect_reading_index == -1)
-      return;
-
-    const Reading counterclockwise_reading = current_readings[ccw_disconnect_reading_index];
-
-    if (counterclockwise_reading.distance == lidar_radius)
-      return;
-
-    float counterclockwise_end_x = pos_x + counterclockwise_reading.distance * scale_factor * cos(counterclockwise_reading.angle);
-    float counterclockwise_end_y = pos_y + counterclockwise_reading.distance * scale_factor * sin(counterclockwise_reading.angle);
-
-    DrawCircle(counterclockwise_end_x,
-               counterclockwise_end_y,
-               5,
-               ORANGE);
+    draw_specific_reading(closest_wall_reading_index, pos, scale_factor, offset, RED);
+    draw_specific_reading(cw_disconnect_reading_index, pos, scale_factor, offset, ORANGE);
+    draw_specific_reading(ccw_disconnect_reading_index, pos, scale_factor, offset, ORANGE);
   }
 
   void draw(float scale_factor, const Vector2 &offset)
@@ -394,13 +391,13 @@ public:
     // LIDAR radius
     DrawCircleLines(position.x() * scale_factor + offset.x,
                     position.y() * scale_factor + offset.y,
-                    lidar_radius * scale_factor,
+                    LIDAR_RADIUS * scale_factor,
                     BLUE);
 
     // LIDAR threshold
     DrawCircleLines(position.x() * scale_factor + offset.x,
                     position.y() * scale_factor + offset.y,
-                    (lidar_radius - lidar_reading_threshold) * scale_factor,
+                    (LIDAR_RADIUS - LIDAR_READING_THRESHOLD) * scale_factor,
                     BLUE);
   }
 
@@ -459,18 +456,6 @@ void draw_environment(float scale_factor, const Vector2 &offset)
   }
 }
 
-// --- File Output ---
-void visited_to_file(const std::string &filename, const std::vector<Point> &visited)
-{
-  std::ofstream f(filename);
-  for (const auto &v : visited)
-  {
-    f << v.x() << "," << v.y() << "\n";
-  }
-  f.close();
-  std::cout << "BOT: Saved visited positions to " << filename << std::endl;
-}
-
 int main()
 {
   raylib::Window window(800, 600, "Exploration Bot Simulation");
@@ -487,6 +472,7 @@ int main()
   {
     // -- Update --
     bot.get_input_and_move();
+
     bot.take_lidar_readings();
     bot.find_disconnect_readings();
     bot.create_follow_vector();
@@ -521,7 +507,7 @@ int main()
     window.EndDrawing();
   }
 
-  // visited_to_file("Testing/visited_positions.csv", bot.visited_positions);
+  // bot.visited_to_file("Testing/visited_positions.csv");
 
   CloseWindow();
   return 0;
