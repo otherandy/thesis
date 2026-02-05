@@ -22,14 +22,14 @@ struct Reading
 };
 
 // --- Setup ---
-Point POLY_ENV_POINTS[] = {Point(0, 0),
-                           Point(8, 0),
-                           Point(8, 6),
-                           Point(12, 6),
-                           Point(12, 12),
-                           Point(4, 12),
-                           Point(4, 6),
-                           Point(0, 6)};
+Point ENV_POINTS[] = {Point(0, 0),
+                      Point(8, 0),
+                      Point(8, 6),
+                      Point(12, 6),
+                      Point(12, 12),
+                      Point(4, 12),
+                      Point(4, 6),
+                      Point(0, 6)};
 
 Point SQUARE_ENV_POINTS[] = {Point(0, 0),
                              Point(10, 0),
@@ -40,18 +40,16 @@ Point TRIANGLE_ENV_POINTS[] = {Point(0, 0),
                                Point(10, 0),
                                Point(5, 8)};
 
-Polygon ENVIRONMENT(POLY_ENV_POINTS,
-                    POLY_ENV_POINTS + sizeof(POLY_ENV_POINTS) / sizeof(POLY_ENV_POINTS[0]));
+Polygon ENVIRONMENT(ENV_POINTS,
+                    ENV_POINTS + sizeof(ENV_POINTS) / sizeof(ENV_POINTS[0]));
 
-// Polygon ENVIRONMENT(SQUARE_ENV_POINTS,
-//                     SQUARE_ENV_POINTS + sizeof(SQUARE_ENV_POINTS) / sizeof(SQUARE_ENV_POINTS[0]));
-
-// Polygon ENVIRONMENT(TRIANGLE_ENV_POINTS,
-//                     TRIANGLE_ENV_POINTS + sizeof(TRIANGLE_ENV_POINTS) / sizeof(TRIANGLE_ENV_POINTS[0]));
+const double EXPLORATION_RADIUS = std::sqrt(
+                                      std::pow(ENVIRONMENT.bbox().xmax() - ENVIRONMENT.bbox().xmin(), 2) +
+                                      std::pow(ENVIRONMENT.bbox().ymax() - ENVIRONMENT.bbox().ymin(), 2)) /
+                                  2.0;
 
 const Point START_POSITION(1.0, 1.0);
 const int MAX_LIDAR_SAMPLES = 360 / 8;
-const double INIT_EXPLORATION_RADIUS = 10.0;
 const float WINDOW_PADDING = 10.0f;
 
 const Direction NORTH(0, -1);
@@ -73,32 +71,95 @@ bool point_in_environment(const Point &p)
 // --- Classes ---
 class ExplorationBot
 {
-public:
+private:
+  Point relative_position = Point(0.0, 0.0);
   Point position;
   bool draw_as_hud = true;
-
-  int exploration_phase = 0;
-  bool left_first_contact = false;
 
   const double lidar_radius = 1.5;
   const double lidar_resolution = lidar_radius / 100.0;
   const double lidar_reading_threshold = 0.1;
   const double speed = 0.05;
 
-  Point first_contact = Point(-1, -1);
+  int exploration_phase = 0;
+  bool left_first_contact = false;
+
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
   std::vector<Point> visited_positions;
 
+  Direction random_direction;
+  Point first_contact = Point(-1, -1);
+
   int closest_wall_reading_index = -1;
-  int clockwise_disconnect_reading_index = -1;
+  int cw_disconnect_reading_index = -1;
+  int ccw_disconnect_reading_index = -1;
   Vector current_follow_vector;
 
-  Direction random_direction;
+protected:
+  void find_cw_disconnect_reading()
+  {
+    for (int i = closest_wall_reading_index; i >= 0; --i)
+    {
+      if (current_readings[i].distance >= lidar_radius)
+      {
+        cw_disconnect_reading_index = i;
+        return;
+      }
+    }
 
+    for (int i = MAX_LIDAR_SAMPLES - 1; i > closest_wall_reading_index; --i)
+    {
+      if (current_readings[i].distance >= lidar_radius)
+      {
+        cw_disconnect_reading_index = i;
+        return;
+      }
+    }
+  }
+
+  void find_ccw_disconnect_reading()
+  {
+    for (int i = closest_wall_reading_index; i < MAX_LIDAR_SAMPLES; ++i)
+    {
+      if (current_readings[i].distance >= lidar_radius)
+      {
+        ccw_disconnect_reading_index = i;
+        return;
+      }
+    }
+
+    for (int i = 0; i < closest_wall_reading_index; ++i)
+    {
+      if (current_readings[i].distance >= lidar_radius)
+      {
+        ccw_disconnect_reading_index = i;
+        return;
+      }
+    }
+  }
+
+  void move(const Direction &dir)
+  {
+    double delta_x = dir.dx() * speed;
+    double delta_y = dir.dy() * speed;
+
+    double new_x = position.x() + delta_x;
+    double new_y = position.y() + delta_y;
+
+    if (!point_in_environment(Point(new_x, new_y)))
+      return;
+
+    position = Point(new_x, new_y);
+
+    if (exploration_phase != 0)
+      visited_positions.push_back(position);
+  }
+
+public:
   ExplorationBot(const Point &start_pos)
       : position(start_pos)
   {
-    visited_positions.push_back(start_pos);
+    current_readings.fill({lidar_radius, lidar_radius});
 
     const double heading = ((double)rand() / RAND_MAX) * 2 * M_PI;
     random_direction = Direction(cos(heading), sin(heading));
@@ -106,7 +167,6 @@ public:
 
   void take_lidar_readings(int num_samples = MAX_LIDAR_SAMPLES)
   {
-    current_readings.fill({0, 0});
     closest_wall_reading_index = -1;
 
     for (int i = 0; i < num_samples; ++i)
@@ -135,61 +195,33 @@ public:
     return;
   }
 
-  void find_clockwise_disconnect_reading()
+  void find_disconnect_readings()
   {
-    for (int i = closest_wall_reading_index; i >= 0; --i)
-    {
-      if (current_readings[i].distance >= lidar_radius)
-      {
-        clockwise_disconnect_reading_index = i;
-        return;
-      }
-    }
-
-    for (int i = MAX_LIDAR_SAMPLES - 1; i > closest_wall_reading_index; --i)
-    {
-      if (current_readings[i].distance >= lidar_radius)
-      {
-        clockwise_disconnect_reading_index = i;
-        return;
-      }
-    }
+    find_cw_disconnect_reading();
+    find_ccw_disconnect_reading();
   }
 
   void create_follow_vector()
   {
     // Closest wall reading to clockwise disconnect reading
 
-    if (closest_wall_reading_index == -1 || clockwise_disconnect_reading_index == -1)
+    if (closest_wall_reading_index == -1)
       return;
 
     const Reading closest_reading = current_readings[closest_wall_reading_index];
-    const Reading clockwise_reading = current_readings[clockwise_disconnect_reading_index];
+    const Reading clockwise_reading = current_readings[cw_disconnect_reading_index];
+    const Reading counterclockwise_reading = current_readings[ccw_disconnect_reading_index];
 
-    const Point closest_point(position.x() + closest_reading.distance * cos(closest_reading.angle),
-                              position.y() + closest_reading.distance * sin(closest_reading.angle));
+    // const Point closest_point(position.x() + closest_reading.distance * cos(closest_reading.angle),
+    //                           position.y() + closest_reading.distance * sin(closest_reading.angle));
 
     const Point clockwise_point(position.x() + clockwise_reading.distance * cos(clockwise_reading.angle),
                                 position.y() + clockwise_reading.distance * sin(clockwise_reading.angle));
 
-    current_follow_vector = clockwise_point - closest_point;
-  }
+    const Point counterclockwise_point(position.x() + counterclockwise_reading.distance * cos(counterclockwise_reading.angle),
+                                       position.y() + counterclockwise_reading.distance * sin(counterclockwise_reading.angle));
 
-  void move(const Direction &dir)
-  {
-    double delta_x = dir.dx() * speed;
-    double delta_y = dir.dy() * speed;
-
-    double new_x = position.x() + delta_x;
-    double new_y = position.y() + delta_y;
-
-    if (!point_in_environment(Point(new_x, new_y)))
-      return;
-
-    position = Point(new_x, new_y);
-
-    // if (exploration_phase != 0)
-    //   visited_positions.push_back(position);
+    current_follow_vector = clockwise_point - counterclockwise_point;
   }
 
   void get_input_and_move()
@@ -228,7 +260,7 @@ public:
   // --- Exploration Methods ---
   void phase1_wall_discovery()
   {
-    if (std::sqrt(CGAL::squared_distance(START_POSITION, position)) >= INIT_EXPLORATION_RADIUS)
+    if (std::sqrt(CGAL::squared_distance(START_POSITION, position)) >= EXPLORATION_RADIUS)
       return;
 
     for (const auto &r : current_readings)
@@ -318,10 +350,10 @@ public:
                5,
                RED);
 
-    if (clockwise_disconnect_reading_index == -1)
+    if (cw_disconnect_reading_index == -1)
       return;
 
-    const Reading clockwise_reading = current_readings[clockwise_disconnect_reading_index];
+    const Reading clockwise_reading = current_readings[cw_disconnect_reading_index];
 
     if (clockwise_reading.distance == lidar_radius)
       return;
@@ -331,6 +363,22 @@ public:
 
     DrawCircle(clockwise_end_x,
                clockwise_end_y,
+               5,
+               ORANGE);
+
+    if (ccw_disconnect_reading_index == -1)
+      return;
+
+    const Reading counterclockwise_reading = current_readings[ccw_disconnect_reading_index];
+
+    if (counterclockwise_reading.distance == lidar_radius)
+      return;
+
+    float counterclockwise_end_x = pos_x + counterclockwise_reading.distance * scale_factor * cos(counterclockwise_reading.angle);
+    float counterclockwise_end_y = pos_y + counterclockwise_reading.distance * scale_factor * sin(counterclockwise_reading.angle);
+
+    DrawCircle(counterclockwise_end_x,
+               counterclockwise_end_y,
                5,
                ORANGE);
   }
@@ -428,8 +476,10 @@ int main()
   raylib::Window window(800, 600, "Exploration Bot Simulation");
   SetTargetFPS(60);
 
-  const float env_width = ENVIRONMENT.bbox().xmax() - ENVIRONMENT.bbox().xmin();
-  const float env_height = ENVIRONMENT.bbox().ymax() - ENVIRONMENT.bbox().ymin();
+  const float env_width = ENVIRONMENT.bbox().xmax() -
+                          ENVIRONMENT.bbox().xmin();
+  const float env_height = ENVIRONMENT.bbox().ymax() -
+                           ENVIRONMENT.bbox().ymin();
 
   ExplorationBot bot(START_POSITION);
 
@@ -438,7 +488,7 @@ int main()
     // -- Update --
     bot.get_input_and_move();
     bot.take_lidar_readings();
-    bot.find_clockwise_disconnect_reading();
+    bot.find_disconnect_readings();
     bot.create_follow_vector();
 
     bot.run_exploration();
