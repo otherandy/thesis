@@ -57,6 +57,7 @@ const int MAX_LIDAR_SAMPLES = 360 / 8;
 const double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
 const double LIDAR_READING_THRESHOLD = 0.1;
+const int LIDAR_EPSILON = 2;
 
 const Direction NORTH(0, -1);
 const Direction SOUTH(0, 1);
@@ -80,6 +81,12 @@ inline Point point_at_reading(const Point &origin, const Reading &r)
                origin.y() + r.distance * sin(r.angle));
 }
 
+inline Vector normalize_vector(const Vector &v)
+{
+  double length = std::sqrt(v.squared_length());
+  return Vector(v.x() / length, v.y() / length);
+}
+
 // --- Classes ---
 class ExplorationBot
 {
@@ -88,7 +95,7 @@ private:
   Point position;
   bool draw_as_hud = true;
 
-  const double speed = 0.05;
+  double speed = 0.2;
 
   int exploration_phase = 0;
   bool left_first_contact = false;
@@ -149,19 +156,16 @@ protected:
 
   void move(const Direction &dir)
   {
-    double delta_x = dir.dx() * speed;
-    double delta_y = dir.dy() * speed;
+    Vector delta = normalize_vector(dir.to_vector()) * speed;
+    Point new_position = position + delta;
 
-    double new_x = position.x() + delta_x;
-    double new_y = position.y() + delta_y;
-
-    if (!point_in_environment(Point(new_x, new_y)))
+    if (!point_in_environment(new_position))
       return;
-
-    position = Point(new_x, new_y);
 
     if (exploration_phase != 0)
       visited_positions.push_back(position);
+
+    position = new_position;
   }
 
   void draw_specific_reading(int index, Vector2 &pos, float scale_factor, const Vector2 &offset, Color color)
@@ -241,11 +245,19 @@ public:
     // const Reading closest_reading = current_readings[closest_wall_reading_index];
     // const Point closest_point = point_at_reading(position, closest_reading);
 
-    const Reading clockwise_reading = current_readings[cw_disconnect_reading_index];
-    const Reading counterclockwise_reading = current_readings[ccw_disconnect_reading_index];
+    const int cw_epsilon_index = closest_wall_reading_index - LIDAR_EPSILON < 0 ? MAX_LIDAR_SAMPLES - 1 : closest_wall_reading_index - LIDAR_EPSILON;
+    const Reading cw_epsilon_reading = current_readings[cw_epsilon_index];
+    const Point clockwise_point = point_at_reading(position, cw_epsilon_reading);
 
-    const Point clockwise_point = point_at_reading(position, clockwise_reading);
-    const Point counterclockwise_point = point_at_reading(position, counterclockwise_reading);
+    const int ccw_epsilon_index = closest_wall_reading_index + LIDAR_EPSILON >= MAX_LIDAR_SAMPLES ? 0 : closest_wall_reading_index + LIDAR_EPSILON;
+    const Reading ccw_epsilon_reading = current_readings[ccw_epsilon_index];
+    const Point counterclockwise_point = point_at_reading(position, ccw_epsilon_reading);
+
+    // const Reading clockwise_reading = current_readings[cw_disconnect_reading_index];
+    // const Reading counterclockwise_reading = current_readings[ccw_disconnect_reading_index];
+
+    // const Point clockwise_point = point_at_reading(position, clockwise_reading);
+    // const Point counterclockwise_point = point_at_reading(position, counterclockwise_reading);
 
     current_follow_vector = clockwise_point - counterclockwise_point;
   }
@@ -316,10 +328,11 @@ public:
 
   void phase2_wall_following()
   {
+    create_follow_vector();
     move(current_follow_vector.direction());
 
     if (std::sqrt(CGAL::squared_distance(first_contact, position)) <=
-        LIDAR_READING_THRESHOLD + speed)
+        LIDAR_READING_THRESHOLD + speed * 2)
     {
       if (!left_first_contact)
         return;
@@ -355,13 +368,15 @@ public:
   {
     Vector2 pos;
 
-    pos.x = position.x() * scale_factor + offset.x;
-    pos.y = position.y() * scale_factor + offset.y;
-
     if (draw_as_hud)
     {
       pos.x = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
       pos.y = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
+    }
+    else
+    {
+      pos.x = position.x() * scale_factor + offset.x;
+      pos.y = position.y() * scale_factor + offset.y;
     }
 
     for (const auto &r : current_readings)
@@ -403,7 +418,7 @@ public:
 
   void draw_follow_vector(float scale_factor, const Vector2 &offset)
   {
-    Point end_point = position + current_follow_vector;
+    Point end_point = position + normalize_vector(current_follow_vector);
 
     DrawLine(position.x() * scale_factor + offset.x,
              position.y() * scale_factor + offset.y,
@@ -475,7 +490,6 @@ int main()
 
     bot.take_lidar_readings();
     bot.find_disconnect_readings();
-    bot.create_follow_vector();
 
     bot.run_exploration();
 
