@@ -99,8 +99,8 @@ inline Vector normalize_vector(const Vector &v)
 class ExplorationBot
 {
 private:
+  Point real_position;
   Point relative_position = Point(0.0, 0.0);
-  Point position;
   bool draw_as_hud = true;
 
   double speed = 0.2;
@@ -112,7 +112,8 @@ private:
   std::vector<Point> visited_positions;
 
   Direction random_direction;
-  Point first_contact = Point(-1, -1);
+  Point real_first_contact_point = Point(-1, -1);
+  Point relative_first_contact_point = Point(-1, -1);
 
   int closest_wall_reading_index = -1;
   int cw_disconnect_reading_index = -1;
@@ -165,21 +166,22 @@ protected:
   inline Point reading_index_to_point(int index)
   {
     const Reading r = current_readings[index];
-    return point_at_reading(position, r);
+    return point_at_reading(real_position, r);
   }
 
   void move(const Direction &dir)
   {
     Vector delta = normalize_vector(dir.to_vector()) * speed;
-    Point new_position = position + delta;
+    Point new_position = real_position + delta;
 
     if (!point_in_environment(new_position))
       return;
 
     if (exploration_phase != 0)
-      visited_positions.push_back(position);
+      visited_positions.push_back(real_position);
 
-    position = new_position;
+    real_position = new_position;
+    relative_position = relative_position + delta;
   }
 
   void draw_specific_reading(int index, Vector2 &pos, float scale_factor, const Vector2 &offset, Color color)
@@ -203,7 +205,7 @@ protected:
 
 public:
   ExplorationBot(const Point &start_pos)
-      : position(start_pos)
+      : real_position(start_pos)
   {
     current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
 
@@ -224,8 +226,8 @@ public:
            distance <= LIDAR_RADIUS;
            distance += LIDAR_RESOLUTION)
       {
-        double sample_x = position.x() + distance * cos(angle);
-        double sample_y = position.y() + distance * sin(angle);
+        double sample_x = real_position.x() + distance * cos(angle);
+        double sample_y = real_position.y() + distance * sin(angle);
 
         if (!point_in_environment(Point(sample_x, sample_y)))
           break;
@@ -310,7 +312,7 @@ public:
   // --- Exploration Methods ---
   void phase1_wall_discovery()
   {
-    if (std::sqrt(CGAL::squared_distance(START_POSITION, position)) >= EXPLORATION_RADIUS)
+    if (std::sqrt(CGAL::squared_distance(relative_position, Point(0, 0))) >= EXPLORATION_RADIUS)
       return;
 
     for (const auto &r : current_readings)
@@ -318,8 +320,9 @@ public:
       if (r.distance < LIDAR_RADIUS - LIDAR_READING_THRESHOLD)
       {
         std::cout << "EXPLORATION: Wall detected at position ("
-                  << position.x() << ", " << position.y() << ")\n";
-        first_contact = position;
+                  << relative_position.x() << ", " << relative_position.y() << ")\n";
+        real_first_contact_point = real_position;
+        relative_first_contact_point = relative_position;
         exploration_phase = 2;
         return;
       }
@@ -332,7 +335,7 @@ public:
     create_follow_vector();
     move(current_follow_vector.direction());
 
-    if (std::sqrt(CGAL::squared_distance(first_contact, position)) <=
+    if (std::sqrt(CGAL::squared_distance(relative_first_contact_point, relative_position)) <=
         LIDAR_READING_THRESHOLD + speed * 2)
     {
       if (!left_first_contact)
@@ -376,8 +379,8 @@ public:
     }
     else
     {
-      pos.x = position.x() * scale_factor + offset.x;
-      pos.y = position.y() * scale_factor + offset.y;
+      pos.x = real_position.x() * scale_factor + offset.x;
+      pos.y = real_position.y() * scale_factor + offset.y;
     }
 
     for (const auto &r : current_readings)
@@ -399,30 +402,30 @@ public:
   void draw(float scale_factor, const Vector2 &offset)
   {
     // Bot body
-    DrawCircle(position.x() * scale_factor + offset.x,
-               position.y() * scale_factor + offset.y,
+    DrawCircle(real_position.x() * scale_factor + offset.x,
+               real_position.y() * scale_factor + offset.y,
                5,
                RED);
 
     // LIDAR radius
-    DrawCircleLines(position.x() * scale_factor + offset.x,
-                    position.y() * scale_factor + offset.y,
+    DrawCircleLines(real_position.x() * scale_factor + offset.x,
+                    real_position.y() * scale_factor + offset.y,
                     LIDAR_RADIUS * scale_factor,
                     BLUE);
 
     // LIDAR threshold
-    DrawCircleLines(position.x() * scale_factor + offset.x,
-                    position.y() * scale_factor + offset.y,
+    DrawCircleLines(real_position.x() * scale_factor + offset.x,
+                    real_position.y() * scale_factor + offset.y,
                     (LIDAR_RADIUS - LIDAR_READING_THRESHOLD) * scale_factor,
                     BLUE);
   }
 
   void draw_follow_vector(float scale_factor, const Vector2 &offset)
   {
-    Point end_point = position + normalize_vector(current_follow_vector);
+    Point end_point = real_position + normalize_vector(current_follow_vector);
 
-    DrawLine(position.x() * scale_factor + offset.x,
-             position.y() * scale_factor + offset.y,
+    DrawLine(real_position.x() * scale_factor + offset.x,
+             real_position.y() * scale_factor + offset.y,
              end_point.x() * scale_factor + offset.x,
              end_point.y() * scale_factor + offset.y,
              GREEN);
@@ -433,8 +436,8 @@ public:
     if (exploration_phase < 2)
       return;
 
-    DrawCircle(first_contact.x() * scale_factor + offset.x,
-               first_contact.y() * scale_factor + offset.y,
+    DrawCircle(real_first_contact_point.x() * scale_factor + offset.x,
+               real_first_contact_point.y() * scale_factor + offset.y,
                5,
                PURPLE);
   }
