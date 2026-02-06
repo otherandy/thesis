@@ -21,6 +21,14 @@ struct Reading
   double distance;
 };
 
+enum class ExplorationPhase
+{
+  Idle,
+  WallDiscovery,
+  WallFollowing,
+  Completed
+};
+
 // --- Setup ---
 const Point ENV_POINTS[] = {Point(0, 0),
                             Point(8, 0),
@@ -105,7 +113,7 @@ private:
 
   double speed = 0.2;
 
-  int exploration_phase = 0;
+  ExplorationPhase exploration_phase = ExplorationPhase::Idle;
   bool left_first_contact = false;
 
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
@@ -177,7 +185,7 @@ protected:
     if (!point_in_environment(new_position))
       return;
 
-    if (exploration_phase != 0)
+    if (exploration_phase != ExplorationPhase::Idle)
       visited_positions.push_back(real_position);
 
     real_position = new_position;
@@ -272,12 +280,12 @@ public:
       draw_as_hud = !draw_as_hud;
     }
 
-    if (exploration_phase != 0)
+    if (exploration_phase != ExplorationPhase::Idle)
       return;
 
     if (IsKeyPressed(KEY_SPACE))
     {
-      exploration_phase = 1;
+      exploration_phase = ExplorationPhase::WallDiscovery;
     }
 
     if (IsKeyDown(KEY_W))
@@ -323,7 +331,7 @@ public:
                   << relative_position.x() << ", " << relative_position.y() << ")\n";
         real_first_contact_point = real_position;
         relative_first_contact_point = relative_position;
-        exploration_phase = 2;
+        exploration_phase = ExplorationPhase::WallFollowing;
         return;
       }
     }
@@ -342,7 +350,7 @@ public:
         return;
 
       std::cout << "EXPLORATION: Completed wall following loop.\n";
-      exploration_phase = 3;
+      exploration_phase = ExplorationPhase::Completed;
       return;
     }
 
@@ -351,16 +359,16 @@ public:
 
   void run_exploration()
   {
-    if (exploration_phase == 0)
+    if (exploration_phase == ExplorationPhase::Idle)
       return;
 
-    if (exploration_phase == 1)
+    if (exploration_phase == ExplorationPhase::WallDiscovery)
     {
       phase1_wall_discovery();
       return;
     }
 
-    if (exploration_phase == 2)
+    if (exploration_phase == ExplorationPhase::WallFollowing)
     {
       phase2_wall_following();
       return;
@@ -433,7 +441,7 @@ public:
 
   void draw_first_contact_point(float scale_factor, const Vector2 &offset)
   {
-    if (exploration_phase < 2)
+    if (exploration_phase < ExplorationPhase::WallFollowing)
       return;
 
     DrawCircle(real_first_contact_point.x() * scale_factor + offset.x,
