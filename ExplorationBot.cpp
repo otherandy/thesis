@@ -3,6 +3,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <deque>
 #include <fstream>
 #include <iostream>
 #include <cmath>
@@ -68,7 +69,7 @@ const int WINDOW_HEIGHT = 600;
 const float WINDOW_PADDING = 10.0f;
 const int FRAME_RATE = 60;
 
-const Point START_POSITION(1.0, 1.0);
+const Point START_POSITION(4.0, 4.0);
 const int MAX_LIDAR_SAMPLES = 360 / 8;
 const double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
@@ -107,26 +108,30 @@ inline Vector normalize_vector(const Vector &v)
 class ExplorationBot
 {
 private:
-  Point real_position;
-  Point relative_position = Point(0.0, 0.0);
+  Point real_position; // drawing and LIDAR calculations
+  Point real_first_contact_point = Point(-1, -1);
+
+  Point relative_position = Point(0.0, 0.0); // exploration and path tracking
+  Point relative_first_contact_point = Point(-1, -1);
+
+  Vector current_follow_vector;
+
   bool draw_as_hud = true;
-
   double speed = 0.2;
-
-  ExplorationPhase exploration_phase = ExplorationPhase::Idle;
-  bool left_first_contact = false;
+  const double smoothing_factor = 0.4;
+  const double desired_wall_distance = 0.5;
 
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
-  std::vector<Point> visited_positions;
+  std::array<Point, 3> latest_visited_positions;
+  std::vector<Point> real_visited_positions;
 
+  ExplorationPhase exploration_phase = ExplorationPhase::Idle;
   Direction random_direction;
-  Point real_first_contact_point = Point(-1, -1);
-  Point relative_first_contact_point = Point(-1, -1);
+  bool left_first_contact = false;
 
   int closest_wall_reading_index = -1;
   int cw_disconnect_reading_index = -1;
   int ccw_disconnect_reading_index = -1;
-  Vector current_follow_vector;
 
 protected:
   void find_cw_disconnect_reading()
@@ -171,10 +176,67 @@ protected:
     }
   }
 
+  void create_follow_vector()
+  {
+    if (closest_wall_reading_index == -1)
+      return;
+
+    const int cw_epsilon_index = closest_wall_reading_index - LIDAR_EPSILON < 0 ? MAX_LIDAR_SAMPLES - 1 : closest_wall_reading_index - LIDAR_EPSILON;
+    const Point clockwise_point = reading_index_to_point(cw_epsilon_index);
+
+    const int ccw_epsilon_index = closest_wall_reading_index + LIDAR_EPSILON >= MAX_LIDAR_SAMPLES ? 0 : closest_wall_reading_index + LIDAR_EPSILON;
+    const Point counterclockwise_point = reading_index_to_point(ccw_epsilon_index);
+
+    current_follow_vector = clockwise_point - counterclockwise_point;
+  }
+
+  Vector calculate_wall_correction_vector()
+  {
+    if (closest_wall_reading_index == -1)
+      return Vector(0, 0);
+
+    const Reading r = current_readings[closest_wall_reading_index];
+
+    double distance_error = r.distance - desired_wall_distance;
+    double correction_strength = distance_error * smoothing_factor;
+    double correction_angle = r.angle + M_PI / 2; // perpendicular to the wall
+
+    return Vector(correction_strength * cos(correction_angle),
+                  correction_strength * sin(correction_angle));
+  }
+
+  Vector smooth_from_latest_positions(Vector &target_vector)
+  {
+    Vector smoothed_vector = target_vector;
+
+    for (const auto &pos : latest_visited_positions)
+    {
+      if (pos.x() == -1 && pos.y() == -1)
+        continue;
+
+      Vector to_latest = pos - real_position;
+      smoothed_vector = smoothed_vector + to_latest * smoothing_factor;
+    }
+
+    return smoothed_vector;
+  }
+
   inline Point reading_index_to_point(int index)
   {
     const Reading r = current_readings[index];
     return point_at_reading(real_position, r);
+  }
+
+  void update_position_data()
+  {
+    if (exploration_phase != ExplorationPhase::Idle)
+    {
+      real_visited_positions.push_back(real_position);
+
+      latest_visited_positions[0] = latest_visited_positions[1];
+      latest_visited_positions[1] = latest_visited_positions[2];
+      latest_visited_positions[2] = relative_position;
+    }
   }
 
   void move(const Direction &dir)
@@ -185,8 +247,7 @@ protected:
     if (!point_in_environment(new_position))
       return;
 
-    if (exploration_phase != ExplorationPhase::Idle)
-      visited_positions.push_back(real_position);
+    update_position_data();
 
     real_position = new_position;
     relative_position = relative_position + delta;
@@ -219,6 +280,8 @@ public:
 
     const double heading = ((double)rand() / RAND_MAX) * 2 * M_PI;
     random_direction = Direction(cos(heading), sin(heading));
+
+    latest_visited_positions.fill(Point(-1, -1));
   }
 
   void take_lidar_readings(int num_samples = MAX_LIDAR_SAMPLES)
@@ -250,27 +313,10 @@ public:
       current_readings[i] = Reading{angle, distance};
     }
 
-    return;
-  }
-
-  void find_disconnect_readings()
-  {
     find_cw_disconnect_reading();
     find_ccw_disconnect_reading();
-  }
 
-  void create_follow_vector()
-  {
-    if (closest_wall_reading_index == -1)
-      return;
-
-    const int cw_epsilon_index = closest_wall_reading_index - LIDAR_EPSILON < 0 ? MAX_LIDAR_SAMPLES - 1 : closest_wall_reading_index - LIDAR_EPSILON;
-    const Point clockwise_point = reading_index_to_point(cw_epsilon_index);
-
-    const int ccw_epsilon_index = closest_wall_reading_index + LIDAR_EPSILON >= MAX_LIDAR_SAMPLES ? 0 : closest_wall_reading_index + LIDAR_EPSILON;
-    const Point counterclockwise_point = reading_index_to_point(ccw_epsilon_index);
-
-    current_follow_vector = clockwise_point - counterclockwise_point;
+    return;
   }
 
   void get_input_and_move()
@@ -309,7 +355,7 @@ public:
   void visited_to_file(const std::string &filename)
   {
     std::ofstream f(filename);
-    for (const auto &v : visited_positions)
+    for (const auto &v : real_visited_positions)
     {
       f << v.x() << "," << v.y() << "\n";
     }
@@ -325,7 +371,7 @@ public:
 
     for (const auto &r : current_readings)
     {
-      if (r.distance < LIDAR_RADIUS - LIDAR_READING_THRESHOLD)
+      if (r.distance < desired_wall_distance)
       {
         std::cout << "EXPLORATION: Wall detected at position ("
                   << relative_position.x() << ", " << relative_position.y() << ")\n";
@@ -341,10 +387,13 @@ public:
   void phase2_wall_following()
   {
     create_follow_vector();
-    move(current_follow_vector.direction());
+    Vector wall_vector = calculate_wall_correction_vector();
+    Vector desired_vector = current_follow_vector + wall_vector;
+
+    move(desired_vector.direction());
 
     if (std::sqrt(CGAL::squared_distance(relative_first_contact_point, relative_position)) <=
-        LIDAR_READING_THRESHOLD + speed * 2)
+        desired_wall_distance + LIDAR_READING_THRESHOLD)
     {
       if (!left_first_contact)
         return;
@@ -430,6 +479,9 @@ public:
 
   void draw_follow_vector(float scale_factor, const Vector2 &offset)
   {
+    if (current_follow_vector.squared_length() == 0)
+      return;
+
     Point end_point = real_position + normalize_vector(current_follow_vector);
 
     DrawLine(real_position.x() * scale_factor + offset.x,
@@ -452,13 +504,13 @@ public:
 
   void draw_path(float scale_factor, const Vector2 &offset)
   {
-    if (visited_positions.size() < 2)
+    if (real_visited_positions.size() < 2)
       return;
 
-    for (size_t i = 1; i < visited_positions.size(); ++i)
+    for (size_t i = 1; i < real_visited_positions.size(); ++i)
     {
-      Point p1 = visited_positions[i - 1];
-      Point p2 = visited_positions[i];
+      Point p1 = real_visited_positions[i - 1];
+      Point p2 = real_visited_positions[i];
       DrawLine(p1.x() * scale_factor + offset.x,
                p1.y() * scale_factor + offset.y,
                p2.x() * scale_factor + offset.x,
@@ -514,10 +566,7 @@ int main()
   {
     // -- Update --
     bot.get_input_and_move();
-
     bot.take_lidar_readings();
-    bot.find_disconnect_readings();
-
     bot.run_exploration();
 
     // -- Draw --
@@ -538,7 +587,7 @@ int main()
     window.EndDrawing();
   }
 
-  // bot.visited_to_file("Testing/visited_positions.csv");
+  // bot.visited_to_file("Testing/real_visited_positions.csv");
 
   CloseWindow();
   return 0;
