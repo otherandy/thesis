@@ -73,7 +73,6 @@ const Point START_POSITION(4.0, 4.0);
 const int MAX_LIDAR_SAMPLES = 360 / 8;
 const double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
-const double LIDAR_READING_THRESHOLD = 0.1;
 const int LIDAR_EPSILON = 2;
 
 const Direction NORTH(0, -1);
@@ -130,8 +129,8 @@ private:
   bool left_first_contact = false;
 
   int closest_wall_reading_index = -1;
-  int cw_disconnect_reading_index = -1;
-  int ccw_disconnect_reading_index = -1;
+  int cw_disconnect_reading_index = 0;
+  int ccw_disconnect_reading_index = 0;
 
 protected:
   void find_cw_disconnect_reading()
@@ -255,10 +254,7 @@ protected:
 
   void draw_specific_reading(int index, Vector2 &pos, float scale_factor, const Vector2 &offset, Color color)
   {
-    if (index == -1)
-      return;
-
-    const Reading r = current_readings[index];
+        const Reading r = current_readings[index];
 
     if (r.distance == LIDAR_RADIUS)
       return;
@@ -278,7 +274,7 @@ public:
   {
     current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
 
-    const double heading = ((double)rand() / RAND_MAX) * 2 * M_PI;
+    const double heading = (static_cast<double>(rand()) / RAND_MAX) * 2.0 * M_PI;
     random_direction = Direction(cos(heading), sin(heading));
 
     latest_visited_positions.fill(Point(-1, -1));
@@ -304,10 +300,12 @@ public:
           break;
       }
 
-      if (closest_wall_reading_index == -1 ||
-          distance < current_readings[closest_wall_reading_index].distance)
+if (distance < LIDAR_RADIUS)
+      {
+      if (closest_wall_reading_index == -1 || distance < current_readings[closest_wall_reading_index].distance)
       {
         closest_wall_reading_index = i;
+}
       }
 
       current_readings[i] = Reading{angle, distance};
@@ -374,13 +372,15 @@ public:
       if (r.distance < desired_wall_distance)
       {
         std::cout << "EXPLORATION: Wall detected at position ("
-                  << relative_position.x() << ", " << relative_position.y() << ")\n";
+                  << relative_position.x() << ", " << relative_position.y()
+<< ")\n";
         real_first_contact_point = real_position;
         relative_first_contact_point = relative_position;
         exploration_phase = ExplorationPhase::WallFollowing;
         return;
       }
     }
+
     move(random_direction);
   }
 
@@ -392,8 +392,7 @@ public:
 
     move(desired_vector.direction());
 
-    if (std::sqrt(CGAL::squared_distance(relative_first_contact_point, relative_position)) <=
-        desired_wall_distance + LIDAR_READING_THRESHOLD)
+    if (std::sqrt(CGAL::squared_distance(relative_first_contact_point, relative_position)) <= desired_wall_distance + speed)
     {
       if (!left_first_contact)
         return;
@@ -445,11 +444,13 @@ public:
       float end_x = pos.x + r.distance * scale_factor * cos(r.angle);
       float end_y = pos.y + r.distance * scale_factor * sin(r.angle);
 
-      DrawLine(pos.x,
-               pos.y,
+      DrawLine(pos.x, pos.y,
                end_x, end_y,
                GRAY);
     }
+
+if (closest_wall_reading_index == -1)
+      return;
 
     draw_specific_reading(closest_wall_reading_index, pos, scale_factor, offset, RED);
     draw_specific_reading(cw_disconnect_reading_index, pos, scale_factor, offset, ORANGE);
@@ -468,12 +469,6 @@ public:
     DrawCircleLines(real_position.x() * scale_factor + offset.x,
                     real_position.y() * scale_factor + offset.y,
                     LIDAR_RADIUS * scale_factor,
-                    BLUE);
-
-    // LIDAR threshold
-    DrawCircleLines(real_position.x() * scale_factor + offset.x,
-                    real_position.y() * scale_factor + offset.y,
-                    (LIDAR_RADIUS - LIDAR_READING_THRESHOLD) * scale_factor,
                     BLUE);
   }
 
