@@ -8,7 +8,7 @@ using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;
 
 const Point START_POSITION(4.0, 4.0);
-const int MAX_LIDAR_SAMPLES = 360 / 8;
+const int MAX_LIDAR_SAMPLES = 360;
 const double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 50.0;
 const int LIDAR_EPSILON = 2;
@@ -27,30 +27,38 @@ protected:
 
   void take_lidar_readings(int num_samples = MAX_LIDAR_SAMPLES)
   {
+    const double angle_step = 2.0 * M_PI / num_samples;
+
+    double closest_distance = LIDAR_RADIUS;
     closest_wall_reading_index = -1;
 
     for (int i = 0; i < num_samples; ++i)
     {
-      double angle = 2 * M_PI * i / num_samples;
-      double distance;
+      double angle = angle_step * i;
+      double distance = LIDAR_RADIUS;
 
-      for (distance = LIDAR_RESOLUTION;
-           distance <= LIDAR_RADIUS;
-           distance += LIDAR_RESOLUTION)
+      // Binary search for wall intersection
+      double min_dist = LIDAR_RESOLUTION;
+      double max_dist = LIDAR_RADIUS;
+
+      while (max_dist - min_dist > LIDAR_RESOLUTION)
       {
-        double sample_x = real_position.x() + distance * cos(angle);
-        double sample_y = real_position.y() + distance * sin(angle);
+        double mid_dist = (min_dist + max_dist) / 2.0;
+        double sample_x = real_position.x() + mid_dist * cos(angle);
+        double sample_y = real_position.y() + mid_dist * sin(angle);
 
-        if (!point_in_environment(Point(sample_x, sample_y)))
-          break;
+        if (point_in_environment(Point(sample_x, sample_y)))
+          min_dist = mid_dist;
+        else
+          max_dist = mid_dist;
       }
 
-      if (distance < LIDAR_RADIUS)
+      distance = max_dist;
+
+      if (distance < closest_distance)
       {
-        if (closest_wall_reading_index == -1 || distance < current_readings[closest_wall_reading_index].distance)
-        {
-          closest_wall_reading_index = i;
-        }
+        closest_distance = distance;
+        closest_wall_reading_index = i;
       }
 
       current_readings[i] = Reading{angle, distance};
