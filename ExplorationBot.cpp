@@ -26,31 +26,45 @@ enum class ExplorationPhase
 {
   Idle,
   WallDiscovery,
+  WallAlignment,
   WallFollowing,
   Completed
 };
 
 // --- Setup ---
-const Point ENV_POINTS[] = {Point(0, 0),
-                            Point(8, 0),
-                            Point(8, 6),
-                            Point(12, 6),
-                            Point(12, 12),
-                            Point(4, 12),
-                            Point(4, 6),
-                            Point(0, 6)};
+const Point POLYGON_ENV_POINTS[] = {
+    Point(0, 0),
+    Point(8, 0),
+    Point(8, 6),
+    Point(12, 6),
+    Point(12, 12),
+    Point(4, 12),
+    Point(4, 6),
+    Point(0, 6)};
 
-const Point SQUARE_ENV_POINTS[] = {Point(0, 0),
-                                   Point(10, 0),
-                                   Point(10, 10),
-                                   Point(0, 10)};
+const Point SQUARE_ENV_POINTS[] = {
+    Point(0, 0),
+    Point(10, 0),
+    Point(10, 10),
+    Point(0, 10)};
 
-const Point TRIANGLE_ENV_POINTS[] = {Point(0, 0),
-                                     Point(10, 0),
-                                     Point(5, 8)};
+const Point TRIANGLE_ENV_POINTS[] = {
+    Point(0, 0),
+    Point(10, 0),
+    Point(5, 8)};
 
-const Polygon ENVIRONMENT(ENV_POINTS,
-                          ENV_POINTS + sizeof(ENV_POINTS) / sizeof(ENV_POINTS[0]));
+const Point ENV_POINTS[] = {
+    Point(0, 0),
+    Point(0, 10),
+    Point(10, 10),
+    Point(10, 9.5),
+    Point(15, 9.5),
+    Point(15, 9),
+    Point(10, 9),
+    Point(10, 0)};
+
+const Polygon ENVIRONMENT(POLYGON_ENV_POINTS,
+                          POLYGON_ENV_POINTS + sizeof(POLYGON_ENV_POINTS) / sizeof(POLYGON_ENV_POINTS[0]));
 
 const float ENV_WIDTH = ENVIRONMENT.bbox().xmax() -
                         ENVIRONMENT.bbox().xmin();
@@ -72,8 +86,11 @@ const int FRAME_RATE = 60;
 const Point START_POSITION(4.0, 4.0);
 const int MAX_LIDAR_SAMPLES = 360 / 8;
 const double LIDAR_RADIUS = 1.5;
-const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
+const double LIDAR_RESOLUTION = LIDAR_RADIUS / 50.0;
 const int LIDAR_EPSILON = 2;
+
+const double DESIRED_WALL_DISTANCE = 0.15;
+const double WALL_FOLLOWING_WEIGHT = 0.6;
 
 const Direction NORTH(0, -1);
 const Direction SOUTH(0, 1);
@@ -113,15 +130,14 @@ private:
   Point relative_position = Point(0.0, 0.0); // exploration and path tracking
   Point relative_first_contact_point = Point(-1, -1);
 
+  Point exploration_start_point = Point(0.0, 0.0);
+
   Vector current_follow_vector;
 
   bool draw_as_hud = true;
-  double speed = 0.2;
-  const double smoothing_factor = 0.4;
-  const double desired_wall_distance = 0.5;
+  double speed = 0.1;
 
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
-  std::array<Point, 3> latest_visited_positions;
   std::vector<Point> real_visited_positions;
 
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
@@ -196,28 +212,11 @@ protected:
 
     const Reading r = current_readings[closest_wall_reading_index];
 
-    double distance_error = r.distance - desired_wall_distance;
-    double correction_strength = distance_error * smoothing_factor;
+    double distance_error = r.distance - DESIRED_WALL_DISTANCE;
     double correction_angle = r.angle + M_PI / 2; // perpendicular to the wall
 
-    return Vector(correction_strength * cos(correction_angle),
-                  correction_strength * sin(correction_angle));
-  }
-
-  Vector smooth_from_latest_positions(Vector &target_vector)
-  {
-    Vector smoothed_vector = target_vector;
-
-    for (const auto &pos : latest_visited_positions)
-    {
-      if (pos.x() == -1 && pos.y() == -1)
-        continue;
-
-      Vector to_latest = pos - real_position;
-      smoothed_vector = smoothed_vector + to_latest * smoothing_factor;
-    }
-
-    return smoothed_vector;
+    return Vector(distance_error * cos(correction_angle),
+                  distance_error * sin(correction_angle));
   }
 
   inline Point reading_index_to_point(int index)
@@ -231,10 +230,6 @@ protected:
     if (exploration_phase != ExplorationPhase::Idle)
     {
       real_visited_positions.push_back(real_position);
-
-      latest_visited_positions[0] = latest_visited_positions[1];
-      latest_visited_positions[1] = latest_visited_positions[2];
-      latest_visited_positions[2] = relative_position;
     }
   }
 
@@ -254,7 +249,7 @@ protected:
 
   void draw_specific_reading(int index, Vector2 &pos, float scale_factor, const Vector2 &offset, Color color)
   {
-        const Reading r = current_readings[index];
+    const Reading r = current_readings[index];
 
     if (r.distance == LIDAR_RADIUS)
       return;
@@ -276,8 +271,6 @@ public:
 
     const double heading = (static_cast<double>(rand()) / RAND_MAX) * 2.0 * M_PI;
     random_direction = Direction(cos(heading), sin(heading));
-
-    latest_visited_positions.fill(Point(-1, -1));
   }
 
   void take_lidar_readings(int num_samples = MAX_LIDAR_SAMPLES)
@@ -300,12 +293,12 @@ public:
           break;
       }
 
-if (distance < LIDAR_RADIUS)
+      if (distance < LIDAR_RADIUS)
       {
-      if (closest_wall_reading_index == -1 || distance < current_readings[closest_wall_reading_index].distance)
-      {
-        closest_wall_reading_index = i;
-}
+        if (closest_wall_reading_index == -1 || distance < current_readings[closest_wall_reading_index].distance)
+        {
+          closest_wall_reading_index = i;
+        }
       }
 
       current_readings[i] = Reading{angle, distance};
@@ -329,6 +322,7 @@ if (distance < LIDAR_RADIUS)
 
     if (IsKeyPressed(KEY_SPACE))
     {
+      exploration_start_point = relative_position;
       exploration_phase = ExplorationPhase::WallDiscovery;
     }
 
@@ -364,19 +358,17 @@ if (distance < LIDAR_RADIUS)
   // --- Exploration Methods ---
   void phase1_wall_discovery()
   {
-    if (std::sqrt(CGAL::squared_distance(relative_position, Point(0, 0))) >= EXPLORATION_RADIUS)
+    if (std::sqrt(CGAL::squared_distance(relative_position, exploration_start_point)) >= EXPLORATION_RADIUS)
       return;
 
     for (const auto &r : current_readings)
     {
-      if (r.distance < desired_wall_distance)
+      if (r.distance < LIDAR_RADIUS)
       {
         std::cout << "EXPLORATION: Wall detected at position ("
                   << relative_position.x() << ", " << relative_position.y()
-<< ")\n";
-        real_first_contact_point = real_position;
-        relative_first_contact_point = relative_position;
-        exploration_phase = ExplorationPhase::WallFollowing;
+                  << ")\n";
+        exploration_phase = ExplorationPhase::WallAlignment;
         return;
       }
     }
@@ -384,15 +376,37 @@ if (distance < LIDAR_RADIUS)
     move(random_direction);
   }
 
-  void phase2_wall_following()
+  void phase2_wall_alignment()
+  {
+    const Reading closest_reading = current_readings[closest_wall_reading_index];
+
+    if (closest_reading.distance <= DESIRED_WALL_DISTANCE)
+    {
+      std::cout << "EXPLORATION: Aligned with wall at position ("
+                << relative_position.x() << ", " << relative_position.y()
+                << ")\n";
+      real_first_contact_point = real_position;
+      relative_first_contact_point = relative_position;
+      exploration_phase = ExplorationPhase::WallFollowing;
+      return;
+    }
+
+    const Vector to_wall = Vector(
+        cos(closest_reading.angle),
+        sin(closest_reading.angle));
+
+    move(to_wall.direction());
+  }
+
+  void phase3_wall_following()
   {
     create_follow_vector();
     Vector wall_vector = calculate_wall_correction_vector();
-    Vector desired_vector = current_follow_vector + wall_vector;
+    Vector desired_vector = current_follow_vector * WALL_FOLLOWING_WEIGHT + wall_vector * (1 - WALL_FOLLOWING_WEIGHT);
 
     move(desired_vector.direction());
 
-    if (std::sqrt(CGAL::squared_distance(relative_first_contact_point, relative_position)) <= desired_wall_distance + speed)
+    if (std::sqrt(CGAL::squared_distance(relative_position, relative_first_contact_point)) <= LIDAR_RESOLUTION)
     {
       if (!left_first_contact)
         return;
@@ -416,9 +430,15 @@ if (distance < LIDAR_RADIUS)
       return;
     }
 
+    if (exploration_phase == ExplorationPhase::WallAlignment)
+    {
+      phase2_wall_alignment();
+      return;
+    }
+
     if (exploration_phase == ExplorationPhase::WallFollowing)
     {
-      phase2_wall_following();
+      phase3_wall_following();
       return;
     }
   }
@@ -449,7 +469,7 @@ if (distance < LIDAR_RADIUS)
                GRAY);
     }
 
-if (closest_wall_reading_index == -1)
+    if (closest_wall_reading_index == -1)
       return;
 
     draw_specific_reading(closest_wall_reading_index, pos, scale_factor, offset, RED);
