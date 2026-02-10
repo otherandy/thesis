@@ -32,7 +32,6 @@ int main()
     bot.draw_path(scale_factor, offset);
     bot.draw_readings(scale_factor, offset);
     bot.draw(scale_factor, offset);
-    bot.draw_follow_vector(scale_factor, offset);
 
     window.EndDrawing();
   }
