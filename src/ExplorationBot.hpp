@@ -1,26 +1,16 @@
+#ifndef EXPLORATION_BOT_H
+#define EXPLORATION_BOT_H
+
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Polygon_2.h>
-#include <vector>
-#include <set>
-#include <map>
-#include <deque>
-#include <fstream>
 #include <iostream>
-#include <cmath>
-#include <algorithm>
-#include <raylib-cpp.hpp>
+#include "Utils.hpp"
 
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;
 using Polygon = CGAL::Polygon_2<Kernel>;
 using Direction = Kernel::Direction_2;
 using Vector = Kernel::Vector_2;
-
-struct Reading
-{
-  double angle;
-  double distance;
-};
 
 enum class ExplorationPhase
 {
@@ -31,58 +21,7 @@ enum class ExplorationPhase
   Completed
 };
 
-// --- Setup ---
-const Point POLYGON_ENV_POINTS[] = {
-    Point(0, 0),
-    Point(8, 0),
-    Point(8, 6),
-    Point(12, 6),
-    Point(12, 12),
-    Point(4, 12),
-    Point(4, 6),
-    Point(0, 6)};
-
-const Point SQUARE_ENV_POINTS[] = {
-    Point(0, 0),
-    Point(10, 0),
-    Point(10, 10),
-    Point(0, 10)};
-
-const Point TRIANGLE_ENV_POINTS[] = {
-    Point(0, 0),
-    Point(10, 0),
-    Point(5, 8)};
-
-const Point ENV_POINTS[] = {
-    Point(0, 0),
-    Point(0, 10),
-    Point(10, 10),
-    Point(10, 9.5),
-    Point(15, 9.5),
-    Point(15, 9),
-    Point(10, 9),
-    Point(10, 0)};
-
-const Polygon ENVIRONMENT(POLYGON_ENV_POINTS,
-                          POLYGON_ENV_POINTS + sizeof(POLYGON_ENV_POINTS) / sizeof(POLYGON_ENV_POINTS[0]));
-
-const float ENV_WIDTH = ENVIRONMENT.bbox().xmax() -
-                        ENVIRONMENT.bbox().xmin();
-const float ENV_HEIGHT = ENVIRONMENT.bbox().ymax() -
-                         ENVIRONMENT.bbox().ymin();
-
-const double EXPLORATION_RADIUS = std::sqrt(
-                                      std::pow(
-                                          ENVIRONMENT.bbox().xmax() - ENVIRONMENT.bbox().xmin(), 2) +
-                                      std::pow(
-                                          ENVIRONMENT.bbox().ymax() - ENVIRONMENT.bbox().ymin(), 2)) /
-                                  2.0;
-
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
-const float WINDOW_PADDING = 10.0f;
-const int FRAME_RATE = 60;
-
+// --- Constants ---
 const Point START_POSITION(4.0, 4.0);
 const int MAX_LIDAR_SAMPLES = 360 / 8;
 const double LIDAR_RADIUS = 1.5;
@@ -92,39 +31,11 @@ const int LIDAR_EPSILON = 2;
 const double DESIRED_WALL_DISTANCE = 0.15;
 const double WALL_FOLLOWING_WEIGHT = 0.6;
 
-const Direction NORTH(0, -1);
-const Direction SOUTH(0, 1);
-const Direction WEST(-1, 0);
-const Direction EAST(1, 0);
-
-// --- Utility Functions ---
-inline double compute_angle_to_point(const Point &from, const Point &to)
-{
-  return atan2(to.y() - from.y(), to.x() - from.x());
-}
-
-inline bool point_in_environment(const Point &p)
-{
-  return ENVIRONMENT.bounded_side(p) == CGAL::ON_BOUNDED_SIDE;
-}
-
-inline Point point_at_reading(const Point &origin, const Reading &r)
-{
-  return Point(origin.x() + r.distance * cos(r.angle),
-               origin.y() + r.distance * sin(r.angle));
-}
-
-inline Vector normalize_vector(const Vector &v)
-{
-  double length = std::sqrt(v.squared_length());
-  return Vector(v.x() / length, v.y() / length);
-}
-
 // --- Classes ---
 class ExplorationBot
 {
 private:
-  Point real_position; // drawing and LIDAR calculations
+  Point real_position; // for drawing and LIDAR calculations
   Point real_first_contact_point = Point(-1, -1);
 
   Point relative_position = Point(0.0, 0.0); // exploration and path tracking
@@ -247,7 +158,7 @@ protected:
     relative_position = relative_position + delta;
   }
 
-  void draw_specific_reading(int index, Vector2 &pos, float scale_factor, const Vector2 &offset, Color color)
+  void draw_specific_reading(int index, raylib::Vector2 &pos, float scale_factor, const raylib::Vector2 &offset, Color color)
   {
     const Reading r = current_readings[index];
 
@@ -444,9 +355,9 @@ public:
   }
 
   // --- Drawing Methods ---
-  void draw_readings(float scale_factor, const Vector2 &offset)
+  void draw_readings(float scale_factor, const raylib::Vector2 &offset)
   {
-    Vector2 pos;
+    raylib::Vector2 pos;
 
     if (draw_as_hud)
     {
@@ -477,7 +388,7 @@ public:
     draw_specific_reading(ccw_disconnect_reading_index, pos, scale_factor, offset, ORANGE);
   }
 
-  void draw(float scale_factor, const Vector2 &offset)
+  void draw(float scale_factor, const raylib::Vector2 &offset)
   {
     // Bot body
     DrawCircle(real_position.x() * scale_factor + offset.x,
@@ -492,7 +403,7 @@ public:
                     BLUE);
   }
 
-  void draw_follow_vector(float scale_factor, const Vector2 &offset)
+  void draw_follow_vector(float scale_factor, const raylib::Vector2 &offset)
   {
     if (current_follow_vector.squared_length() == 0)
       return;
@@ -506,7 +417,7 @@ public:
              GREEN);
   }
 
-  void draw_first_contact_point(float scale_factor, const Vector2 &offset)
+  void draw_first_contact_point(float scale_factor, const raylib::Vector2 &offset)
   {
     if (exploration_phase < ExplorationPhase::WallFollowing)
       return;
@@ -517,7 +428,7 @@ public:
                PURPLE);
   }
 
-  void draw_path(float scale_factor, const Vector2 &offset)
+  void draw_path(float scale_factor, const raylib::Vector2 &offset)
   {
     if (real_visited_positions.size() < 2)
       return;
@@ -535,75 +446,4 @@ public:
   }
 };
 
-// --- Drawing Functions ---
-void draw_environment(float scale_factor, const Vector2 &offset)
-{
-  for (size_t i = 0; i < ENVIRONMENT.size(); ++i)
-  {
-    Point p1 = ENVIRONMENT[i];
-    Point p2 = ENVIRONMENT[(i + 1) % ENVIRONMENT.size()];
-    DrawLine(p1.x() * scale_factor + offset.x,
-             p1.y() * scale_factor + offset.y,
-             p2.x() * scale_factor + offset.x,
-             p2.y() * scale_factor + offset.y,
-             BLACK);
-  }
-}
-
-inline float calculate_scale_factor(const raylib::Window &window)
-{
-  const float padded_width = window.GetWidth() - 2.0f * WINDOW_PADDING;
-  const float padded_height = window.GetHeight() - 2.0f * WINDOW_PADDING;
-
-  return std::min(padded_width / ENV_WIDTH,
-                  padded_height / ENV_HEIGHT);
-}
-
-inline Vector2 calculate_offset(const raylib::Window &window, float scale_factor)
-{
-  const float draw_width = ENV_WIDTH * scale_factor;
-  const float draw_height = ENV_HEIGHT * scale_factor;
-
-  return Vector2{
-      (window.GetWidth() - draw_width) * 0.5f,
-      (window.GetHeight() - draw_height) * 0.5f};
-}
-
-int main()
-{
-  raylib::Window window(WINDOW_WIDTH, WINDOW_HEIGHT,
-                        "Exploration Bot Simulation");
-  SetTargetFPS(FRAME_RATE);
-
-  ExplorationBot bot(START_POSITION);
-
-  while (!window.ShouldClose())
-  {
-    // -- Update --
-    bot.get_input_and_move();
-    bot.take_lidar_readings();
-    bot.run_exploration();
-
-    // -- Draw --
-    window.BeginDrawing();
-    window.ClearBackground(RAYWHITE);
-
-    const float scale_factor = calculate_scale_factor(window);
-    const Vector2 offset = calculate_offset(window, scale_factor);
-
-    draw_environment(scale_factor, offset);
-
-    bot.draw_first_contact_point(scale_factor, offset);
-    bot.draw_path(scale_factor, offset);
-    bot.draw_readings(scale_factor, offset);
-    bot.draw(scale_factor, offset);
-    bot.draw_follow_vector(scale_factor, offset);
-
-    window.EndDrawing();
-  }
-
-  // bot.visited_to_file("Testing/real_visited_positions.csv");
-
-  CloseWindow();
-  return 0;
-}
+#endif

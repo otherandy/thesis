@@ -38,7 +38,7 @@ FetchContent_MakeAvailable(raylib_cpp)
 
 # ############################
 
-set(SOURCES ExplorationBot.cpp)
+file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 add_to_cached_list(CGAL_EXECUTABLE_TARGETS ${PROJECT_NAME})
