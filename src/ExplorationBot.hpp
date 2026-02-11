@@ -30,21 +30,17 @@ class ExplorationBot : public Bot
 {
 private:
   Point relative_position = Point(0.0, 0.0); // exploration and path tracking
-  Point relative_first_contact_point = Point(-1, -1);
-  Point real_first_contact_point = Point(-1, -1);
-
-  Point exploration_start_point = Point(0.0, 0.0);
-
-  Vector current_follow_vector;
 
   std::vector<Point> real_visited_positions;
 
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
-  Direction random_direction;
-  bool left_first_contact = false;
 
-  int cw_disconnect_reading_index = 0;
-  int ccw_disconnect_reading_index = 0;
+  Direction random_direction;
+  Point exploration_start_point = Point(0.0, 0.0);
+  Point relative_first_contact_point = Point(-1, -1);
+  Point real_first_contact_point = Point(-1, -1);
+  bool left_first_contact = false;
+  Vector current_follow_vector;
 
 protected:
   void move(const Direction &dir)
@@ -96,58 +92,6 @@ public:
     if (IsKeyDown(KEY_D))
     {
       move(EAST);
-    }
-  }
-
-  void take_lidar_readings()
-  {
-    Bot::take_lidar_readings();
-
-    find_cw_disconnect_reading();
-    find_ccw_disconnect_reading();
-
-    return;
-  }
-
-  void find_cw_disconnect_reading()
-  {
-    for (int i = closest_wall_reading_index; i >= 0; --i)
-    {
-      if (current_readings[i].distance >= LIDAR_RADIUS)
-      {
-        cw_disconnect_reading_index = i;
-        return;
-      }
-    }
-
-    for (int i = MAX_LIDAR_SAMPLES - 1; i > closest_wall_reading_index; --i)
-    {
-      if (current_readings[i].distance >= LIDAR_RADIUS)
-      {
-        cw_disconnect_reading_index = i;
-        return;
-      }
-    }
-  }
-
-  void find_ccw_disconnect_reading()
-  {
-    for (int i = closest_wall_reading_index; i < MAX_LIDAR_SAMPLES; ++i)
-    {
-      if (current_readings[i].distance >= LIDAR_RADIUS)
-      {
-        ccw_disconnect_reading_index = i;
-        return;
-      }
-    }
-
-    for (int i = 0; i < closest_wall_reading_index; ++i)
-    {
-      if (current_readings[i].distance >= LIDAR_RADIUS)
-      {
-        ccw_disconnect_reading_index = i;
-        return;
-      }
     }
   }
 
@@ -222,7 +166,8 @@ public:
   {
     create_follow_vector();
     Vector wall_vector = calculate_wall_correction_vector();
-    Vector desired_vector = current_follow_vector * WALL_FOLLOWING_WEIGHT + wall_vector * (1 - WALL_FOLLOWING_WEIGHT);
+    Vector desired_vector = current_follow_vector * WALL_FOLLOWING_WEIGHT +
+                            wall_vector * (1 - WALL_FOLLOWING_WEIGHT);
 
     move(desired_vector.direction());
 
@@ -244,13 +189,7 @@ public:
     if (closest_wall_reading_index == -1)
       return;
 
-    const int cw_epsilon_index = closest_wall_reading_index - LIDAR_EPSILON < 0 ? MAX_LIDAR_SAMPLES - 1 : closest_wall_reading_index - LIDAR_EPSILON;
-    const Point clockwise_point = reading_index_to_point(cw_epsilon_index);
-
-    const int ccw_epsilon_index = closest_wall_reading_index + LIDAR_EPSILON >= MAX_LIDAR_SAMPLES ? 0 : closest_wall_reading_index + LIDAR_EPSILON;
-    const Point counterclockwise_point = reading_index_to_point(ccw_epsilon_index);
-
-    current_follow_vector = clockwise_point - counterclockwise_point;
+    // TODO: Use multiple readings to create a more stable follow vector
   }
 
   Vector calculate_wall_correction_vector()

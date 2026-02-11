@@ -10,8 +10,7 @@ using Point = Kernel::Point_2;
 const Point START_POSITION(4.0, 4.0);
 const int MAX_LIDAR_SAMPLES = 360;
 const double LIDAR_RADIUS = 1.5;
-const double LIDAR_RESOLUTION = LIDAR_RADIUS / 50.0;
-const int LIDAR_EPSILON = 2;
+const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
 
 class Bot
 {
@@ -24,6 +23,37 @@ protected:
 
   bool draw_as_hud = true;
   double speed = 0.1;
+
+  inline Point reading_index_to_point(int index)
+  {
+    const Reading r = current_readings[index];
+    return point_at_reading(real_position, r);
+  }
+
+  // Returns the movement delta vector
+  Vector move(const Direction &dir)
+  {
+    Vector delta = normalize_vector(dir.to_vector()) * speed;
+    Point new_position = real_position + delta;
+
+    if (!point_in_environment(new_position))
+      return Vector(0, 0);
+
+    real_position = new_position;
+    return delta;
+  }
+
+public:
+  Bot(const Point &start_pos)
+      : real_position(start_pos)
+  {
+    current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
+  }
+
+  Point get_real_position() const
+  {
+    return real_position;
+  }
 
   void take_lidar_readings(int num_samples = MAX_LIDAR_SAMPLES)
   {
@@ -63,37 +93,6 @@ protected:
 
       current_readings[i] = Reading{angle, distance};
     }
-  }
-
-  inline Point reading_index_to_point(int index)
-  {
-    const Reading r = current_readings[index];
-    return point_at_reading(real_position, r);
-  }
-
-  // Returns the movement delta vector
-  Vector move(const Direction &dir)
-  {
-    Vector delta = normalize_vector(dir.to_vector()) * speed;
-    Point new_position = real_position + delta;
-
-    if (!point_in_environment(new_position))
-      return Vector(0, 0);
-
-    real_position = new_position;
-    return delta;
-  }
-
-public:
-  Bot(const Point &start_pos)
-      : real_position(start_pos)
-  {
-    current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
-  }
-
-  Point get_real_position() const
-  {
-    return real_position;
   }
 
   void draw(float scale_factor, const raylib::Vector2 &offset)
