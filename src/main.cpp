@@ -17,6 +17,7 @@ int main()
     // -- Update --
     bot.get_input_and_move();
     bot.take_lidar_readings();
+    bot.create_follow_vector();
     bot.run_exploration();
 
     // -- Draw --
@@ -24,7 +25,7 @@ int main()
     window.ClearBackground(RAYWHITE);
 
     const float scale_factor = calculate_scale_factor(window);
-    const Vector2 offset = calculate_offset(window, scale_factor);
+    const raylib::Vector2 offset = calculate_offset(window, scale_factor);
 
     draw_environment(scale_factor, offset);
 
@@ -32,6 +33,7 @@ int main()
     bot.draw_path(scale_factor, offset);
     bot.draw_readings(scale_factor, offset);
     bot.draw(scale_factor, offset);
+    bot.draw_follow_vector(scale_factor, offset);
 
     window.EndDrawing();
   }

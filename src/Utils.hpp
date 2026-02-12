@@ -1,12 +1,10 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <CGAL/Simple_cartesian.h>
 #include <raylib-cpp.hpp>
 #include "Environment.hpp"
 
 using Kernel = CGAL::Simple_cartesian<double>;
-using Direction = Kernel::Direction_2;
 using Vector = Kernel::Vector_2;
 
 struct Reading
@@ -17,10 +15,10 @@ struct Reading
 
 const float WINDOW_PADDING = 10.0f;
 
-const Direction NORTH(0, -1);
-const Direction SOUTH(0, 1);
-const Direction WEST(-1, 0);
-const Direction EAST(1, 0);
+const Vector NORTH(0, -1);
+const Vector SOUTH(0, 1);
+const Vector WEST(-1, 0);
+const Vector EAST(1, 0);
 
 inline double compute_angle_to_point(const Point &from, const Point &to)
 {

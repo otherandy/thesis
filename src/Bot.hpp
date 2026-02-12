@@ -1,16 +1,17 @@
 #ifndef BOT_H
 #define BOT_H
 
-#include <CGAL/Simple_cartesian.h>
 #include "Utils.hpp"
-
-using Kernel = CGAL::Simple_cartesian<double>;
-using Point = Kernel::Point_2;
 
 const Point START_POSITION(4.0, 4.0);
 const int MAX_LIDAR_SAMPLES = 360;
 const double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
+
+int relative_index(int index, int offset, int max_size = MAX_LIDAR_SAMPLES)
+{
+  return (index + offset + max_size) % max_size;
+}
 
 class Bot
 {
@@ -26,14 +27,14 @@ protected:
 
   inline Point reading_index_to_point(int index)
   {
-    const Reading r = current_readings[index];
+    const Reading &r = current_readings[index];
     return point_at_reading(real_position, r);
   }
 
   // Returns the movement delta vector
-  Vector move(const Direction &dir)
+  Vector move(const Vector &dir)
   {
-    Vector delta = normalize_vector(dir.to_vector()) * speed;
+    Vector delta = normalize_vector(dir) * speed;
     Point new_position = real_position + delta;
 
     if (!point_in_environment(new_position))
@@ -125,16 +126,18 @@ public:
       pos.y = real_position.y() * scale_factor + offset.y;
     }
 
-    for (const Reading &r : current_readings)
+    for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
     {
+      const Reading &r = current_readings[i];
       float end_x = pos.x + r.distance * scale_factor * cos(r.angle);
       float end_y = pos.y + r.distance * scale_factor * sin(r.angle);
 
-      if (closest_wall_reading_index != -1 && &r == &current_readings[closest_wall_reading_index])
+      if (i == closest_wall_reading_index)
       {
         DrawLine(pos.x, pos.y,
                  end_x, end_y,
                  RED);
+        DrawCircle(end_x, end_y, 3, RED);
       }
       else
       {

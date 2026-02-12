@@ -1,8 +1,7 @@
 #ifndef EXPLORATION_BOT_H
 #define EXPLORATION_BOT_H
 
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Polygon_2.h>
+#include <CGAL/linear_least_squares_fitting_2.h>
 #include <iostream>
 #include "Bot.hpp"
 
@@ -22,8 +21,9 @@ enum class ExplorationPhase
 };
 
 // --- Setup ---
-const double DESIRED_WALL_DISTANCE = 0.2;
-const double WALL_FOLLOWING_WEIGHT = 0.5;
+const double DESIRED_WALL_DISTANCE = 0.15;
+const double READING_ANGLE_SPAN = 0.02;
+const int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
 
 // --- Classes ---
 class ExplorationBot : public Bot
@@ -35,7 +35,7 @@ private:
 
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
 
-  Direction random_direction;
+  Vector random_direction;
   Point exploration_start_point = Point(0.0, 0.0);
   Point relative_first_contact_point = Point(-1, -1);
   Point real_first_contact_point = Point(-1, -1);
@@ -43,7 +43,7 @@ private:
   Vector current_follow_vector;
 
 protected:
-  void move(const Direction &dir)
+  void move(const Vector &dir)
   {
     relative_position = relative_position + Bot::move(dir);
 
@@ -57,8 +57,8 @@ public:
   ExplorationBot(const Point &start_pos)
       : Bot(start_pos)
   {
-    const double heading = (static_cast<double>(rand()) / RAND_MAX) * 2.0 * M_PI;
-    random_direction = Direction(cos(heading), sin(heading));
+    const double heading = (rand() / RAND_MAX) * 2.0 * M_PI;
+    random_direction = Vector(cos(heading), sin(heading));
   }
 
   void get_input_and_move()
@@ -77,19 +77,19 @@ public:
       exploration_phase = ExplorationPhase::WallDiscovery;
     }
 
-    if (IsKeyDown(KEY_W))
+    if (IsKeyDown(KEY_UP))
     {
       move(NORTH);
     }
-    if (IsKeyDown(KEY_S))
+    if (IsKeyDown(KEY_DOWN))
     {
       move(SOUTH);
     }
-    if (IsKeyDown(KEY_A))
+    if (IsKeyDown(KEY_LEFT))
     {
       move(WEST);
     }
-    if (IsKeyDown(KEY_D))
+    if (IsKeyDown(KEY_RIGHT))
     {
       move(EAST);
     }
@@ -142,7 +142,7 @@ public:
 
   void phase2_wall_alignment()
   {
-    const Reading closest_reading = current_readings[closest_wall_reading_index];
+    const Reading &closest_reading = current_readings[closest_wall_reading_index];
 
     if (closest_reading.distance <= DESIRED_WALL_DISTANCE)
     {
@@ -159,19 +159,18 @@ public:
         cos(closest_reading.angle),
         sin(closest_reading.angle));
 
-    move(to_wall.direction());
+    move(to_wall);
   }
 
   void phase3_wall_following()
   {
-    create_follow_vector();
     Vector wall_vector = calculate_wall_correction_vector();
-    Vector desired_vector = current_follow_vector * WALL_FOLLOWING_WEIGHT +
-                            wall_vector * (1 - WALL_FOLLOWING_WEIGHT);
+    Vector desired_vector = current_follow_vector +
+                            wall_vector;
 
-    move(desired_vector.direction());
+    move(desired_vector);
 
-    if (std::sqrt(CGAL::squared_distance(relative_position, relative_first_contact_point)) <= LIDAR_RESOLUTION)
+    if (std::sqrt(CGAL::squared_distance(relative_position, relative_first_contact_point)) <= speed)
     {
       if (!left_first_contact)
         return;
@@ -189,7 +188,32 @@ public:
     if (closest_wall_reading_index == -1)
       return;
 
-    // TODO: Use multiple readings to create a more stable follow vector
+    std::array<Point, 2 * READING_OFFSET + 1> wall_points;
+
+    for (int offset = -READING_OFFSET; offset <= READING_OFFSET; ++offset)
+    {
+      int idx = relative_index(closest_wall_reading_index, offset);
+      wall_points[offset + READING_OFFSET] = reading_index_to_point(idx);
+    }
+
+    CGAL::Line_2<Kernel> fitted_line;
+    CGAL::linear_least_squares_fitting_2(
+        wall_points.begin(),
+        wall_points.end(),
+        fitted_line,
+        CGAL::Dimension_tag<0>());
+
+    int before_idx = relative_index(closest_wall_reading_index, -1);
+    int after_idx = relative_index(closest_wall_reading_index, 1);
+    Point before_point = reading_index_to_point(before_idx);
+    Point after_point = reading_index_to_point(after_idx);
+    Vector direction_hint = after_point - before_point;
+
+    Vector fitted_vector = fitted_line.to_vector();
+    if (fitted_vector * direction_hint < 0)
+      fitted_vector = -fitted_vector;
+
+    current_follow_vector = fitted_vector;
   }
 
   Vector calculate_wall_correction_vector()
@@ -197,13 +221,12 @@ public:
     if (closest_wall_reading_index == -1)
       return Vector(0, 0);
 
-    const Reading r = current_readings[closest_wall_reading_index];
-
+    const Reading &r = current_readings[closest_wall_reading_index];
     double distance_error = r.distance - DESIRED_WALL_DISTANCE;
-    double correction_angle = r.angle + M_PI / 2; // perpendicular to the wall
 
-    return Vector(distance_error * cos(correction_angle),
-                  distance_error * sin(correction_angle));
+    Vector to_wall = Vector(cos(r.angle), sin(r.angle));
+
+    return to_wall * distance_error;
   }
 
   // --- Drawing Methods ---
@@ -233,6 +256,19 @@ public:
                p2.y() * scale_factor + offset.y,
                RED);
     }
+  }
+
+  void draw_follow_vector(float scale_factor, const raylib::Vector2 &offset)
+  {
+    if (closest_wall_reading_index == -1)
+      return;
+
+    Point pos = get_real_position();
+    DrawLine(pos.x() * scale_factor + offset.x,
+             pos.y() * scale_factor + offset.y,
+             (pos.x() + current_follow_vector.x()) * scale_factor + offset.x,
+             (pos.y() + current_follow_vector.y()) * scale_factor + offset.y,
+             GREEN);
   }
 
   // --- Utility Methods ---
