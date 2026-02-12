@@ -21,7 +21,8 @@ enum class ExplorationPhase
 };
 
 // --- Setup ---
-const double DESIRED_WALL_DISTANCE = 0.15;
+const double DESIRED_WALL_DISTANCE = 0.2;
+const double WALL_DISTANCE_STRENGTH = 0.9;
 const double READING_ANGLE_SPAN = 0.02;
 const int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
 
@@ -49,7 +50,7 @@ protected:
 
     if (exploration_phase != ExplorationPhase::Idle)
     {
-      real_visited_positions.push_back(get_real_position()); // track path
+      real_visited_positions.push_back(get_real_position()); // for display
     }
   }
 
@@ -165,8 +166,9 @@ public:
   void phase3_wall_following()
   {
     Vector wall_vector = calculate_wall_correction_vector();
-    Vector desired_vector = current_follow_vector +
-                            wall_vector;
+    Vector desired_vector = current_follow_vector *
+                                (1.0 - WALL_DISTANCE_STRENGTH) +
+                            wall_vector * WALL_DISTANCE_STRENGTH;
 
     move(desired_vector);
 

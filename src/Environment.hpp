@@ -30,7 +30,7 @@ const Point TRIANGLE_ENV_POINTS[] = {
     Point(10, 0),
     Point(5, 8)};
 
-const Point ENV_POINTS[] = {
+const Point CUSTOM_ENV_POINTS[] = {
     Point(0, 0),
     Point(0, 10),
     Point(10, 10),
@@ -41,7 +41,9 @@ const Point ENV_POINTS[] = {
     Point(10, 0)};
 
 const Polygon ENVIRONMENT(POLYGON_ENV_POINTS,
-                          POLYGON_ENV_POINTS + sizeof(POLYGON_ENV_POINTS) / sizeof(POLYGON_ENV_POINTS[0]));
+                          POLYGON_ENV_POINTS +
+                              sizeof(POLYGON_ENV_POINTS) /
+                                  sizeof(POLYGON_ENV_POINTS[0]));
 
 const float ENV_WIDTH = ENVIRONMENT.bbox().xmax() -
                         ENVIRONMENT.bbox().xmin();
