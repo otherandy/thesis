@@ -16,7 +16,8 @@ inline int relative_index(int index, int offset, int max_size = MAX_LIDAR_SAMPLE
 class Bot
 {
 private:
-  Point real_position; // for drawing and LIDAR calculations
+  Point real_position;
+  std::vector<Point> real_visited_positions;
 
 protected:
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
@@ -25,13 +26,12 @@ protected:
   bool draw_as_hud = true;
   double speed = 0.1;
 
-  inline Point reading_index_to_point(int index)
+  inline Point reading_index_to_point(int index) const
   {
     const Reading &r = current_readings[index];
     return point_at_reading(real_position, r);
   }
 
-  // Returns the movement delta vector
   Vector move(const Vector &dir)
   {
     Vector delta = normalize_vector(dir) * speed;
@@ -44,16 +44,14 @@ protected:
     return delta;
   }
 
-public:
-  Bot(const Point &start_pos)
-      : real_position(start_pos)
-  {
-    current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
-  }
-
   Point get_real_position() const
   {
     return real_position;
+  }
+
+  void update_visited_positions()
+  {
+    real_visited_positions.push_back(real_position);
   }
 
   void take_lidar_readings(int num_samples = MAX_LIDAR_SAMPLES)
@@ -96,22 +94,23 @@ public:
     }
   }
 
-  void draw(float scale_factor, const raylib::Vector2 &offset) const
+  void draw_body(float scale_factor, float offset_x, float offset_y) const
   {
-    // Bot body
-    DrawCircle(real_position.x() * scale_factor + offset.x,
-               real_position.y() * scale_factor + offset.y,
+    DrawCircle(real_position.x() * scale_factor + offset_x,
+               real_position.y() * scale_factor + offset_y,
                5,
                RED);
+  }
 
-    // LIDAR radius
-    DrawCircleLines(real_position.x() * scale_factor + offset.x,
-                    real_position.y() * scale_factor + offset.y,
+  void draw_lidar(float scale_factor, float offset_x, float offset_y) const
+  {
+    DrawCircleLines(real_position.x() * scale_factor + offset_x,
+                    real_position.y() * scale_factor + offset_y,
                     LIDAR_RADIUS * scale_factor,
                     BLUE);
   }
 
-  void draw_readings(float scale_factor, const raylib::Vector2 &offset) const
+  void draw_readings(float scale_factor, float offset_x, float offset_y) const
   {
     float pos_x;
     float pos_y;
@@ -123,8 +122,8 @@ public:
     }
     else
     {
-      pos_x = real_position.x() * scale_factor + offset.x;
-      pos_y = real_position.y() * scale_factor + offset.y;
+      pos_x = real_position.x() * scale_factor + offset_x;
+      pos_y = real_position.y() * scale_factor + offset_y;
     }
 
     for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
@@ -147,6 +146,48 @@ public:
                  GRAY);
       }
     }
+  }
+
+  void draw_path(float scale_factor, float offset_x, float offset_y) const
+  {
+
+    if (real_visited_positions.size() < 2)
+      return;
+
+    for (size_t i = 1; i < real_visited_positions.size(); ++i)
+    {
+      Point p1 = real_visited_positions[i - 1];
+      Point p2 = real_visited_positions[i];
+
+      const double p1_x = p1.x();
+      const double p1_y = p1.y();
+      const double p2_x = p2.x();
+      const double p2_y = p2.y();
+
+      DrawLine(p1_x * scale_factor + offset_x,
+               p1_y * scale_factor + offset_y,
+               p2_x * scale_factor + offset_x,
+               p2_y * scale_factor + offset_y,
+               RED);
+    }
+  }
+
+public:
+  Bot(const Point &start_pos)
+      : real_position(start_pos)
+  {
+    current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
+  }
+
+  void visited_to_file(const std::string &filename) const
+  {
+    std::ofstream f(filename);
+    for (const auto &v : real_visited_positions)
+    {
+      f << v.x() << "," << v.y() << "\n";
+    }
+    f.close();
+    std::cout << "BOT: Saved visited positions to " << filename << std::endl;
   }
 };
 

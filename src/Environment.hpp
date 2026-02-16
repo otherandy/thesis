@@ -75,16 +75,16 @@ inline bool point_in_environment(const Point &p)
     return ENVIRONMENT.bounded_side(p) == CGAL::ON_BOUNDED_SIDE;
 }
 
-void draw_environment(float scale_factor, const raylib::Vector2 &offset)
+void draw_environment(float scale_factor, float offset_x, float offset_y)
 {
     for (size_t i = 0; i < ENVIRONMENT.size(); ++i)
     {
         Point p1 = ENVIRONMENT[i];
         Point p2 = ENVIRONMENT[(i + 1) % ENVIRONMENT.size()];
-        DrawLine(p1.x() * scale_factor + offset.x,
-                 p1.y() * scale_factor + offset.y,
-                 p2.x() * scale_factor + offset.x,
-                 p2.y() * scale_factor + offset.y,
+        DrawLine(p1.x() * scale_factor + offset_x,
+                 p1.y() * scale_factor + offset_y,
+                 p2.x() * scale_factor + offset_x,
+                 p2.y() * scale_factor + offset_y,
                  BLACK);
     }
 }

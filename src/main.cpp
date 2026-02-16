@@ -14,27 +14,16 @@ int main()
 
   while (!window.ShouldClose())
   {
-    // -- Update --
-    bot.get_input_and_move();
-    bot.take_lidar_readings();
-    bot.create_follow_vector();
-    bot.run_exploration();
+    bot.update();
 
-    // -- Draw --
     window.BeginDrawing();
     window.ClearBackground(RAYWHITE);
 
     const float scale_factor = calculate_scale_factor(window);
-    const raylib::Vector2 offset = calculate_offset(window, scale_factor);
+    const auto [offset_x, offset_y] = calculate_offset(window, scale_factor);
 
-    draw_environment(scale_factor, offset);
-
-    bot.draw_grid(scale_factor, offset);
-    bot.draw_first_contact_point(scale_factor, offset);
-    bot.draw_path(scale_factor, offset);
-    bot.draw_readings(scale_factor, offset);
-    bot.draw(scale_factor, offset);
-    bot.draw_follow_vector(scale_factor, offset);
+    draw_environment(scale_factor, offset_x, offset_y);
+    bot.draw(scale_factor, offset_x, offset_y);
 
     window.EndDrawing();
   }

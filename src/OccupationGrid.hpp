@@ -4,6 +4,7 @@
 #include "Bot.hpp"
 
 constexpr double CELL_SIZE = 0.1;
+const double INV_CELL_SIZE = 1.0 / CELL_SIZE;
 constexpr int MAP_WIDTH = (ENV_WIDTH * 2.0 / CELL_SIZE);
 constexpr int MAP_HEIGHT = (ENV_HEIGHT * 2.0 / CELL_SIZE);
 constexpr std::size_t MAP_SIZE = MAP_WIDTH * MAP_HEIGHT;
@@ -21,11 +22,54 @@ private:
   std::array<CellState, MAP_SIZE> grid;
   Point origin;
 
-  const double inv_cell_size = 1.0 / CELL_SIZE;
-  const int radius_cells = static_cast<int>(std::ceil(LIDAR_RADIUS *
-                                                      inv_cell_size));
+  inline int coord_to_cell_x(double x) const
+  {
+    return static_cast<int>(std::floor((x + ENV_WIDTH) * INV_CELL_SIZE));
+  }
 
-  const double lidar_radius_sq = LIDAR_RADIUS * LIDAR_RADIUS;
+  inline int coord_to_cell_y(double y) const
+  {
+    return static_cast<int>(std::floor((y + ENV_HEIGHT) * INV_CELL_SIZE));
+  }
+
+  inline bool is_cell_valid(int cell_x, int cell_y) const
+  {
+    return cell_x >= 0 && cell_x < MAP_WIDTH && cell_y >= 0 && cell_y < MAP_HEIGHT;
+  }
+
+  inline int get_cell_index(int cell_x, int cell_y) const
+  {
+    return cell_y * MAP_WIDTH + cell_x;
+  }
+
+  void mark_cell_if_unknown(int cell_x, int cell_y, CellState state)
+  {
+    if (is_cell_valid(cell_x, cell_y))
+    {
+      int idx = get_cell_index(cell_x, cell_y);
+      if (grid[idx] == CellState::Unknown)
+      {
+        grid[idx] = state;
+      }
+    }
+  }
+
+  void draw_cell(int x, int y, float scale_factor, float offset_x, float offset_y) const
+  {
+    const CellState state = grid[get_cell_index(x, y)];
+    const double relative_x = (x * CELL_SIZE) - ENV_WIDTH;
+    const double relative_y = (y * CELL_SIZE) - ENV_HEIGHT;
+
+    float screen_x = (origin.x() + relative_x) * scale_factor + offset_x;
+    float screen_y = (origin.y() + relative_y) * scale_factor + offset_y;
+    float cell_size_scaled = CELL_SIZE * scale_factor;
+
+    Color color = (state == CellState::Free) ? LIGHTGRAY : DARKGRAY;
+    if (state != CellState::Unknown)
+    {
+      DrawRectangle(screen_x, screen_y, cell_size_scaled, cell_size_scaled, color);
+    }
+  }
 
 public:
   OccupationGrid(Point origin) : origin(origin)
@@ -33,103 +77,46 @@ public:
     grid.fill(CellState::Unknown);
   }
 
-  void mark_cells(const Point &relative_position,
-                  const std::array<Reading, MAX_LIDAR_SAMPLES> &readings,
-                  const Point &real_position)
+  void mark_cells(const Point &real_position,
+                  const Point &relative_position,
+                  const std::array<Reading, MAX_LIDAR_SAMPLES> &readings)
   {
-    const double pos_x = relative_position.x();
-    const double pos_y = relative_position.y();
-
-    // Convert relative position to grid cell coordinates
-    const int pos_cell_x = static_cast<int>(std::floor((pos_x + ENV_WIDTH) * inv_cell_size));
-    const int pos_cell_y = static_cast<int>(std::floor((pos_y + ENV_HEIGHT) * inv_cell_size));
-
-    // For each LIDAR reading, trace the ray and mark cells
     for (const auto &r : readings)
     {
-      // Calculate hit position in world space
-      const double hit_x_world = real_position.x() + r.distance * cos(r.angle);
-      const double hit_y_world = real_position.y() + r.distance * sin(r.angle);
+      double hit_x_world = real_position.x() + r.distance * cos(r.angle);
+      double hit_y_world = real_position.y() + r.distance * sin(r.angle);
 
-      // Convert to robot-relative coordinates
-      const double hit_x_rel = hit_x_world - origin.x();
-      const double hit_y_rel = hit_y_world - origin.y();
+      double hit_x_rel = hit_x_world - origin.x();
+      double hit_y_rel = hit_y_world - origin.y();
 
-      const int hit_cell_x = static_cast<int>(std::floor((hit_x_rel + ENV_WIDTH) * inv_cell_size));
-      const int hit_cell_y = static_cast<int>(std::floor((hit_y_rel + ENV_HEIGHT) * inv_cell_size));
+      int hit_cell_x = coord_to_cell_x(hit_x_rel);
+      int hit_cell_y = coord_to_cell_y(hit_y_rel);
 
-      // Trace from robot to hit point, marking cells as free
-      double step_x = (hit_x_rel - pos_x) / (r.distance / CELL_SIZE);
-      double step_y = (hit_y_rel - pos_y) / (r.distance / CELL_SIZE);
+      double steps_count = r.distance / CELL_SIZE;
+      double step_x = (hit_x_rel - relative_position.x()) / steps_count;
+      double step_y = (hit_y_rel - relative_position.y()) / steps_count;
 
-      double curr_x = pos_x;
-      double curr_y = pos_y;
-      int steps = static_cast<int>(r.distance / CELL_SIZE) + 1;
+      double curr_x = relative_position.x();
+      double curr_y = relative_position.y();
 
-      for (int i = 0; i < steps; ++i)
+      for (int i = 0; i <= static_cast<int>(steps_count); ++i)
       {
-        int cell_x = static_cast<int>(std::floor((curr_x + ENV_WIDTH) * inv_cell_size));
-        int cell_y = static_cast<int>(std::floor((curr_y + ENV_HEIGHT) * inv_cell_size));
-
-        if (cell_x >= 0 && cell_x < MAP_WIDTH && cell_y >= 0 && cell_y < MAP_HEIGHT)
-        {
-          const int cell_index = cell_y * MAP_WIDTH + cell_x;
-          if (grid[cell_index] == CellState::Unknown)
-          {
-            grid[cell_index] = CellState::Free;
-          }
-        }
-
+        mark_cell_if_unknown(coord_to_cell_x(curr_x), coord_to_cell_y(curr_y), CellState::Free);
         curr_x += step_x;
         curr_y += step_y;
       }
 
-      // Mark the hit cell as occupied
-      if (hit_cell_x >= 0 && hit_cell_x < MAP_WIDTH &&
-          hit_cell_y >= 0 && hit_cell_y < MAP_HEIGHT)
-      {
-        const int cell_index = hit_cell_y * MAP_WIDTH + hit_cell_x;
-        if (grid[cell_index] == CellState::Unknown)
-        {
-          grid[cell_index] = CellState::Occupied;
-        }
-      }
+      mark_cell_if_unknown(hit_cell_x, hit_cell_y, CellState::Occupied);
     }
   }
 
-  void draw(float scale_factor, const raylib::Vector2 &offset) const
+  void draw(float scale_factor, float offset_x, float offset_y) const
   {
     for (int y = 0; y < MAP_HEIGHT; ++y)
     {
       for (int x = 0; x < MAP_WIDTH; ++x)
       {
-        const int cell_index = y * MAP_WIDTH + x;
-        const CellState state = grid[cell_index];
-
-        // Convert grid indices back to world coordinates
-        const double world_x = (x * CELL_SIZE) - ENV_WIDTH;
-        const double world_y = (y * CELL_SIZE) - ENV_HEIGHT;
-
-        // Offset by origin (starting position) and apply screen scale
-        const float screen_x = (origin.x() + world_x) * scale_factor + offset.x;
-        const float screen_y = (origin.y() + world_y) * scale_factor + offset.y;
-
-        if (state == CellState::Free)
-        {
-          DrawRectangle(screen_x,
-                        screen_y,
-                        CELL_SIZE * scale_factor,
-                        CELL_SIZE * scale_factor,
-                        LIGHTGRAY);
-        }
-        else if (state == CellState::Occupied)
-        {
-          DrawRectangle(screen_x,
-                        screen_y,
-                        CELL_SIZE * scale_factor,
-                        CELL_SIZE * scale_factor,
-                        DARKGRAY);
-        }
+        draw_cell(x, y, scale_factor, offset_x, offset_y);
       }
     }
   }

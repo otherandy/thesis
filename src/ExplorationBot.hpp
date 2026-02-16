@@ -32,8 +32,6 @@ class ExplorationBot : public Bot
 private:
   Point relative_position = Point(0.0, 0.0); // exploration and path tracking
 
-  std::vector<Point> real_visited_positions;
-
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
   OccupationGrid exploration_grid;
 
@@ -43,26 +41,6 @@ private:
   Point real_first_contact_point = Point(-1, -1);
   bool left_first_contact = false;
   Vector current_follow_vector;
-
-protected:
-  void move(const Vector &dir)
-  {
-    relative_position = relative_position + Bot::move(dir);
-
-    if (exploration_phase != ExplorationPhase::Idle)
-    {
-      real_visited_positions.push_back(get_real_position()); // for display
-      exploration_grid.mark_cells(relative_position, current_readings, get_real_position());
-    }
-  }
-
-public:
-  ExplorationBot(const Point &start_pos)
-      : Bot(start_pos), exploration_grid(start_pos)
-  {
-    const double heading = (rand() / RAND_MAX) * 2.0 * M_PI;
-    random_direction = Vector(cos(heading), sin(heading));
-  }
 
   void get_input_and_move()
   {
@@ -98,7 +76,19 @@ public:
     }
   }
 
-  // --- Exploration Methods ---
+  void move(const Vector &dir)
+  {
+    relative_position = relative_position + Bot::move(dir);
+
+    if (exploration_phase != ExplorationPhase::Idle)
+    {
+      Bot::update_visited_positions();
+      exploration_grid.mark_cells(get_real_position(),
+                                  relative_position,
+                                  current_readings);
+    }
+  }
+
   void run_exploration()
   {
     if (exploration_phase == ExplorationPhase::Idle)
@@ -220,7 +210,7 @@ public:
     current_follow_vector = fitted_vector;
   }
 
-  inline Vector calculate_wall_correction_vector()
+  inline Vector calculate_wall_correction_vector() const
   {
     if (closest_wall_reading_index == -1)
       return Vector(0, 0);
@@ -233,42 +223,18 @@ public:
     return to_wall * distance_error;
   }
 
-  // --- Drawing Methods ---
-  void draw_first_contact_point(float scale_factor, const raylib::Vector2 &offset) const
+  void draw_first_contact_point(float scale_factor, float offset_x, float offset_y) const
   {
     if (exploration_phase < ExplorationPhase::WallFollowing)
       return;
 
-    DrawCircle(real_first_contact_point.x() * scale_factor + offset.x,
-               real_first_contact_point.y() * scale_factor + offset.y,
+    DrawCircle(real_first_contact_point.x() * scale_factor + offset_x,
+               real_first_contact_point.y() * scale_factor + offset_y,
                5,
                PURPLE);
   }
 
-  void draw_path(float scale_factor, const raylib::Vector2 &offset) const
-  {
-    if (real_visited_positions.size() < 2)
-      return;
-
-    for (size_t i = 1; i < real_visited_positions.size(); ++i)
-    {
-      Point p1 = real_visited_positions[i - 1];
-      Point p2 = real_visited_positions[i];
-
-      const double p1_x = p1.x();
-      const double p1_y = p1.y();
-      const double p2_x = p2.x();
-      const double p2_y = p2.y();
-
-      DrawLine(p1_x * scale_factor + offset.x,
-               p1_y * scale_factor + offset.y,
-               p2_x * scale_factor + offset.x,
-               p2_y * scale_factor + offset.y,
-               RED);
-    }
-  }
-
-  void draw_follow_vector(float scale_factor, const raylib::Vector2 &offset) const
+  void draw_follow_vector(float scale_factor, float offset_x, float offset_y) const
   {
     if (closest_wall_reading_index == -1)
       return;
@@ -278,28 +244,43 @@ public:
     const double pos_x = pos.x();
     const double pos_y = pos.y();
 
-    DrawLine(pos_x * scale_factor + offset.x,
-             pos_y * scale_factor + offset.y,
-             (pos_x + current_follow_vector.x()) * scale_factor + offset.x,
-             (pos_y + current_follow_vector.y()) * scale_factor + offset.y,
+    DrawLine(pos_x * scale_factor + offset_x,
+             pos_y * scale_factor + offset_y,
+             (pos_x + current_follow_vector.x()) * scale_factor + offset_x,
+             (pos_y + current_follow_vector.y()) * scale_factor + offset_y,
              GREEN);
   }
 
-  void draw_grid(float scale_factor, const raylib::Vector2 &offset) const
+  void draw_grid(float scale_factor, float offset_x, float offset_y) const
   {
-    exploration_grid.draw(scale_factor, offset);
+    exploration_grid.draw(scale_factor, offset_x, offset_y);
   }
 
-  // --- Utility Methods ---
-  void visited_to_file(const std::string &filename) const
+public:
+  ExplorationBot(const Point &start_pos)
+      : Bot(start_pos), exploration_grid(start_pos)
   {
-    std::ofstream f(filename);
-    for (const auto &v : real_visited_positions)
-    {
-      f << v.x() << "," << v.y() << "\n";
-    }
-    f.close();
-    std::cout << "BOT: Saved visited positions to " << filename << std::endl;
+    const double heading = (rand() / RAND_MAX) * 2.0 * M_PI;
+    random_direction = Vector(cos(heading), sin(heading));
+  }
+
+  void update()
+  {
+    get_input_and_move();
+    take_lidar_readings();
+    create_follow_vector();
+    run_exploration();
+  }
+
+  void draw(float scale_factor, float offset_x, float offset_y) const
+  {
+    draw_grid(scale_factor, offset_x, offset_y);
+    draw_path(scale_factor, offset_x, offset_y);
+    draw_first_contact_point(scale_factor, offset_x, offset_y);
+    draw_readings(scale_factor, offset_x, offset_y);
+    draw_body(scale_factor, offset_x, offset_y);
+    draw_lidar(scale_factor, offset_x, offset_y);
+    draw_follow_vector(scale_factor, offset_x, offset_y);
   }
 };
 

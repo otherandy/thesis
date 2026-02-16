@@ -46,14 +46,14 @@ inline float calculate_scale_factor(const raylib::Window &window)
                   padded_height / ENV_HEIGHT);
 }
 
-inline raylib::Vector2 calculate_offset(const raylib::Window &window, float scale_factor)
+inline std::pair<float, float> calculate_offset(const raylib::Window &window, float scale_factor)
 {
   const float draw_width = ENV_WIDTH * scale_factor;
   const float draw_height = ENV_HEIGHT * scale_factor;
 
-  return raylib::Vector2{
+  return std::make_pair(
       (window.GetWidth() - draw_width) * 0.5f,
-      (window.GetHeight() - draw_height) * 0.5f};
+      (window.GetHeight() - draw_height) * 0.5f);
 }
 
 #endif
