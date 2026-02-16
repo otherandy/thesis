@@ -120,6 +120,22 @@ public:
       }
     }
   }
+
+  void save_to_file(const std::string &filename) const
+  {
+    ensure_parent_dir_exists(filename);
+    std::ofstream f(filename);
+    for (int y = 0; y < MAP_HEIGHT; ++y)
+    {
+      for (int x = 0; x < MAP_WIDTH; ++x)
+      {
+        f << static_cast<int>(grid[get_cell_index(x, y)]) << " ";
+      }
+      f << "\n";
+    }
+    f.close();
+    std::cout << "BOT: Occupation grid saved to " << filename << "\n";
+  }
 };
 
 #endif

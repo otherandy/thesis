@@ -181,13 +181,14 @@ public:
 
   void visited_to_file(const std::string &filename) const
   {
+    ensure_parent_dir_exists(filename);
     std::ofstream f(filename);
     for (const auto &v : real_visited_positions)
     {
       f << v.x() << "," << v.y() << "\n";
     }
     f.close();
-    std::cout << "BOT: Saved visited positions to " << filename << std::endl;
+    std::cout << "BOT: Visited positions saved to " << filename << std::endl;
   }
 };
 

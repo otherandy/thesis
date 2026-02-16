@@ -1,6 +1,9 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <filesystem>
+#include <system_error>
+
 #include <raylib-cpp.hpp>
 #include "Environment.hpp"
 
@@ -54,6 +57,19 @@ inline std::pair<float, float> calculate_offset(const raylib::Window &window, fl
   return std::make_pair(
       (window.GetWidth() - draw_width) * 0.5f,
       (window.GetHeight() - draw_height) * 0.5f);
+}
+
+inline void ensure_parent_dir_exists(const std::string &filename)
+{
+  const std::filesystem::path file_path(filename);
+  const std::filesystem::path parent_dir = file_path.parent_path();
+  if (parent_dir.empty())
+  {
+    return;
+  }
+
+  std::error_code ec;
+  std::filesystem::create_directories(parent_dir, ec);
 }
 
 #endif

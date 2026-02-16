@@ -28,7 +28,8 @@ int main()
     window.EndDrawing();
   }
 
-  // bot.visited_to_file("Testing/real_visited_positions.csv");
+  bot.visited_to_file("Testing/real_visited_positions.csv");
+  bot.grid_to_file("Testing/exploration_grid.txt");
 
   CloseWindow();
   return 0;

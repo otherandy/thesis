@@ -282,6 +282,11 @@ public:
     draw_lidar(scale_factor, offset_x, offset_y);
     draw_follow_vector(scale_factor, offset_x, offset_y);
   }
+
+  void grid_to_file(const std::string &filename) const
+  {
+    exploration_grid.save_to_file(filename);
+  }
 };
 
 #endif
