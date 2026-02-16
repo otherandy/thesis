@@ -1,26 +1,33 @@
-cmake_minimum_required(VERSION 3.1...3.23)
-project(ExplorationBot)
+cmake_minimum_required(VERSION 3.16)
+project(ExplorationBot LANGUAGES CXX)
 
+if (NOT CMAKE_CXX_COMPILER)
+  find_program(CLANGXX clang++)
+  if (CLANGXX)
+    set(CMAKE_CXX_COMPILER "${CLANGXX}" CACHE FILEPATH "C++ compiler" FORCE)
+  endif()
+endif()
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # CGAL
-find_package(CGAL QUIET COMPONENTS)
+find_package(CGAL REQUIRED COMPONENTS)
 if (NOT CGAL_FOUND)
-  message(STATUS "This project requires the CGAL library, and will not be compiled.")
-  return()
+  message(FATAL_ERROR "This project requires the CGAL library.")
 endif()
 
 # Boost
 find_package(Boost REQUIRED)
 if (NOT Boost_FOUND)
-  message(STATUS "This project requires the Boost library, and will not be compiled.")
-  return()
+  message(FATAL_ERROR "This project requires the Boost library.")
 endif()
-
 
 # raylib
 include(FetchContent)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     raylib
     GIT_REPOSITORY https://github.com/raysan5/raylib.git
@@ -32,17 +39,20 @@ FetchContent_MakeAvailable(raylib)
 FetchContent_Declare(
     raylib_cpp
     GIT_REPOSITORY https://github.com/RobLoach/raylib-cpp.git
-    GIT_TAG v5.0.1
+    GIT_TAG v5.0.3
 )
 FetchContent_MakeAvailable(raylib_cpp)
 
-# ############################
-
+# Source files
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
+# Executable
 add_executable(${PROJECT_NAME} ${SOURCES})
-add_to_cached_list(CGAL_EXECUTABLE_TARGETS ${PROJECT_NAME})
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 11)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE CGAL::CGAL)
+# Link libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE CGAL::CGAL Boost::boost)
 target_link_libraries(${PROJECT_NAME} PUBLIC raylib raylib_cpp)
+
+# Register with CGAL
+add_to_cached_list(CGAL_EXECUTABLE_TARGETS ${PROJECT_NAME})
