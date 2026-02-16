@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <filesystem>
+#include <iostream>
 #include <system_error>
 
 #include <raylib-cpp.hpp>
@@ -69,7 +70,18 @@ inline void ensure_parent_dir_exists(const std::string &filename)
   }
 
   std::error_code ec;
-  std::filesystem::create_directories(parent_dir, ec);
+  const bool created = std::filesystem::create_directories(parent_dir, ec);
+  if (ec)
+  {
+    std::cerr << "BOT: Failed to create directory " << parent_dir.string()
+              << " (" << ec.message() << ")" << std::endl;
+    return;
+  }
+
+  if (created)
+  {
+    std::cout << "BOT: Created directory " << parent_dir.string() << std::endl;
+  }
 }
 
 #endif

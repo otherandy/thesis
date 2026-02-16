@@ -125,6 +125,11 @@ public:
   {
     ensure_parent_dir_exists(filename);
     std::ofstream f(filename);
+    if (!f.is_open())
+    {
+      std::cerr << "BOT: Failed to open " << filename << " for writing" << std::endl;
+      return;
+    }
     for (int y = 0; y < MAP_HEIGHT; ++y)
     {
       for (int x = 0; x < MAP_WIDTH; ++x)

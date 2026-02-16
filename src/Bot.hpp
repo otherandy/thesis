@@ -183,6 +183,11 @@ public:
   {
     ensure_parent_dir_exists(filename);
     std::ofstream f(filename);
+    if (!f.is_open())
+    {
+      std::cerr << "BOT: Failed to open " << filename << " for writing" << std::endl;
+      return;
+    }
     for (const auto &v : real_visited_positions)
     {
       f << v.x() << "," << v.y() << "\n";
