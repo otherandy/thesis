@@ -29,6 +29,7 @@ int main()
 
     draw_environment(scale_factor, offset);
 
+    bot.draw_grid(scale_factor, offset);
     bot.draw_first_contact_point(scale_factor, offset);
     bot.draw_path(scale_factor, offset);
     bot.draw_readings(scale_factor, offset);

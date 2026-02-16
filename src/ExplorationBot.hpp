@@ -3,7 +3,7 @@
 
 #include <CGAL/linear_least_squares_fitting_2.h>
 #include <iostream>
-#include "Bot.hpp"
+#include "OccupationGrid.hpp"
 
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;
@@ -35,6 +35,7 @@ private:
   std::vector<Point> real_visited_positions;
 
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
+  OccupationGrid exploration_grid;
 
   Vector random_direction;
   Point exploration_start_point = Point(0.0, 0.0);
@@ -51,12 +52,13 @@ protected:
     if (exploration_phase != ExplorationPhase::Idle)
     {
       real_visited_positions.push_back(get_real_position()); // for display
+      exploration_grid.mark_cells(relative_position, current_readings, get_real_position());
     }
   }
 
 public:
   ExplorationBot(const Point &start_pos)
-      : Bot(start_pos)
+      : Bot(start_pos), exploration_grid(start_pos)
   {
     const double heading = (rand() / RAND_MAX) * 2.0 * M_PI;
     random_direction = Vector(cos(heading), sin(heading));
@@ -218,7 +220,7 @@ public:
     current_follow_vector = fitted_vector;
   }
 
-  Vector calculate_wall_correction_vector()
+  inline Vector calculate_wall_correction_vector()
   {
     if (closest_wall_reading_index == -1)
       return Vector(0, 0);
@@ -232,7 +234,7 @@ public:
   }
 
   // --- Drawing Methods ---
-  void draw_first_contact_point(float scale_factor, const raylib::Vector2 &offset)
+  void draw_first_contact_point(float scale_factor, const raylib::Vector2 &offset) const
   {
     if (exploration_phase < ExplorationPhase::WallFollowing)
       return;
@@ -243,7 +245,7 @@ public:
                PURPLE);
   }
 
-  void draw_path(float scale_factor, const raylib::Vector2 &offset)
+  void draw_path(float scale_factor, const raylib::Vector2 &offset) const
   {
     if (real_visited_positions.size() < 2)
       return;
@@ -252,29 +254,44 @@ public:
     {
       Point p1 = real_visited_positions[i - 1];
       Point p2 = real_visited_positions[i];
-      DrawLine(p1.x() * scale_factor + offset.x,
-               p1.y() * scale_factor + offset.y,
-               p2.x() * scale_factor + offset.x,
-               p2.y() * scale_factor + offset.y,
+
+      const double p1_x = p1.x();
+      const double p1_y = p1.y();
+      const double p2_x = p2.x();
+      const double p2_y = p2.y();
+
+      DrawLine(p1_x * scale_factor + offset.x,
+               p1_y * scale_factor + offset.y,
+               p2_x * scale_factor + offset.x,
+               p2_y * scale_factor + offset.y,
                RED);
     }
   }
 
-  void draw_follow_vector(float scale_factor, const raylib::Vector2 &offset)
+  void draw_follow_vector(float scale_factor, const raylib::Vector2 &offset) const
   {
     if (closest_wall_reading_index == -1)
       return;
 
     Point pos = get_real_position();
-    DrawLine(pos.x() * scale_factor + offset.x,
-             pos.y() * scale_factor + offset.y,
-             (pos.x() + current_follow_vector.x()) * scale_factor + offset.x,
-             (pos.y() + current_follow_vector.y()) * scale_factor + offset.y,
+
+    const double pos_x = pos.x();
+    const double pos_y = pos.y();
+
+    DrawLine(pos_x * scale_factor + offset.x,
+             pos_y * scale_factor + offset.y,
+             (pos_x + current_follow_vector.x()) * scale_factor + offset.x,
+             (pos_y + current_follow_vector.y()) * scale_factor + offset.y,
              GREEN);
   }
 
+  void draw_grid(float scale_factor, const raylib::Vector2 &offset) const
+  {
+    exploration_grid.draw(scale_factor, offset);
+  }
+
   // --- Utility Methods ---
-  void visited_to_file(const std::string &filename)
+  void visited_to_file(const std::string &filename) const
   {
     std::ofstream f(filename);
     for (const auto &v : real_visited_positions)

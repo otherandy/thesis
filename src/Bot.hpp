@@ -5,10 +5,10 @@
 
 const Point START_POSITION(4.0, 4.0);
 const int MAX_LIDAR_SAMPLES = 360;
-const double LIDAR_RADIUS = 1.5;
+constexpr double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
 
-int relative_index(int index, int offset, int max_size = MAX_LIDAR_SAMPLES)
+inline int relative_index(int index, int offset, int max_size = MAX_LIDAR_SAMPLES)
 {
   return (index + offset + max_size) % max_size;
 }
@@ -96,7 +96,7 @@ public:
     }
   }
 
-  void draw(float scale_factor, const raylib::Vector2 &offset)
+  void draw(float scale_factor, const raylib::Vector2 &offset) const
   {
     // Bot body
     DrawCircle(real_position.x() * scale_factor + offset.x,
@@ -111,37 +111,38 @@ public:
                     BLUE);
   }
 
-  void draw_readings(float scale_factor, const raylib::Vector2 &offset)
+  void draw_readings(float scale_factor, const raylib::Vector2 &offset) const
   {
-    raylib::Vector2 pos;
+    float pos_x;
+    float pos_y;
 
     if (draw_as_hud)
     {
-      pos.x = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
-      pos.y = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
+      pos_x = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
+      pos_y = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
     }
     else
     {
-      pos.x = real_position.x() * scale_factor + offset.x;
-      pos.y = real_position.y() * scale_factor + offset.y;
+      pos_x = real_position.x() * scale_factor + offset.x;
+      pos_y = real_position.y() * scale_factor + offset.y;
     }
 
     for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
     {
       const Reading &r = current_readings[i];
-      float end_x = pos.x + r.distance * scale_factor * cos(r.angle);
-      float end_y = pos.y + r.distance * scale_factor * sin(r.angle);
+      const float end_x = pos_x + r.distance * scale_factor * cos(r.angle);
+      const float end_y = pos_y + r.distance * scale_factor * sin(r.angle);
 
       if (i == closest_wall_reading_index)
       {
-        DrawLine(pos.x, pos.y,
+        DrawLine(pos_x, pos_y,
                  end_x, end_y,
                  RED);
         DrawCircle(end_x, end_y, 3, RED);
       }
       else
       {
-        DrawLine(pos.x, pos.y,
+        DrawLine(pos_x, pos_y,
                  end_x, end_y,
                  GRAY);
       }
