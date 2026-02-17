@@ -13,8 +13,15 @@ enum class CellState
 {
   Unknown,
   Free,
-  Occupied
+  Occupied,
+  Visited
 };
+
+const std::map<CellState, Color> CellColors = {
+    {CellState::Unknown, GRAY},
+    {CellState::Free, YELLOW},
+    {CellState::Occupied, BLACK},
+    {CellState::Visited, RED}};
 
 class OccupationGrid
 {
@@ -34,7 +41,8 @@ private:
 
   inline bool is_cell_valid(int cell_x, int cell_y) const
   {
-    return cell_x >= 0 && cell_x < MAP_WIDTH && cell_y >= 0 && cell_y < MAP_HEIGHT;
+    return cell_x >= 0 && cell_x < MAP_WIDTH &&
+           cell_y >= 0 && cell_y < MAP_HEIGHT;
   }
 
   inline int get_cell_index(int cell_x, int cell_y) const
@@ -42,12 +50,13 @@ private:
     return cell_y * MAP_WIDTH + cell_x;
   }
 
-  void mark_cell_if_unknown(int cell_x, int cell_y, CellState state)
+  void verify_and_mark_cell(int cell_x, int cell_y, CellState state)
   {
     if (is_cell_valid(cell_x, cell_y))
     {
       int idx = get_cell_index(cell_x, cell_y);
-      if (grid[idx] == CellState::Unknown)
+      if (grid[idx] != CellState::Occupied && grid[idx] != CellState::Visited ||
+          state == CellState::Visited)
       {
         grid[idx] = state;
       }
@@ -56,19 +65,20 @@ private:
 
   void draw_cell(int x, int y, float scale_factor, float offset_x, float offset_y) const
   {
-    const CellState state = grid[get_cell_index(x, y)];
     const double relative_x = (x * CELL_SIZE) - ENV_WIDTH;
     const double relative_y = (y * CELL_SIZE) - ENV_HEIGHT;
 
-    float screen_x = (origin.x() + relative_x) * scale_factor + offset_x;
-    float screen_y = (origin.y() + relative_y) * scale_factor + offset_y;
-    float cell_size_scaled = CELL_SIZE * scale_factor;
+    const float screen_x = (origin.x() + relative_x) * scale_factor + offset_x;
+    const float screen_y = (origin.y() + relative_y) * scale_factor + offset_y;
+    const float cell_size_scaled = CELL_SIZE * scale_factor;
 
-    Color color = (state == CellState::Free) ? LIGHTGRAY : DARKGRAY;
+    const CellState state = grid[get_cell_index(x, y)];
+    Color color = CellColors.at(state);
+
     if (state != CellState::Unknown)
-    {
-      DrawRectangle(screen_x, screen_y, cell_size_scaled, cell_size_scaled, color);
-    }
+      DrawRectangleLines(screen_x, screen_y,
+                         cell_size_scaled, cell_size_scaled,
+                         color);
   }
 
 public:
@@ -81,32 +91,43 @@ public:
                   const Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings)
   {
+    const double rel_pos_x = relative_position.x();
+    const double rel_pos_y = relative_position.y();
+
+    const int pos_cell_x = coord_to_cell_x(rel_pos_x);
+    const int pos_cell_y = coord_to_cell_y(rel_pos_y);
+
+    verify_and_mark_cell(pos_cell_x, pos_cell_y, CellState::Visited);
+
     for (const auto &r : readings)
     {
-      double hit_x_world = real_position.x() + r.distance * cos(r.angle);
-      double hit_y_world = real_position.y() + r.distance * sin(r.angle);
+      const double hit_x_world = real_position.x() + r.distance * cos(r.angle);
+      const double hit_y_world = real_position.y() + r.distance * sin(r.angle);
 
-      double hit_x_rel = hit_x_world - origin.x();
-      double hit_y_rel = hit_y_world - origin.y();
+      const double hit_x_rel = hit_x_world - origin.x();
+      const double hit_y_rel = hit_y_world - origin.y();
 
-      int hit_cell_x = coord_to_cell_x(hit_x_rel);
-      int hit_cell_y = coord_to_cell_y(hit_y_rel);
+      const int hit_cell_x = coord_to_cell_x(hit_x_rel);
+      const int hit_cell_y = coord_to_cell_y(hit_y_rel);
 
-      double steps_count = r.distance / CELL_SIZE;
-      double step_x = (hit_x_rel - relative_position.x()) / steps_count;
-      double step_y = (hit_y_rel - relative_position.y()) / steps_count;
+      const double steps_count = r.distance / CELL_SIZE;
+      const double step_x = (hit_x_rel - rel_pos_x) / steps_count;
+      const double step_y = (hit_y_rel - rel_pos_y) / steps_count;
 
-      double curr_x = relative_position.x();
-      double curr_y = relative_position.y();
+      double curr_x = rel_pos_x;
+      double curr_y = rel_pos_y;
 
-      for (int i = 0; i <= static_cast<int>(steps_count); ++i)
+      for (int i = 0; i < static_cast<int>(steps_count); ++i)
       {
-        mark_cell_if_unknown(coord_to_cell_x(curr_x), coord_to_cell_y(curr_y), CellState::Free);
+        const int cell_x = coord_to_cell_x(curr_x);
+        const int cell_y = coord_to_cell_y(curr_y);
+        verify_and_mark_cell(cell_x, cell_y, CellState::Free);
         curr_x += step_x;
         curr_y += step_y;
       }
 
-      mark_cell_if_unknown(hit_cell_x, hit_cell_y, CellState::Occupied);
+      if (r.distance < LIDAR_RADIUS)
+        verify_and_mark_cell(hit_cell_x, hit_cell_y, CellState::Occupied);
     }
   }
 
