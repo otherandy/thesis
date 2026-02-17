@@ -1,13 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(ExplorationBot LANGUAGES CXX)
 
-if (NOT CMAKE_CXX_COMPILER)
-  find_program(CLANGXX clang++)
-  if (CLANGXX)
-    set(CMAKE_CXX_COMPILER "${CLANGXX}" CACHE FILEPATH "C++ compiler" FORCE)
-  endif()
-endif()
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

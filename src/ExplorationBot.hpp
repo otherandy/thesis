@@ -23,8 +23,9 @@ enum class ExplorationPhase
 // --- Setup ---
 const double DESIRED_WALL_DISTANCE = 0.2;
 const double WALL_DISTANCE_STRENGTH = 0.9;
-const double READING_ANGLE_SPAN = 0.02;
-const int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
+constexpr double READING_ANGLE_SPAN = 0.02;
+constexpr int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
+constexpr std::size_t WALL_POINT_COUNT = 2 * READING_OFFSET + 1;
 
 // --- Classes ---
 class ExplorationBot : public Bot
@@ -182,7 +183,7 @@ private:
     if (closest_wall_reading_index == -1)
       return;
 
-    std::array<Point, 2 * READING_OFFSET + 1> wall_points;
+    std::array<Point, WALL_POINT_COUNT> wall_points;
 
     for (int offset = -READING_OFFSET; offset <= READING_OFFSET; ++offset)
     {

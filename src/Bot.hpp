@@ -4,7 +4,7 @@
 #include "Utils.hpp"
 
 const Point START_POSITION(4.0, 4.0);
-const int MAX_LIDAR_SAMPLES = 360;
+constexpr int MAX_LIDAR_SAMPLES = 360;
 constexpr double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
 
