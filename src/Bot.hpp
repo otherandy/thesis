@@ -26,6 +26,14 @@ protected:
   bool draw_as_hud = true;
   double speed = 0.1;
 
+  void reset()
+  {
+    real_position = START_POSITION;
+    real_visited_positions.clear();
+    current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
+    closest_wall_reading_index = -1;
+  }
+
   inline Point reading_index_to_point(int index) const
   {
     const Reading &r = current_readings[index];

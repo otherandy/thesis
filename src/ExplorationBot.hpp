@@ -50,6 +50,12 @@ private:
       draw_as_hud = !draw_as_hud;
     }
 
+    if (IsKeyPressed(KEY_P))
+    {
+      reset();
+      return;
+    }
+
     if (exploration_phase != ExplorationPhase::Idle)
       return;
 
@@ -75,6 +81,16 @@ private:
     {
       move(EAST);
     }
+  }
+
+  void reset()
+  {
+    relative_position = Point(0.0, 0.0);
+    exploration_phase = ExplorationPhase::Idle;
+    exploration_grid = OccupationGrid(START_POSITION);
+    left_first_contact = false;
+
+    Bot::reset();
   }
 
   void move(const Vector &dir)
