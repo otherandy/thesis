@@ -6,7 +6,7 @@
 const Point START_POSITION(4.0, 4.0);
 constexpr int MAX_LIDAR_SAMPLES = 360;
 constexpr double LIDAR_RADIUS = 1.5;
-const double LIDAR_RESOLUTION = LIDAR_RADIUS / 100.0;
+const double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
 
 inline int relative_index(int index, int offset, int max_size = MAX_LIDAR_SAMPLES)
 {
@@ -66,7 +66,7 @@ protected:
   {
     const double angle_step = 2.0 * M_PI / num_samples;
 
-    double closest_distance = LIDAR_RADIUS;
+    double closest_distance = std::numeric_limits<double>::max();
     closest_wall_reading_index = -1;
 
     for (int i = 0; i < num_samples; ++i)
