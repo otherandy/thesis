@@ -14,14 +14,16 @@ enum class CellState
   Unknown,
   Free,
   Occupied,
-  Visited
+  Visited,
+  Frontier
 };
 
 const std::map<CellState, Color> CellColors = {
     {CellState::Unknown, GRAY},
     {CellState::Free, YELLOW},
     {CellState::Occupied, BLACK},
-    {CellState::Visited, RED}};
+    {CellState::Visited, RED},
+    {CellState::Frontier, BLUE}};
 
 class OccupationGrid
 {
@@ -55,9 +57,13 @@ private:
     if (is_cell_valid(cell_x, cell_y))
     {
       int idx = get_cell_index(cell_x, cell_y);
-      if (grid[idx] != CellState::Occupied && grid[idx] != CellState::Visited ||
+      if (grid[idx] != CellState::Occupied &&
+              grid[idx] != CellState::Visited ||
           state == CellState::Visited)
       {
+        if (grid[idx] == CellState::Free && state == CellState::Frontier)
+          return;
+
         grid[idx] = state;
       }
     }
@@ -128,6 +134,8 @@ public:
 
       if (r.distance < LIDAR_RADIUS)
         verify_and_mark_cell(hit_cell_x, hit_cell_y, CellState::Occupied);
+      else
+        verify_and_mark_cell(hit_cell_x, hit_cell_y, CellState::Frontier);
     }
   }
 
