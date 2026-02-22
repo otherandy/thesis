@@ -3,10 +3,15 @@
 
 #include "Utils.hpp"
 
+#define INVALID_INDEX -1
+
 const Point START_POSITION(4.0, 4.0);
 constexpr int MAX_LIDAR_SAMPLES = 360;
 constexpr double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
+
+const float DRAWN_BODY_RADIUS = 5.0;
+const float DRAWN_POINT_RADIUS = 3.0;
 
 inline int relative_index(int index, int offset, int max_size = MAX_LIDAR_SAMPLES)
 {
@@ -21,7 +26,7 @@ private:
 
 protected:
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
-  int closest_wall_reading_index = -1;
+  int closest_wall_reading_index = INVALID_INDEX;
 
   bool draw_as_hud = true;
   double speed = 0.1;
@@ -31,7 +36,7 @@ protected:
     real_position = START_POSITION;
     real_visited_positions.clear();
     current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
-    closest_wall_reading_index = -1;
+    closest_wall_reading_index = INVALID_INDEX;
   }
 
   inline Point reading_index_to_point(int index) const
@@ -106,7 +111,7 @@ protected:
   {
     DrawCircle(real_position.x() * scale_factor + offset_x,
                real_position.y() * scale_factor + offset_y,
-               5,
+               DRAWN_BODY_RADIUS,
                RED);
   }
 
@@ -145,7 +150,7 @@ protected:
         DrawLine(pos_x, pos_y,
                  end_x, end_y,
                  RED);
-        DrawCircle(end_x, end_y, 3, RED);
+        DrawCircle(end_x, end_y, DRAWN_POINT_RADIUS, RED);
       }
       else
       {

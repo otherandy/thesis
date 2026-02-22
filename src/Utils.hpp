@@ -8,7 +8,6 @@
 #include <raylib-cpp.hpp>
 #include "Environment.hpp"
 
-using Kernel = CGAL::Simple_cartesian<double>;
 using Vector = Kernel::Vector_2;
 
 struct Reading
@@ -18,11 +17,6 @@ struct Reading
 };
 
 const float WINDOW_PADDING = 10.0f;
-
-const Vector NORTH(0, -1);
-const Vector SOUTH(0, 1);
-const Vector WEST(-1, 0);
-const Vector EAST(1, 0);
 
 inline double compute_angle_to_point(const Point &from, const Point &to)
 {

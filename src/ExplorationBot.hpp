@@ -5,11 +5,16 @@
 #include <iostream>
 #include "OccupationGrid.hpp"
 
-using Kernel = CGAL::Simple_cartesian<double>;
-using Point = Kernel::Point_2;
+#define NEXT_INDEX 1
+#define PREV_INDEX -1
+
 using Polygon = CGAL::Polygon_2<Kernel>;
 using Direction = Kernel::Direction_2;
-using Vector = Kernel::Vector_2;
+
+const Vector NORTH(0, -1);
+const Vector SOUTH(0, 1);
+const Vector EAST(1, 0);
+const Vector WEST(-1, 0);
 
 enum class ExplorationPhase
 {
@@ -37,11 +42,12 @@ private:
   OccupationGrid exploration_grid;
 
   Vector random_direction;
-  Point exploration_start_point = Point(0.0, 0.0);
-  Point relative_first_contact_point = Point(-1, -1);
-  Point real_first_contact_point = Point(-1, -1);
-  bool left_first_contact = false;
+  Point exploration_start_point;
   Vector current_follow_vector;
+  bool left_first_contact = false;
+
+  Point relative_first_contact_point;
+  Point real_first_contact_point;
 
   void get_input_and_move()
   {
@@ -181,7 +187,7 @@ private:
 
     move(desired_vector);
 
-    if (std::sqrt(CGAL::squared_distance(relative_position, relative_first_contact_point)) <= speed)
+    if (std::sqrt(CGAL::squared_distance(relative_position, relative_first_contact_point)) <= speed * 2)
     {
       if (!left_first_contact)
         return;
@@ -196,7 +202,7 @@ private:
 
   void create_follow_vector()
   {
-    if (closest_wall_reading_index == -1)
+    if (closest_wall_reading_index == INVALID_INDEX)
       return;
 
     std::array<Point, WALL_POINT_COUNT> wall_points;
@@ -214,8 +220,8 @@ private:
         fitted_line,
         CGAL::Dimension_tag<0>());
 
-    int before_idx = relative_index(closest_wall_reading_index, -1);
-    int after_idx = relative_index(closest_wall_reading_index, 1);
+    int before_idx = relative_index(closest_wall_reading_index, PREV_INDEX);
+    int after_idx = relative_index(closest_wall_reading_index, NEXT_INDEX);
     Point before_point = reading_index_to_point(before_idx);
     Point after_point = reading_index_to_point(after_idx);
     Vector direction_hint = after_point - before_point;
@@ -229,7 +235,7 @@ private:
 
   inline Vector calculate_wall_correction_vector() const
   {
-    if (closest_wall_reading_index == -1)
+    if (closest_wall_reading_index == INVALID_INDEX)
       return Vector(0, 0);
 
     const Reading &r = current_readings[closest_wall_reading_index];
@@ -247,13 +253,13 @@ private:
 
     DrawCircle(real_first_contact_point.x() * scale_factor + offset_x,
                real_first_contact_point.y() * scale_factor + offset_y,
-               5,
+               DRAWN_POINT_RADIUS,
                PURPLE);
   }
 
   void draw_follow_vector(float scale_factor, float offset_x, float offset_y) const
   {
-    if (closest_wall_reading_index == -1)
+    if (closest_wall_reading_index == INVALID_INDEX)
       return;
 
     Point pos = get_real_position();
