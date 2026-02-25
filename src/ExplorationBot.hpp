@@ -274,12 +274,7 @@ private:
              GREEN);
   }
 
-  void draw_grid(float scale_factor, float offset_x, float offset_y) const
-  {
-    exploration_grid.draw(scale_factor, offset_x, offset_y);
-  }
-
-public:
+  public:
   ExplorationBot(const Point &start_pos)
       : Bot(start_pos), exploration_grid(start_pos)
   {
@@ -297,7 +292,7 @@ public:
 
   void draw(float scale_factor, float offset_x, float offset_y) const
   {
-    draw_grid(scale_factor, offset_x, offset_y);
+    exploration_grid.draw(scale_factor, offset_x, offset_y);
     draw_path(scale_factor, offset_x, offset_y);
     draw_first_contact_point(scale_factor, offset_x, offset_y);
     draw_readings(scale_factor, offset_x, offset_y);

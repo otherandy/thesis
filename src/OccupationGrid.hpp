@@ -52,20 +52,35 @@ private:
     return cell_y * MAP_WIDTH + cell_x;
   }
 
-  void verify_and_mark_cell(int cell_x, int cell_y, CellState state)
+  inline CellState get_cell_state(int cell_x, int cell_y) const
+  {
+    if (!is_cell_valid(cell_x, cell_y))
+      return CellState::Unknown;
+    return grid[get_cell_index(cell_x, cell_y)];
+  }
+
+  void verify_and_mark_cell(int cell_x, int cell_y, CellState new_state)
   {
     if (is_cell_valid(cell_x, cell_y))
     {
       int idx = get_cell_index(cell_x, cell_y);
-      if (grid[idx] != CellState::Occupied &&
-              grid[idx] != CellState::Visited ||
-          state == CellState::Visited)
-      {
-        if (grid[idx] == CellState::Free && state == CellState::Frontier)
-          return;
 
-        grid[idx] = state;
+      // Always overwrite cells to Visited
+      if (new_state == CellState::Visited)
+      {
+        grid[idx] = CellState::Visited;
+        return;
       }
+
+      // Don't overwrite Occupied or Visited states
+      if (grid[idx] == CellState::Occupied || grid[idx] == CellState::Visited)
+        return;
+
+      // Don't mark Free cells as Frontier
+      if (grid[idx] == CellState::Free && new_state == CellState::Frontier)
+        return;
+
+      grid[idx] = new_state;
     }
   }
 
@@ -123,7 +138,7 @@ public:
       double curr_x = rel_pos_x;
       double curr_y = rel_pos_y;
 
-      for (int i = 0; i < static_cast<int>(steps_count); ++i)
+      for (int i = 0; i < steps_count; ++i)
       {
         const int cell_x = coord_to_cell_x(curr_x);
         const int cell_y = coord_to_cell_y(curr_y);
