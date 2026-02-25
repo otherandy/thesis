@@ -18,6 +18,56 @@ inline int relative_index(int index, int offset, int max_size = MAX_LIDAR_SAMPLE
   return (index + offset + max_size) % max_size;
 }
 
+std::vector<std::pair<double, double>> get_reading_discontinuities(
+    const std::array<Reading, MAX_LIDAR_SAMPLES> &readings)
+{
+  std::vector<std::pair<double, double>> discontinuities;
+
+  bool in_segment = false;
+  double segment_start = 0.0;
+
+  for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
+  {
+    const Reading &r = readings[i];
+    const bool is_hit = r.distance < LIDAR_RADIUS;
+
+    if (is_hit && !in_segment)
+    {
+      in_segment = true;
+      segment_start = r.angle;
+    }
+    else if (!is_hit && in_segment)
+    {
+      in_segment = false;
+      const Reading &prev = readings[relative_index(i, -1)];
+      discontinuities.emplace_back(segment_start, prev.angle);
+    }
+  }
+
+  if (in_segment)
+  {
+    const Reading &last = readings[relative_index(0, -1)];
+    discontinuities.emplace_back(segment_start, last.angle);
+  }
+
+  return discontinuities;
+}
+
+void draw_discontinuities(
+    const std::vector<std::pair<double, double>> &discontinuities,
+    float scale_factor, float offset_x, float offset_y)
+{
+  for (const auto &[start_angle, end_angle] : discontinuities)
+  {
+    const float start_x = LIDAR_RADIUS * cos(start_angle) * scale_factor + offset_x;
+    const float start_y = LIDAR_RADIUS * sin(start_angle) * scale_factor + offset_y;
+    const float end_x = LIDAR_RADIUS * cos(end_angle) * scale_factor + offset_x;
+    const float end_y = LIDAR_RADIUS * sin(end_angle) * scale_factor + offset_y;
+
+    DrawLine(start_x, start_y, end_x, end_y, ORANGE);
+  }
+}
+
 class Bot
 {
 private:

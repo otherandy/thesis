@@ -25,21 +25,19 @@ enum class ExplorationPhase
   Completed
 };
 
-// --- Setup ---
 const double DESIRED_WALL_DISTANCE = 0.2;
 const double WALL_DISTANCE_STRENGTH = 0.9;
 constexpr double READING_ANGLE_SPAN = 0.02;
 constexpr int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
 constexpr std::size_t WALL_POINT_COUNT = 2 * READING_OFFSET + 1;
 
-// --- Classes ---
 class ExplorationBot : public Bot
 {
 private:
-  Point relative_position = Point(0.0, 0.0); // exploration and path tracking
-
+  Point relative_position = Point(0.0, 0.0);
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
   OccupationGrid exploration_grid;
+  std::vector<std::pair<double, double>> current_discontinuities;
 
   Vector random_direction;
   Point exploration_start_point;
@@ -263,6 +261,7 @@ public:
   {
     get_input_and_move();
     take_lidar_readings();
+    current_discontinuities = get_reading_discontinuities(current_readings);
     create_follow_vector();
     run_exploration();
   }
@@ -272,6 +271,7 @@ public:
     exploration_grid.draw(scale_factor, offset_x, offset_y);
     draw_path(scale_factor, offset_x, offset_y);
     draw_readings(scale_factor, offset_x, offset_y);
+    draw_discontinuities(current_discontinuities, scale_factor, offset_x, offset_y);
     draw_body(scale_factor, offset_x, offset_y);
     draw_lidar(scale_factor, offset_x, offset_y);
     draw_follow_vector(scale_factor, offset_x, offset_y);
