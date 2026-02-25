@@ -30,6 +30,7 @@ class OccupationGrid
 private:
   std::array<CellState, MAP_SIZE> grid;
   Point origin;
+  bool frontier_was_added = false;
 
   inline int coord_to_cell_x(double x) const
   {
@@ -80,6 +81,9 @@ private:
       if (grid[idx] == CellState::Free && new_state == CellState::Frontier)
         return;
 
+      if (new_state == CellState::Frontier)
+        frontier_was_added = true;
+
       grid[idx] = new_state;
     }
   }
@@ -108,6 +112,11 @@ public:
     grid.fill(CellState::Unknown);
   }
 
+  bool was_frontier_added() const
+  {
+    return frontier_was_added;
+  }
+
   void mark_cells(const Point &real_position,
                   const Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings)
@@ -119,6 +128,8 @@ public:
     const int pos_cell_y = coord_to_cell_y(rel_pos_y);
 
     verify_and_mark_cell(pos_cell_x, pos_cell_y, CellState::Visited);
+
+    frontier_was_added = false;
 
     for (const auto &r : readings)
     {
@@ -148,9 +159,13 @@ public:
       }
 
       if (r.distance < LIDAR_RADIUS)
+      {
         verify_and_mark_cell(hit_cell_x, hit_cell_y, CellState::Occupied);
+      }
       else
+      {
         verify_and_mark_cell(hit_cell_x, hit_cell_y, CellState::Frontier);
+      }
     }
   }
 

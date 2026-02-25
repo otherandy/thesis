@@ -44,10 +44,6 @@ private:
   Vector random_direction;
   Point exploration_start_point;
   Vector current_follow_vector;
-  bool left_first_contact = false;
-
-  Point relative_first_contact_point;
-  Point real_first_contact_point;
 
   void get_input_and_move()
   {
@@ -94,7 +90,6 @@ private:
     relative_position = Point(0.0, 0.0);
     exploration_phase = ExplorationPhase::Idle;
     exploration_grid = OccupationGrid(START_POSITION);
-    left_first_contact = false;
 
     Bot::reset();
   }
@@ -165,8 +160,6 @@ private:
       std::cout << "EXPLORATION: Aligned with wall at position ("
                 << relative_position.x() << ", " << relative_position.y()
                 << ")\n";
-      real_first_contact_point = get_real_position();
-      relative_first_contact_point = relative_position;
       exploration_phase = ExplorationPhase::WallFollowing;
       return;
     }
@@ -187,17 +180,12 @@ private:
 
     move(desired_vector);
 
-    if (std::sqrt(CGAL::squared_distance(relative_position, relative_first_contact_point)) <= speed * 2)
+    if (!exploration_grid.was_frontier_added())
     {
-      if (!left_first_contact)
-        return;
-
       std::cout << "EXPLORATION: Completed wall following loop.\n";
       exploration_phase = ExplorationPhase::Completed;
       return;
     }
-
-    left_first_contact = true;
   }
 
   void create_follow_vector()
@@ -246,17 +234,6 @@ private:
     return to_wall * distance_error;
   }
 
-  void draw_first_contact_point(float scale_factor, float offset_x, float offset_y) const
-  {
-    if (exploration_phase < ExplorationPhase::WallFollowing)
-      return;
-
-    DrawCircle(real_first_contact_point.x() * scale_factor + offset_x,
-               real_first_contact_point.y() * scale_factor + offset_y,
-               DRAWN_POINT_RADIUS,
-               PURPLE);
-  }
-
   void draw_follow_vector(float scale_factor, float offset_x, float offset_y) const
   {
     if (closest_wall_reading_index == INVALID_INDEX)
@@ -274,7 +251,7 @@ private:
              GREEN);
   }
 
-  public:
+public:
   ExplorationBot(const Point &start_pos)
       : Bot(start_pos), exploration_grid(start_pos)
   {
@@ -294,7 +271,6 @@ private:
   {
     exploration_grid.draw(scale_factor, offset_x, offset_y);
     draw_path(scale_factor, offset_x, offset_y);
-    draw_first_contact_point(scale_factor, offset_x, offset_y);
     draw_readings(scale_factor, offset_x, offset_y);
     draw_body(scale_factor, offset_x, offset_y);
     draw_lidar(scale_factor, offset_x, offset_y);
