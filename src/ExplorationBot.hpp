@@ -43,6 +43,8 @@ private:
   Point exploration_start_point;
   Vector current_follow_vector;
 
+  bool is_paused = false;
+
   void get_input_and_move()
   {
     if (IsKeyPressed(KEY_R))
@@ -50,14 +52,22 @@ private:
       draw_as_hud = !draw_as_hud;
     }
 
-    if (IsKeyPressed(KEY_P))
+    if (IsKeyPressed(KEY_T))
     {
       reset();
       return;
     }
 
-    if (exploration_phase != ExplorationPhase::Idle)
+    if (IsKeyPressed(KEY_P))
+    {
+      is_paused = !is_paused;
       return;
+    }
+
+    if (exploration_phase != ExplorationPhase::Idle)
+    {
+      return;
+    }
 
     if (IsKeyPressed(KEY_SPACE))
     {
@@ -88,6 +98,7 @@ private:
     relative_position = Point(0.0, 0.0);
     exploration_phase = ExplorationPhase::Idle;
     exploration_grid = OccupationGrid(START_POSITION);
+    is_paused = false;
 
     Bot::reset();
   }
@@ -107,8 +118,12 @@ private:
 
   void run_exploration()
   {
-    if (exploration_phase == ExplorationPhase::Idle)
+    if (exploration_phase == ExplorationPhase::Idle ||
+        exploration_phase == ExplorationPhase::Completed ||
+        is_paused)
+    {
       return;
+    }
 
     if (exploration_phase == ExplorationPhase::WallDiscovery)
     {
