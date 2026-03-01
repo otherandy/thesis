@@ -39,7 +39,7 @@ private:
   Point relative_position = Point(0.0, 0.0);
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
   OccupationGrid exploration_grid;
-  
+
   Vector random_direction;
   Point exploration_start_point;
   Vector current_follow_vector;
@@ -49,12 +49,12 @@ private:
 
   void get_input_and_move()
   {
-    if (IsKeyPressed(KEY_R))
+    if (IsKeyPressed(KEY_L))
     {
       draw_as_hud = !draw_as_hud;
     }
 
-    if (IsKeyPressed(KEY_T))
+    if (IsKeyPressed(KEY_R))
     {
       reset();
       return;
@@ -196,10 +196,11 @@ private:
 
     move(desired_vector);
 
-    if (!exploration_grid.was_frontier_added())
+    if (!exploration_grid.was_frontier_cell_added())
     {
       std::cout << "EXPLORATION: Completed wall following loop.\n";
       exploration_phase = ExplorationPhase::Completed;
+      exploration_grid.compute_frontier_regions();
       return;
     }
   }
@@ -281,7 +282,7 @@ public:
   {
     get_input_and_move();
     take_lidar_readings();
-        create_follow_vector();
+    create_follow_vector();
     run_exploration();
   }
 
@@ -290,9 +291,10 @@ public:
     exploration_grid.draw(scale_factor, offset_x, offset_y);
     draw_path(scale_factor, offset_x, offset_y);
     draw_readings(scale_factor, offset_x, offset_y);
-        draw_body(scale_factor, offset_x, offset_y);
+    draw_body(scale_factor, offset_x, offset_y);
     draw_lidar(scale_factor, offset_x, offset_y);
     draw_follow_vector(scale_factor, offset_x, offset_y);
+    exploration_grid.draw_frontier_count();
   }
 
   void grid_to_file(const std::string &filename) const

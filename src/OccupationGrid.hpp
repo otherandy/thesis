@@ -1,6 +1,7 @@
 #ifndef OCCUPATION_GRID_HPP
 #define OCCUPATION_GRID_HPP
 
+#include <queue>
 #include "Bot.hpp"
 
 constexpr double CELL_SIZE = 0.1;
@@ -22,7 +23,6 @@ struct Cell
 {
   CellState state;
   int frontier_id;
-  std::array<int, 4> frontier_neighbors;
 };
 
 const std::map<CellState, Color> CellColors = {
@@ -32,12 +32,30 @@ const std::map<CellState, Color> CellColors = {
     {CellState::Visited, RED},
     {CellState::Frontier, BLUE}};
 
+const std::array<Color, 9> FrontierColors = {
+    BLUE,
+    LIME,
+    VIOLET,
+    DARKBLUE,
+    DARKGREEN,
+    DARKPURPLE,
+    SKYBLUE,
+    GREEN,
+    PURPLE,
+};
+
 class OccupationGrid
 {
 private:
-  std::array<Cell, MAP_SIZE> grid;
   Point origin;
-  bool frontier_was_added = false;
+  std::array<Cell, MAP_SIZE> grid;
+
+  bool frontier_cell_was_added = false;
+  std::size_t frontier_count = 0;
+
+  // Track bounding box of frontier cells for optimization
+  int min_frontier_idx = std::numeric_limits<int>::max();
+  int max_frontier_idx = std::numeric_limits<int>::min();
 
   inline int coord_to_cell_x(double x) const
   {
@@ -49,7 +67,7 @@ private:
     return std::floor((y + ENV_HEIGHT) * INV_CELL_SIZE);
   }
 
-  inline bool is_cell_valid(int cell_x, int cell_y) const
+  inline bool is_valid_cell(int cell_x, int cell_y) const
   {
     return cell_x >= 0 && cell_x < MAP_WIDTH &&
            cell_y >= 0 && cell_y < MAP_HEIGHT;
@@ -60,20 +78,16 @@ private:
     return cell_y * MAP_WIDTH + cell_x;
   }
 
-  inline CellState get_cell_state(int cell_x, int cell_y) const
+  inline std::pair<int, int> get_cell_coordinates(int idx) const
   {
-    if (!is_cell_valid(cell_x, cell_y))
-    {
-      return CellState::Unknown;
-    }
-
-    const int idx = get_cell_index(cell_x, cell_y);
-    return grid[idx].state;
+    int cell_x = idx % MAP_WIDTH;
+    int cell_y = idx / MAP_WIDTH;
+    return {cell_x, cell_y};
   }
 
-  void verify_and_mark_cell(int cell_x, int cell_y, CellState new_state)
+  bool verify_and_mark_cell(int cell_x, int cell_y, CellState new_state)
   {
-    if (is_cell_valid(cell_x, cell_y))
+    if (is_valid_cell(cell_x, cell_y))
     {
       int idx = get_cell_index(cell_x, cell_y);
       Cell &cell = grid[idx];
@@ -82,30 +96,35 @@ private:
       if (new_state == CellState::Visited)
       {
         cell.state = CellState::Visited;
-        return;
+        return true;
       }
 
       // Don't overwrite Occupied or Visited states
       if (cell.state == CellState::Occupied ||
           cell.state == CellState::Visited)
       {
-        return;
+        return false;
       }
 
       // Don't mark known cells as Frontier
       if (cell.state == CellState::Free &&
           new_state == CellState::Frontier)
       {
-        return;
+        return false;
       }
 
       if (new_state == CellState::Frontier)
       {
-        frontier_was_added = true;
+        frontier_cell_was_added = true;
+        min_frontier_idx = std::min(min_frontier_idx, idx);
+        max_frontier_idx = std::max(max_frontier_idx, idx);
       }
 
       cell.state = new_state;
+      return true;
     }
+
+    return false;
   }
 
   void draw_cell(int x, int y,
@@ -123,23 +142,36 @@ private:
       const float screen_y = (origin.y() + relative_y) * scale_factor + offset_y;
       const float cell_size_scaled = CELL_SIZE * scale_factor;
 
-      Color color = CellColors.at(state);
+      if (state == CellState::Frontier)
+      {
+        const int frontier_id = grid[idx].frontier_id;
+        const int color_idx = (frontier_id + 1) % FrontierColors.size();
+        const Color color = FrontierColors[color_idx];
 
-      DrawRectangleLines(screen_x, screen_y,
-                         cell_size_scaled, cell_size_scaled,
-                         color);
+        DrawRectangleLines(screen_x, screen_y,
+                           cell_size_scaled, cell_size_scaled,
+                           color);
+      }
+      else
+      {
+        Color color = CellColors.at(state);
+
+        DrawRectangleLines(screen_x, screen_y,
+                           cell_size_scaled, cell_size_scaled,
+                           color);
+      }
     }
   }
 
 public:
   OccupationGrid(Point origin) : origin(origin)
   {
-    grid.fill({CellState::Unknown, -1, {-1, -1, -1, -1}});
+    grid.fill({CellState::Unknown, -1});
   }
 
-  bool was_frontier_added() const
+  bool was_frontier_cell_added() const
   {
-    return frontier_was_added;
+    return frontier_cell_was_added;
   }
 
   void mark_cells(const Point &relative_position,
@@ -153,7 +185,8 @@ public:
 
     verify_and_mark_cell(pos_cell_x, pos_cell_y, CellState::Visited);
 
-    frontier_was_added = false;
+    frontier_cell_was_added = false;
+    std::vector<int> frontier_cells_to_update;
 
     for (const auto &r : readings)
     {
@@ -190,6 +223,59 @@ public:
     }
   }
 
+  void compute_frontier_regions()
+  {
+    frontier_count = 0;
+
+    int current_region_id = 0;
+
+    for (int idx = min_frontier_idx; idx <= max_frontier_idx; ++idx)
+    {
+      if (grid[idx].state == CellState::Frontier && grid[idx].frontier_id == -1)
+      {
+        std::queue<int> q;
+        q.push(idx);
+        grid[idx].frontier_id = current_region_id;
+
+        while (!q.empty())
+        {
+          const int current_idx = q.front();
+          q.pop();
+
+          const auto [cx, cy] = get_cell_coordinates(current_idx);
+
+          for (int dy = -1; dy <= 1; ++dy)
+          {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+              if (dx == 0 && dy == 0)
+              {
+                continue;
+              }
+
+              const int nx = cx + dx;
+              const int ny = cy + dy;
+
+              if (is_valid_cell(nx, ny))
+              {
+                const int neighbor_idx = get_cell_index(nx, ny);
+                if (grid[neighbor_idx].state == CellState::Frontier &&
+                    grid[neighbor_idx].frontier_id == -1)
+                {
+                  grid[neighbor_idx].frontier_id = current_region_id;
+                  q.push(neighbor_idx);
+                }
+              }
+            }
+          }
+        }
+
+        current_region_id++;
+        frontier_count++;
+      }
+    }
+  }
+
   void draw(float scale_factor, float offset_x, float offset_y) const
   {
     for (int y = 0; y < MAP_HEIGHT; ++y)
@@ -199,6 +285,12 @@ public:
         draw_cell(x, y, scale_factor, offset_x, offset_y);
       }
     }
+  }
+
+  void draw_frontier_count() const
+  {
+    const std::string text = "Frontiers: " + std::to_string(frontier_count);
+    DrawText(text.c_str(), 10, GetScreenHeight() - 30, 20, BLACK);
   }
 
   void save_to_file(const std::string &filename) const
