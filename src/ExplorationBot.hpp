@@ -113,8 +113,7 @@ private:
     if (exploration_phase != ExplorationPhase::Idle)
     {
       Bot::update_visited_positions();
-      exploration_grid.mark_cells(get_real_position(),
-                                  relative_position,
+      exploration_grid.mark_cells(relative_position,
                                   current_readings);
     }
   }

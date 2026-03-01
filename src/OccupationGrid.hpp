@@ -142,8 +142,7 @@ public:
     return frontier_was_added;
   }
 
-  void mark_cells(const Point &real_position,
-                  const Point &relative_position,
+  void mark_cells(const Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings)
   {
     const double rel_pos_x = relative_position.x();
@@ -158,11 +157,8 @@ public:
 
     for (const auto &r : readings)
     {
-      const double hit_x_world = real_position.x() + r.distance * cos(r.angle);
-      const double hit_y_world = real_position.y() + r.distance * sin(r.angle);
-
-      const double hit_x_rel = hit_x_world - origin.x();
-      const double hit_y_rel = hit_y_world - origin.y();
+      const double hit_x_rel = rel_pos_x + r.distance * cos(r.angle);
+      const double hit_y_rel = rel_pos_y + r.distance * sin(r.angle);
 
       const int hit_cell_x = coord_to_cell_x(hit_x_rel);
       const int hit_cell_y = coord_to_cell_y(hit_y_rel);
