@@ -10,13 +10,13 @@
 
 using Vector = Kernel::Vector_2;
 
+const float WINDOW_PADDING = 10.0f;
+
 struct Reading
 {
   double angle;
   double distance;
 };
-
-const float WINDOW_PADDING = 10.0f;
 
 inline double compute_angle_to_point(const Point &from, const Point &to)
 {

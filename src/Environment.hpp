@@ -43,6 +43,16 @@ constexpr auto POLYGON_BOUNDS = get_bounds(POLYGON_ENV_DATA,
                                            sizeof(POLYGON_ENV_DATA) /
                                                sizeof(POLYGON_ENV_DATA[0]));
 
+constexpr double ENV_WIDTH = std::get<1>(POLYGON_BOUNDS) -
+                             std::get<0>(POLYGON_BOUNDS);
+constexpr double ENV_HEIGHT = std::get<3>(POLYGON_BOUNDS) -
+                              std::get<2>(POLYGON_BOUNDS);
+
+const double EXPLORATION_RADIUS = std::sqrt(
+                                      std::pow(ENV_WIDTH, 2) +
+                                      std::pow(ENV_HEIGHT, 2)) /
+                                  2.0;
+
 inline const Polygon &get_environment()
 {
     static Polygon env;
@@ -59,16 +69,6 @@ inline const Polygon &get_environment()
 }
 
 const Polygon &ENVIRONMENT = get_environment();
-
-constexpr double ENV_WIDTH = std::get<1>(POLYGON_BOUNDS) -
-                             std::get<0>(POLYGON_BOUNDS);
-constexpr double ENV_HEIGHT = std::get<3>(POLYGON_BOUNDS) -
-                              std::get<2>(POLYGON_BOUNDS);
-
-const double EXPLORATION_RADIUS = std::sqrt(
-                                      std::pow(ENV_WIDTH, 2) +
-                                      std::pow(ENV_HEIGHT, 2)) /
-                                  2.0;
 
 inline bool point_in_environment(const Point &p)
 {

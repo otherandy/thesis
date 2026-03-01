@@ -6,14 +6,15 @@
 #define INVALID_INDEX -1
 
 const Point START_POSITION(4.0, 4.0);
-constexpr int MAX_LIDAR_SAMPLES = 360;
+constexpr std::size_t MAX_LIDAR_SAMPLES = 360;
 constexpr double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
 
 const float DRAWN_BODY_RADIUS = 5.0;
 const float DRAWN_POINT_RADIUS = 3.0;
 
-inline int relative_index(int index, int offset, int max_size = MAX_LIDAR_SAMPLES)
+inline int relative_index(int index, int offset,
+                          int max_size = MAX_LIDAR_SAMPLES)
 {
   return (index + offset + max_size) % max_size;
 }
@@ -95,13 +96,16 @@ protected:
     return point_at_reading(real_position, r);
   }
 
+  // Returns delta applied to position
   Vector move(const Vector &dir)
   {
     Vector delta = normalize_vector(dir) * speed;
     Point new_position = real_position + delta;
 
     if (!point_in_environment(new_position))
+    {
       return Vector(0, 0);
+    }
 
     real_position = new_position;
     return delta;
@@ -140,14 +144,18 @@ protected:
         double sample_y = real_position.y() + mid_dist * sin(angle);
 
         if (point_in_environment(Point(sample_x, sample_y)))
+        {
           min_dist = mid_dist;
+        }
         else
+        {
           max_dist = mid_dist;
+        }
       }
 
       distance = max_dist;
 
-      if (distance < closest_distance)
+      if (distance < LIDAR_RADIUS && distance < closest_distance)
       {
         closest_distance = distance;
         closest_wall_reading_index = i;
@@ -215,22 +223,19 @@ protected:
   {
 
     if (real_visited_positions.size() < 2)
+    {
       return;
+    }
 
     for (size_t i = 1; i < real_visited_positions.size(); ++i)
     {
-      Point p1 = real_visited_positions[i - 1];
-      Point p2 = real_visited_positions[i];
+      const Point &p1 = real_visited_positions[i - 1];
+      const Point &p2 = real_visited_positions[i];
 
-      const double p1_x = p1.x();
-      const double p1_y = p1.y();
-      const double p2_x = p2.x();
-      const double p2_y = p2.y();
-
-      DrawLine(p1_x * scale_factor + offset_x,
-               p1_y * scale_factor + offset_y,
-               p2_x * scale_factor + offset_x,
-               p2_y * scale_factor + offset_y,
+      DrawLine(p1.x() * scale_factor + offset_x,
+               p1.y() * scale_factor + offset_y,
+               p2.x() * scale_factor + offset_x,
+               p2.y() * scale_factor + offset_y,
                RED);
     }
   }
@@ -246,15 +251,18 @@ public:
   {
     ensure_parent_dir_exists(filename);
     std::ofstream f(filename);
+
     if (!f.is_open())
     {
       std::cerr << "BOT: Failed to open " << filename << " for writing" << std::endl;
       return;
     }
+
     for (const auto &v : real_visited_positions)
     {
       f << v.x() << "," << v.y() << "\n";
     }
+
     f.close();
     std::cout << "BOT: Visited positions saved to " << filename << std::endl;
   }

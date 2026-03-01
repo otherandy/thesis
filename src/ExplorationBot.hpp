@@ -11,6 +11,14 @@
 using Polygon = CGAL::Polygon_2<Kernel>;
 using Direction = Kernel::Direction_2;
 
+const double DESIRED_WALL_DISTANCE = 0.2;
+const double WALL_DISTANCE_STRENGTH = 0.9;
+constexpr double READING_ANGLE_SPAN = 0.02;
+constexpr int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
+constexpr std::size_t WALL_POINT_COUNT = 2 * READING_OFFSET + 1;
+
+bool is_paused = false;
+
 const Vector NORTH(0, -1);
 const Vector SOUTH(0, 1);
 const Vector EAST(1, 0);
@@ -25,12 +33,6 @@ enum class ExplorationPhase
   Completed
 };
 
-const double DESIRED_WALL_DISTANCE = 0.2;
-const double WALL_DISTANCE_STRENGTH = 0.9;
-constexpr double READING_ANGLE_SPAN = 0.02;
-constexpr int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
-constexpr std::size_t WALL_POINT_COUNT = 2 * READING_OFFSET + 1;
-
 class ExplorationBot : public Bot
 {
 private:
@@ -42,6 +44,7 @@ private:
   Vector random_direction;
   Point exploration_start_point;
   Vector current_follow_vector;
+  std::array<Point, WALL_POINT_COUNT> wall_points;
 
   bool is_paused = false;
 
@@ -147,7 +150,9 @@ private:
   void phase1_wall_discovery()
   {
     if (std::sqrt(CGAL::squared_distance(relative_position, exploration_start_point)) >= EXPLORATION_RADIUS)
+    {
       return;
+    }
 
     for (const auto &r : current_readings)
     {
@@ -186,10 +191,10 @@ private:
 
   void phase3_wall_following()
   {
-    Vector wall_vector = calculate_wall_correction_vector();
-    Vector desired_vector = current_follow_vector *
-                                (1.0 - WALL_DISTANCE_STRENGTH) +
-                            wall_vector * WALL_DISTANCE_STRENGTH;
+    const Vector wall_vector = calculate_wall_correction_vector();
+    const Vector desired_vector = current_follow_vector *
+                                      (1.0 - WALL_DISTANCE_STRENGTH) +
+                                  wall_vector * WALL_DISTANCE_STRENGTH;
 
     move(desired_vector);
 
@@ -204,13 +209,13 @@ private:
   void create_follow_vector()
   {
     if (closest_wall_reading_index == INVALID_INDEX)
+    {
       return;
-
-    std::array<Point, WALL_POINT_COUNT> wall_points;
+    }
 
     for (int offset = -READING_OFFSET; offset <= READING_OFFSET; ++offset)
     {
-      int idx = relative_index(closest_wall_reading_index, offset);
+      const int idx = relative_index(closest_wall_reading_index, offset);
       wall_points[offset + READING_OFFSET] = reading_index_to_point(idx);
     }
 
@@ -221,15 +226,17 @@ private:
         fitted_line,
         CGAL::Dimension_tag<0>());
 
-    int before_idx = relative_index(closest_wall_reading_index, PREV_INDEX);
-    int after_idx = relative_index(closest_wall_reading_index, NEXT_INDEX);
-    Point before_point = reading_index_to_point(before_idx);
-    Point after_point = reading_index_to_point(after_idx);
-    Vector direction_hint = after_point - before_point;
+    const int before_idx = relative_index(closest_wall_reading_index, PREV_INDEX);
+    const int after_idx = relative_index(closest_wall_reading_index, NEXT_INDEX);
+    const Point before_point = reading_index_to_point(before_idx);
+    const Point after_point = reading_index_to_point(after_idx);
+    const Vector direction_hint = after_point - before_point;
 
     Vector fitted_vector = fitted_line.to_vector();
     if (fitted_vector * direction_hint < 0)
+    {
       fitted_vector = -fitted_vector;
+    }
 
     current_follow_vector = fitted_vector;
   }
@@ -237,12 +244,13 @@ private:
   inline Vector calculate_wall_correction_vector() const
   {
     if (closest_wall_reading_index == INVALID_INDEX)
+    {
       return Vector(0, 0);
+    }
 
     const Reading &r = current_readings[closest_wall_reading_index];
-    double distance_error = r.distance - DESIRED_WALL_DISTANCE;
-
-    Vector to_wall = Vector(cos(r.angle), sin(r.angle));
+    const double distance_error = r.distance - DESIRED_WALL_DISTANCE;
+    const Vector to_wall = Vector(cos(r.angle), sin(r.angle));
 
     return to_wall * distance_error;
   }
@@ -250,17 +258,16 @@ private:
   void draw_follow_vector(float scale_factor, float offset_x, float offset_y) const
   {
     if (closest_wall_reading_index == INVALID_INDEX)
+    {
       return;
+    }
 
-    Point pos = get_real_position();
+    const Point &pos = get_real_position();
 
-    const double pos_x = pos.x();
-    const double pos_y = pos.y();
-
-    DrawLine(pos_x * scale_factor + offset_x,
-             pos_y * scale_factor + offset_y,
-             (pos_x + current_follow_vector.x()) * scale_factor + offset_x,
-             (pos_y + current_follow_vector.y()) * scale_factor + offset_y,
+    DrawLine(pos.x() * scale_factor + offset_x,
+             pos.y() * scale_factor + offset_y,
+             (pos.x() + current_follow_vector.x()) * scale_factor + offset_x,
+             (pos.y() + current_follow_vector.y()) * scale_factor + offset_y,
              GREEN);
   }
 
