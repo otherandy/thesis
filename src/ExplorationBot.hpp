@@ -39,8 +39,7 @@ private:
   Point relative_position = Point(0.0, 0.0);
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
   OccupationGrid exploration_grid;
-  std::vector<std::pair<double, double>> current_discontinuities;
-
+  
   Vector random_direction;
   Point exploration_start_point;
   Vector current_follow_vector;
@@ -282,8 +281,7 @@ public:
   {
     get_input_and_move();
     take_lidar_readings();
-    current_discontinuities = get_reading_discontinuities(current_readings);
-    create_follow_vector();
+        create_follow_vector();
     run_exploration();
   }
 
@@ -292,8 +290,7 @@ public:
     exploration_grid.draw(scale_factor, offset_x, offset_y);
     draw_path(scale_factor, offset_x, offset_y);
     draw_readings(scale_factor, offset_x, offset_y);
-    draw_discontinuities(current_discontinuities, scale_factor, offset_x, offset_y);
-    draw_body(scale_factor, offset_x, offset_y);
+        draw_body(scale_factor, offset_x, offset_y);
     draw_lidar(scale_factor, offset_x, offset_y);
     draw_follow_vector(scale_factor, offset_x, offset_y);
   }
