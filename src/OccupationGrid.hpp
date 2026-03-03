@@ -44,6 +44,12 @@ const std::array<Color, 9> FrontierColors = {
     PURPLE,
 };
 
+struct FrontierRegion
+{
+  int id;
+  std::vector<int> cell_indices;
+};
+
 class OccupationGrid
 {
 private:
@@ -51,7 +57,7 @@ private:
   std::array<Cell, MAP_SIZE> grid;
 
   bool frontier_cell_was_added = false;
-  std::size_t frontier_count = 0;
+  std::vector<FrontierRegion> frontier_regions;
 
   // Track bounding box of frontier cells for optimization
   int min_frontier_idx = std::numeric_limits<int>::max();
@@ -225,7 +231,7 @@ public:
 
   void compute_frontier_regions()
   {
-    frontier_count = 0;
+    frontier_regions.clear();
 
     int current_region_id = 0;
 
@@ -236,6 +242,7 @@ public:
         std::queue<int> q;
         q.push(idx);
         grid[idx].frontier_id = current_region_id;
+        frontier_regions.push_back({current_region_id, {idx}});
 
         while (!q.empty())
         {
@@ -263,6 +270,7 @@ public:
                     grid[neighbor_idx].frontier_id == -1)
                 {
                   grid[neighbor_idx].frontier_id = current_region_id;
+                  frontier_regions.back().cell_indices.push_back(neighbor_idx);
                   q.push(neighbor_idx);
                 }
               }
@@ -271,7 +279,6 @@ public:
         }
 
         current_region_id++;
-        frontier_count++;
       }
     }
   }
@@ -289,7 +296,8 @@ public:
 
   void draw_frontier_count() const
   {
-    const std::string text = "Frontiers: " + std::to_string(frontier_count);
+    const std::string text = "Frontiers: " +
+                             std::to_string(frontier_regions.size());
     DrawText(text.c_str(), 10, GetScreenHeight() - 30, 20, BLACK);
   }
 
