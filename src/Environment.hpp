@@ -1,5 +1,5 @@
-#ifndef ENVIRONMENT_H
-#define ENVIRONMENT_H
+#ifndef ENVIRONMENT_HPP
+#define ENVIRONMENT_HPP
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Polygon_2.h>

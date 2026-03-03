@@ -1,11 +1,7 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef UTILS_HPP
+#define UTILS_HPP
 
 #include <filesystem>
-#include <iostream>
-#include <system_error>
-
-#include <raylib-cpp.hpp>
 #include "Environment.hpp"
 
 using Vector = Kernel::Vector_2;
