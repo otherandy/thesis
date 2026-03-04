@@ -47,7 +47,35 @@ const std::array<Color, 9> FrontierColors = {
 struct FrontierRegion
 {
   int id;
-  std::vector<int> cell_indices;
+  std::vector<Point> cell_centers;
+
+  std::vector<Point> get_points() const
+  {
+    return cell_centers;
+  }
+
+  Polygon to_polygon() const
+  {
+    return Polygon(cell_centers.begin(), cell_centers.end());
+  }
+
+  Point get_closest_from(const Point &pos) const
+  {
+    Point closest_point = cell_centers[0];
+    double closest_distance = CGAL::squared_distance(pos, closest_point);
+
+    for (const auto &center : cell_centers)
+    {
+      double distance = CGAL::squared_distance(pos, center);
+      if (distance < closest_distance)
+      {
+        closest_distance = distance;
+        closest_point = center;
+      }
+    }
+
+    return closest_point;
+  }
 };
 
 class OccupationGrid
@@ -242,7 +270,8 @@ public:
         std::queue<int> q;
         q.push(idx);
         grid[idx].frontier_id = current_region_id;
-        frontier_regions.push_back({current_region_id, {idx}});
+        Point cell_center = get_cell_center(idx);
+        frontier_regions.push_back({current_region_id, {cell_center}});
 
         while (!q.empty())
         {
@@ -270,7 +299,8 @@ public:
                     grid[neighbor_idx].frontier_id == -1)
                 {
                   grid[neighbor_idx].frontier_id = current_region_id;
-                  frontier_regions.back().cell_indices.push_back(neighbor_idx);
+                  Point neighbor_center = get_cell_center(neighbor_idx);
+                  frontier_regions.back().cell_centers.push_back(neighbor_center);
                   q.push(neighbor_idx);
                 }
               }
@@ -281,6 +311,19 @@ public:
         current_region_id++;
       }
     }
+  }
+
+  const std::vector<FrontierRegion> &get_frontier_regions() const
+  {
+    return frontier_regions;
+  }
+
+  const Point get_cell_center(int idx) const
+  {
+    const auto [cell_x, cell_y] = get_cell_coordinates(idx);
+    const double cell_center_x = (cell_x + 0.5) * CELL_SIZE - ENV_WIDTH;
+    const double cell_center_y = (cell_y + 0.5) * CELL_SIZE - ENV_HEIGHT;
+    return Point(cell_center_x, cell_center_y);
   }
 
   void draw(float scale_factor, float offset_x, float offset_y) const

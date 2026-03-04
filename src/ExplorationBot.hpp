@@ -1,9 +1,9 @@
-#ifndef EXPLORATION_BOT_H
-#define EXPLORATION_BOT_H
+#ifndef EXPLORATION_BOT_HPP
+#define EXPLORATION_BOT_HPP
 
 #include <CGAL/linear_least_squares_fitting_2.h>
-#include <iostream>
 #include "OccupationGrid.hpp"
+#include "Graph.hpp"
 
 #define NEXT_INDEX 1
 #define PREV_INDEX -1
@@ -30,6 +30,8 @@ enum class ExplorationPhase
   WallDiscovery,
   WallAlignment,
   WallFollowing,
+  RegionAlignment,
+  RegionExploration,
   Completed
 };
 
@@ -40,10 +42,18 @@ private:
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
   OccupationGrid exploration_grid;
 
-  Vector random_direction;
   Point exploration_start_point;
+  Vector random_direction;
   Vector current_follow_vector;
-  std::array<Point, WALL_POINT_COUNT> wall_points;
+  Point exploration_end_point;
+
+  bool graph_initialized = false;
+  Graph frontier_graph;
+  incremental_dfs frontier_dfs{frontier_graph, 1};
+  Vertex current_region_vertex;
+  Point target_point;
+  std::vector<Point> current_region_path;
+  int current_region_path_index = 0;
 
   bool is_paused = false;
 
@@ -143,12 +153,26 @@ private:
       phase3_wall_following();
       return;
     }
+
+    if (exploration_phase == ExplorationPhase::RegionAlignment)
+    {
+      phase4_region_alignment();
+      return;
+    }
+
+    if (exploration_phase == ExplorationPhase::RegionExploration)
+    {
+      phase5_region_exploration();
+      return;
+    }
   }
 
   void phase1_wall_discovery()
   {
     if (std::sqrt(CGAL::squared_distance(relative_position, exploration_start_point)) >= EXPLORATION_RADIUS)
     {
+      std::cout << "EXPLORATION: Exploration radius reached without finding a wall. Exploration completed.\n";
+      exploration_phase = ExplorationPhase::Completed;
       return;
     }
 
@@ -160,7 +184,6 @@ private:
                   << relative_position.x() << ", " << relative_position.y()
                   << ")\n";
         exploration_phase = ExplorationPhase::WallAlignment;
-        return;
       }
     }
 
@@ -199,9 +222,10 @@ private:
     if (!exploration_grid.was_frontier_cell_added())
     {
       std::cout << "EXPLORATION: Completed wall following loop.\n";
-      exploration_phase = ExplorationPhase::Completed;
+      exploration_end_point = relative_position;
       exploration_grid.compute_frontier_regions();
-      return;
+      initialize_graph();
+      select_region();
     }
   }
 
@@ -211,6 +235,8 @@ private:
     {
       return;
     }
+
+    std::array<Point, WALL_POINT_COUNT> wall_points;
 
     for (int offset = -READING_OFFSET; offset <= READING_OFFSET; ++offset)
     {
@@ -254,7 +280,144 @@ private:
     return to_wall * distance_error;
   }
 
-  void draw_follow_vector(float scale_factor, float offset_x, float offset_y) const
+  void initialize_graph()
+  {
+    const auto regions = exploration_grid.get_frontier_regions();
+
+    if (regions.empty())
+    {
+      std::cout << "EXPLORATION: No frontier regions found. Exploration completed.\n";
+      exploration_phase = ExplorationPhase::Completed;
+      return;
+    }
+
+    for (size_t i = 0; i < regions.size(); ++i)
+    {
+      add_edge(0, i + 1, frontier_graph);
+    }
+  }
+
+  void select_region()
+  {
+    if (frontier_dfs.next(current_region_vertex))
+    {
+      std::cout << "EXPLORATION: Aligning with region " << current_region_vertex << "\n";
+
+      if (current_region_vertex != 0)
+      {
+        const auto &regions = exploration_grid.get_frontier_regions();
+        const FrontierRegion &target_region = regions[current_region_vertex - 1];
+        target_point = target_region.get_closest_from(relative_position);
+      }
+      else
+      {
+        target_point = exploration_end_point;
+      }
+
+      exploration_phase = ExplorationPhase::RegionAlignment;
+    }
+    else
+    {
+      std::cout << "EXPLORATION: Completed region graph exploration.\n";
+      exploration_phase = ExplorationPhase::Completed;
+    }
+  }
+
+  void phase4_region_alignment()
+  {
+    if (std::sqrt(CGAL::squared_distance(relative_position, target_point)) < speed)
+    {
+      std::cout << "EXPLORATION: Aligned with region " << current_region_vertex << "\n";
+
+      if (current_region_vertex != 0)
+      {
+        current_region_path = calculate_region_path();
+      }
+
+      exploration_phase = ExplorationPhase::RegionExploration;
+      return;
+    }
+
+    const Vector to_target = target_point - relative_position;
+    move(to_target);
+  }
+
+  std::vector<Point> calculate_region_path()
+  {
+    const auto &regions = exploration_grid.get_frontier_regions();
+    const FrontierRegion &target_region = regions[current_region_vertex - 1];
+
+    std::vector<Point> region_points = target_region.get_points();
+
+    std::vector<Point> traversal_order;
+    traversal_order.push_back(region_points[0]);
+    std::vector<bool> visited(region_points.size(), false);
+    visited[0] = true;
+
+    for (size_t i = 1; i < region_points.size(); ++i)
+    {
+      Point current = traversal_order.back();
+      int nearest_idx = -1;
+      double nearest_distance = std::numeric_limits<double>::max();
+
+      for (size_t j = 0; j < region_points.size(); ++j)
+      {
+        if (!visited[j])
+        {
+          double dist = std::sqrt(CGAL::squared_distance(current, region_points[j]));
+          if (dist < nearest_distance)
+          {
+            nearest_distance = dist;
+            nearest_idx = j;
+          }
+        }
+      }
+
+      if (nearest_idx != -1)
+      {
+        traversal_order.push_back(region_points[nearest_idx]);
+        visited[nearest_idx] = true;
+      }
+    }
+
+    return traversal_order;
+  }
+
+  void phase5_region_exploration()
+  {
+    if (current_region_path_index >= current_region_path.size())
+    {
+      std::cout << "EXPLORATION: Completed exploration of region " << current_region_vertex << "\n";
+      select_region();
+      return;
+    }
+
+    if (current_region_vertex == 0)
+    {
+      const Vector wall_vector = calculate_wall_correction_vector();
+      const Vector desired_vector = current_follow_vector *
+                                        (1.0 - WALL_DISTANCE_STRENGTH) +
+                                    wall_vector * WALL_DISTANCE_STRENGTH;
+
+      move(desired_vector);
+      return;
+    }
+
+    const Point &target = current_region_path[current_region_path_index];
+
+    if (std::sqrt(CGAL::squared_distance(relative_position, target)) < speed)
+    {
+      current_region_path_index++;
+    }
+    else
+    {
+      const Vector to_target = target - relative_position;
+      move(to_target);
+    }
+  }
+
+  void draw_follow_vector(float scale_factor,
+                          float offset_x, float offset_y) const
   {
     if (closest_wall_reading_index == INVALID_INDEX)
     {
