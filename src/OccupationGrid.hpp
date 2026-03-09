@@ -76,43 +76,6 @@ struct FrontierRegion
 
     return closest_point;
   }
-
-  std::vector<Point> calculate_path_from(const Point &start) const
-  {
-    std::vector<Point> path;
-    path.push_back(get_closest_from(start));
-
-    std::vector<bool> visited(cell_centers.size(), false);
-    visited[0] = true;
-
-    for (size_t i = 1; i < cell_centers.size(); ++i)
-    {
-      Point current = path.back();
-      int nearest_idx = -1;
-      double nearest_distance = std::numeric_limits<double>::max();
-
-      for (size_t j = 0; j < cell_centers.size(); ++j)
-      {
-        if (!visited[j])
-        {
-          double dist = std::sqrt(CGAL::squared_distance(current, cell_centers[j]));
-          if (dist < nearest_distance)
-          {
-            nearest_distance = dist;
-            nearest_idx = j;
-          }
-        }
-      }
-
-      if (nearest_idx != -1)
-      {
-        path.push_back(cell_centers[nearest_idx]);
-        visited[nearest_idx] = true;
-      }
-    }
-
-    return path;
-  }
 };
 
 class OccupationGrid
@@ -123,6 +86,7 @@ private:
 
   bool frontier_cell_was_added = false;
   std::vector<FrontierRegion> frontier_regions;
+  int current_frontier_id = 0;
 
   // Track bounding box of frontier cells for optimization
   int min_frontier_idx = std::numeric_limits<int>::max();
@@ -154,6 +118,19 @@ private:
     int cell_x = idx % MAP_WIDTH;
     int cell_y = idx / MAP_WIDTH;
     return {cell_x, cell_y};
+  }
+
+  inline Cell get_cell_from_position(const Point &pos) const
+  {
+    int cell_x = coord_to_cell_x(pos.x());
+    int cell_y = coord_to_cell_y(pos.y());
+
+    if (is_valid_cell(cell_x, cell_y))
+    {
+      return grid[get_cell_index(cell_x, cell_y)];
+    }
+
+    return {CellState::Unknown, -1}; // Default for out-of-bounds
   }
 
   bool verify_and_mark_cell(int cell_x, int cell_y, CellState new_state)
@@ -298,17 +275,15 @@ public:
   {
     frontier_regions.clear();
 
-    int current_region_id = 0;
-
     for (int idx = min_frontier_idx; idx <= max_frontier_idx; ++idx)
     {
       if (grid[idx].state == CellState::Frontier && grid[idx].frontier_id == -1)
       {
         std::queue<int> q;
         q.push(idx);
-        grid[idx].frontier_id = current_region_id;
+        grid[idx].frontier_id = current_frontier_id;
         Point cell_center = get_cell_center(idx);
-        frontier_regions.push_back({current_region_id, {cell_center}});
+        frontier_regions.push_back({current_frontier_id, {cell_center}});
 
         while (!q.empty())
         {
@@ -335,7 +310,7 @@ public:
                 if (grid[neighbor_idx].state == CellState::Frontier &&
                     grid[neighbor_idx].frontier_id == -1)
                 {
-                  grid[neighbor_idx].frontier_id = current_region_id;
+                  grid[neighbor_idx].frontier_id = current_frontier_id;
                   Point neighbor_center = get_cell_center(neighbor_idx);
                   frontier_regions.back().cell_centers.push_back(neighbor_center);
                   q.push(neighbor_idx);
@@ -345,9 +320,70 @@ public:
           }
         }
 
-        current_region_id++;
+        current_frontier_id++;
       }
     }
+  }
+
+  std::vector<Point> calculate_path_from(const Point start,
+                                         const int frontier_id) const
+  {
+    std::vector<Point> path;
+    std::set<Point> visited;
+
+    path.push_back(start);
+    visited.insert(start);
+
+    bool found_next = true;
+
+    while (found_next)
+    {
+      const Point &current = path.back();
+      const int current_cell_x = coord_to_cell_x(current.x());
+      const int current_cell_y = coord_to_cell_y(current.y());
+
+      found_next = false;
+
+      for (int dy = -1; dy <= 1 && !found_next; ++dy)
+      {
+        for (int dx = -1; dx <= 1 && !found_next; ++dx)
+        {
+          if (dx == 0 && dy == 0)
+          {
+            continue;
+          }
+
+          const int neighbor_cell_x = current_cell_x + dx * CELL_SIZE;
+          const int neighbor_cell_y = current_cell_y + dy * CELL_SIZE;
+
+          if (!is_valid_cell(neighbor_cell_x, neighbor_cell_y))
+          {
+            continue;
+          }
+
+          const int neighbor_cell_idx = get_cell_index(neighbor_cell_x,
+                                                       neighbor_cell_y);
+
+          Point neighbor = get_cell_center(neighbor_cell_idx);
+
+          if (visited.count(neighbor) > 0)
+          {
+            continue;
+          }
+
+          const Cell &cell = grid[neighbor_cell_idx];
+
+          if (cell.frontier_id == frontier_id)
+          {
+            path.push_back(neighbor);
+            visited.insert(neighbor);
+            found_next = true;
+          }
+        }
+      }
+    }
+
+    return path;
   }
 
   const std::vector<FrontierRegion> &get_frontier_regions() const
@@ -391,20 +427,10 @@ public:
     return Point(0, 0); // Default fallback
   }
 
-  const int get_region_index_from(const Point &pos) const
+  const int get_frontier_id_from(const Point &pos) const
   {
-    for (size_t i = 0; i < frontier_regions.size(); ++i)
-    {
-      const FrontierRegion &region = frontier_regions[i];
-      for (const auto &cell_center : region.cell_centers)
-      {
-        if (CGAL::squared_distance(pos, cell_center) < (CELL_SIZE * CELL_SIZE))
-        {
-          return region.id;
-        }
-      }
-    }
-    return -1;
+    const Cell &cell = get_cell_from_position(pos);
+    return cell.frontier_id;
   }
 
   void draw(float scale_factor, float offset_x, float offset_y) const

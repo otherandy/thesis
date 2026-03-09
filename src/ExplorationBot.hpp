@@ -56,10 +56,10 @@ private:
 
   Point target_point = Point(0, 0);
   Point start_point = Point(0, 0);
-  int current_region_idx = -1;
+  int current_frontier_idx = -1;
 
   std::vector<Point> current_region_path;
-  int current_region_path_index = 0;
+  int current_region_path_index;
 
   bool is_paused = false;
 
@@ -384,12 +384,12 @@ private:
   {
     if (std::sqrt(CGAL::squared_distance(relative_position, target_point)) < speed)
     {
-      current_region_idx = exploration_grid.get_region_index_from(target_point);
+      current_frontier_idx = exploration_grid.get_frontier_id_from(target_point);
 
-      std::cout << "EXPLORATION: Aligned with region " << current_region_idx << "\n";
+      std::cout << "EXPLORATION: Aligned with region " << current_frontier_idx << "\n";
 
-      const FrontierRegion &current_region = exploration_grid.get_frontier_regions()[current_region_idx];
-      current_region_path = current_region.calculate_path_from(relative_position);
+      current_region_path = exploration_grid.calculate_path_from(target_point, current_frontier_idx);
+      current_region_path_index = 0;
 
       exploration_phase = ExplorationPhase::RegionExploration;
       return;
@@ -401,16 +401,9 @@ private:
 
   void phase6_region_exploration()
   {
-    Point &target = current_region_path[current_region_path_index];
-
-    if (std::sqrt(CGAL::squared_distance(relative_position, target)) < speed)
-    {
-      current_region_path_index++;
-    }
-
     if (current_region_path_index >= current_region_path.size())
     {
-      std::cout << "EXPLORATION: Completed exploration of region " << current_region_idx << "\n";
+      std::cout << "EXPLORATION: Completed exploration of region " << current_frontier_idx << "\n";
 
       if (!exploration_grid.was_frontier_cell_added())
       {
@@ -422,6 +415,13 @@ private:
       exploration_grid.compute_frontier_regions();
       exploration_phase = ExplorationPhase::RegionDiscovery;
       return;
+    }
+
+    Point &target = current_region_path[current_region_path_index];
+
+    if (std::sqrt(CGAL::squared_distance(relative_position, target)) < speed)
+    {
+      current_region_path_index++;
     }
 
     const Vector to_target = target - relative_position;
