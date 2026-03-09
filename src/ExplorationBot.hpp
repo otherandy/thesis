@@ -3,7 +3,7 @@
 
 #include <CGAL/linear_least_squares_fitting_2.h>
 #include "OccupationGrid.hpp"
-#include "Graph.hpp"
+// #include "Graph.hpp"
 
 #define NEXT_INDEX 1
 #define PREV_INDEX -1
@@ -30,8 +30,10 @@ enum class ExplorationPhase
   WallDiscovery,
   WallAlignment,
   WallFollowing,
+  RegionDiscovery,
   RegionAlignment,
   RegionExploration,
+  ReturnToStart,
   Completed
 };
 
@@ -47,11 +49,15 @@ private:
   Vector current_follow_vector;
   Point exploration_end_point;
 
-  bool graph_initialized = false;
-  Graph frontier_graph;
-  incremental_dfs frontier_dfs{frontier_graph, 1};
-  Vertex current_region_vertex;
-  Point target_point;
+  // bool graph_initialized = false;
+  // Graph frontier_graph;
+  // incremental_dfs frontier_dfs{frontier_graph, 1};
+  // Vertex current_region_vertex;
+
+  Point target_point = Point(0, 0);
+  Point start_point = Point(0, 0);
+  int current_region_idx = -1;
+
   std::vector<Point> current_region_path;
   int current_region_path_index = 0;
 
@@ -107,6 +113,8 @@ private:
 
   void reset()
   {
+    std::cout << "EXPLORATION: Resetting exploration.\n";
+
     relative_position = Point(0.0, 0.0);
     exploration_phase = ExplorationPhase::Idle;
     exploration_grid = OccupationGrid(START_POSITION);
@@ -154,15 +162,27 @@ private:
       return;
     }
 
+    if (exploration_phase == ExplorationPhase::RegionDiscovery)
+    {
+      phase4_region_discovery();
+      return;
+    }
+
     if (exploration_phase == ExplorationPhase::RegionAlignment)
     {
-      phase4_region_alignment();
+      phase5_region_alignment();
       return;
     }
 
     if (exploration_phase == ExplorationPhase::RegionExploration)
     {
-      phase5_region_exploration();
+      phase6_region_exploration();
+      return;
+    }
+
+    if (exploration_phase == ExplorationPhase::ReturnToStart)
+    {
+      phase7_return_to_start();
       return;
     }
   }
@@ -184,6 +204,7 @@ private:
                   << relative_position.x() << ", " << relative_position.y()
                   << ")\n";
         exploration_phase = ExplorationPhase::WallAlignment;
+        return;
       }
     }
 
@@ -223,9 +244,14 @@ private:
     {
       std::cout << "EXPLORATION: Completed wall following loop.\n";
       exploration_end_point = relative_position;
+
+      move(desired_vector * -1.0); // Step back to ensure frontier detection
+
+      // initialize_graph();
+      // select_region();
+
       exploration_grid.compute_frontier_regions();
-      initialize_graph();
-      select_region();
+      exploration_phase = ExplorationPhase::RegionDiscovery;
     }
   }
 
@@ -280,9 +306,52 @@ private:
     return to_wall * distance_error;
   }
 
-  void initialize_graph()
+  // void initialize_graph()
+  // {
+  //   const auto regions = exploration_grid.get_frontier_regions();
+
+  //   if (regions.empty())
+  //   {
+  //     std::cout << "EXPLORATION: No frontier regions found. Exploration completed.\n";
+  //     exploration_phase = ExplorationPhase::Completed;
+  //     return;
+  //   }
+
+  //   for (size_t i = 0; i < regions.size(); ++i)
+  //   {
+  //     add_edge(0, i + 1, frontier_graph);
+  //   }
+  // }
+
+  // void select_region()
+  // {
+  //   if (frontier_dfs.next(current_region_vertex))
+  //   {
+  //     std::cout << "EXPLORATION: Aligning with region " << current_region_vertex << "\n";
+
+  //     if (current_region_vertex != 0)
+  //     {
+  //       const auto &regions = exploration_grid.get_frontier_regions();
+  //       const FrontierRegion &target_region = regions[current_region_vertex - 1];
+  //       target_point = target_region.get_closest_from(relative_position);
+  //     }
+  //     else
+  //     {
+  //       target_point = exploration_end_point;
+  //     }
+
+  //     exploration_phase = ExplorationPhase::RegionAlignment;
+  //   }
+  //   else
+  //   {
+  //     std::cout << "EXPLORATION: Completed region graph exploration.\n";
+  //     exploration_phase = ExplorationPhase::Completed;
+  //   }
+  // }
+
+  void phase4_region_discovery()
   {
-    const auto regions = exploration_grid.get_frontier_regions();
+    const auto &regions = exploration_grid.get_frontier_regions();
 
     if (regions.empty())
     {
@@ -291,48 +360,36 @@ private:
       return;
     }
 
-    for (size_t i = 0; i < regions.size(); ++i)
+    target_point = exploration_grid.target_frontier_from_readings(relative_position, current_readings);
+
+    if (target_point != Point(0, 0))
     {
-      add_edge(0, i + 1, frontier_graph);
-    }
-  }
-
-  void select_region()
-  {
-    if (frontier_dfs.next(current_region_vertex))
-    {
-      std::cout << "EXPLORATION: Aligning with region " << current_region_vertex << "\n";
-
-      if (current_region_vertex != 0)
-      {
-        const auto &regions = exploration_grid.get_frontier_regions();
-        const FrontierRegion &target_region = regions[current_region_vertex - 1];
-        target_point = target_region.get_closest_from(relative_position);
-      }
-      else
-      {
-        target_point = exploration_end_point;
-      }
-
+      std::cout << "EXPLORATION: Frontier detected during region discovery at position ("
+                << relative_position.x() << ", " << relative_position.y()
+                << ")\n";
+      start_point = relative_position;
       exploration_phase = ExplorationPhase::RegionAlignment;
+      return;
     }
-    else
-    {
-      std::cout << "EXPLORATION: Completed region graph exploration.\n";
-      exploration_phase = ExplorationPhase::Completed;
-    }
+
+    const Vector wall_vector = calculate_wall_correction_vector();
+    const Vector desired_vector = current_follow_vector *
+                                      (1.0 - WALL_DISTANCE_STRENGTH) +
+                                  wall_vector * WALL_DISTANCE_STRENGTH;
+
+    move(desired_vector);
   }
 
-  void phase4_region_alignment()
+  void phase5_region_alignment()
   {
     if (std::sqrt(CGAL::squared_distance(relative_position, target_point)) < speed)
     {
-      std::cout << "EXPLORATION: Aligned with region " << current_region_vertex << "\n";
+      current_region_idx = exploration_grid.get_region_index_from(target_point);
 
-      if (current_region_vertex != 0)
-      {
-        current_region_path = calculate_region_path();
-      }
+      std::cout << "EXPLORATION: Aligned with region " << current_region_idx << "\n";
+
+      const FrontierRegion &current_region = exploration_grid.get_frontier_regions()[current_region_idx];
+      current_region_path = current_region.calculate_path_from(relative_position);
 
       exploration_phase = ExplorationPhase::RegionExploration;
       return;
@@ -342,78 +399,46 @@ private:
     move(to_target);
   }
 
-  std::vector<Point> calculate_region_path()
+  void phase6_region_exploration()
   {
-    const auto &regions = exploration_grid.get_frontier_regions();
-    const FrontierRegion &target_region = regions[current_region_vertex - 1];
-
-    std::vector<Point> region_points = target_region.get_points();
-
-    std::vector<Point> traversal_order;
-    traversal_order.push_back(region_points[0]);
-    std::vector<bool> visited(region_points.size(), false);
-    visited[0] = true;
-
-    for (size_t i = 1; i < region_points.size(); ++i)
-    {
-      Point current = traversal_order.back();
-      int nearest_idx = -1;
-      double nearest_distance = std::numeric_limits<double>::max();
-
-      for (size_t j = 0; j < region_points.size(); ++j)
-      {
-        if (!visited[j])
-        {
-          double dist = std::sqrt(CGAL::squared_distance(current, region_points[j]));
-          if (dist < nearest_distance)
-          {
-            nearest_distance = dist;
-            nearest_idx = j;
-          }
-        }
-      }
-
-      if (nearest_idx != -1)
-      {
-        traversal_order.push_back(region_points[nearest_idx]);
-        visited[nearest_idx] = true;
-      }
-    }
-
-    return traversal_order;
-  }
-
-  void phase5_region_exploration()
-  {
-    if (current_region_path_index >= current_region_path.size())
-    {
-      std::cout << "EXPLORATION: Completed exploration of region " << current_region_vertex << "\n";
-      select_region();
-      return;
-    }
-
-    if (current_region_vertex == 0)
-    {
-      const Vector wall_vector = calculate_wall_correction_vector();
-      const Vector desired_vector = current_follow_vector *
-                                        (1.0 - WALL_DISTANCE_STRENGTH) +
-                                    wall_vector * WALL_DISTANCE_STRENGTH;
-
-      move(desired_vector);
-      return;
-    }
-
-    const Point &target = current_region_path[current_region_path_index];
+    Point &target = current_region_path[current_region_path_index];
 
     if (std::sqrt(CGAL::squared_distance(relative_position, target)) < speed)
     {
       current_region_path_index++;
     }
-    else
+
+    if (current_region_path_index >= current_region_path.size())
     {
-      const Vector to_target = target - relative_position;
-      move(to_target);
+      std::cout << "EXPLORATION: Completed exploration of region " << current_region_idx << "\n";
+
+      if (!exploration_grid.was_frontier_cell_added())
+      {
+        std::cout << "EXPLORATION: No new frontier cells found. Returning to start point.\n";
+        exploration_phase = ExplorationPhase::ReturnToStart;
+        return;
+      }
+
+      exploration_grid.compute_frontier_regions();
+      exploration_phase = ExplorationPhase::RegionDiscovery;
+      return;
     }
+
+    const Vector to_target = target - relative_position;
+    move(to_target);
+  }
+
+  void phase7_return_to_start()
+  {
+    if (std::sqrt(CGAL::squared_distance(relative_position, start_point)) < speed)
+    {
+      std::cout << "EXPLORATION: Returned to start point.\n";
+      exploration_phase = ExplorationPhase::RegionDiscovery;
+      return;
+    }
+
+    const Vector to_start = start_point - relative_position;
+    move(to_start);
   }
 
   void draw_follow_vector(float scale_factor,
@@ -431,6 +456,25 @@ private:
              (pos.x() + current_follow_vector.x()) * scale_factor + offset_x,
              (pos.y() + current_follow_vector.y()) * scale_factor + offset_y,
              GREEN);
+  }
+
+  void draw_target_point(float scale_factor, float offset_x, float offset_y) const
+  {
+    if (target_point == Point(0, 0))
+    {
+      return;
+    }
+
+    const Point &pos = get_real_position();
+    const Point target_screen_pos = Point(
+        pos.x() + (target_point.x() - relative_position.x()),
+        pos.y() + (target_point.y() - relative_position.y()));
+
+    DrawCircle(
+        target_screen_pos.x() * scale_factor + offset_x,
+        target_screen_pos.y() * scale_factor + offset_y,
+        DRAWN_POINT_RADIUS,
+        PURPLE);
   }
 
 public:
@@ -457,7 +501,8 @@ public:
     draw_body(scale_factor, offset_x, offset_y);
     draw_lidar(scale_factor, offset_x, offset_y);
     draw_follow_vector(scale_factor, offset_x, offset_y);
-    exploration_grid.draw_frontier_count();
+    draw_target_point(scale_factor, offset_x, offset_y);
+    // exploration_grid.draw_frontier_count();
   }
 
   void grid_to_file(const std::string &filename) const

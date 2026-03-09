@@ -76,6 +76,43 @@ struct FrontierRegion
 
     return closest_point;
   }
+
+  std::vector<Point> calculate_path_from(const Point &start) const
+  {
+    std::vector<Point> path;
+    path.push_back(get_closest_from(start));
+
+    std::vector<bool> visited(cell_centers.size(), false);
+    visited[0] = true;
+
+    for (size_t i = 1; i < cell_centers.size(); ++i)
+    {
+      Point current = path.back();
+      int nearest_idx = -1;
+      double nearest_distance = std::numeric_limits<double>::max();
+
+      for (size_t j = 0; j < cell_centers.size(); ++j)
+      {
+        if (!visited[j])
+        {
+          double dist = std::sqrt(CGAL::squared_distance(current, cell_centers[j]));
+          if (dist < nearest_distance)
+          {
+            nearest_distance = dist;
+            nearest_idx = j;
+          }
+        }
+      }
+
+      if (nearest_idx != -1)
+      {
+        path.push_back(cell_centers[nearest_idx]);
+        visited[nearest_idx] = true;
+      }
+    }
+
+    return path;
+  }
 };
 
 class OccupationGrid
@@ -326,6 +363,50 @@ public:
     return Point(cell_center_x, cell_center_y);
   }
 
+  const Point target_frontier_from_readings(
+      const Point &relative_position,
+      const std::array<Reading, MAX_LIDAR_SAMPLES> &readings) const
+  {
+    const double rel_pos_x = relative_position.x();
+    const double rel_pos_y = relative_position.y();
+
+    for (const auto &r : readings)
+    {
+      const double hit_x_rel = rel_pos_x + r.distance * cos(r.angle);
+      const double hit_y_rel = rel_pos_y + r.distance * sin(r.angle);
+
+      const int hit_cell_x = coord_to_cell_x(hit_x_rel);
+      const int hit_cell_y = coord_to_cell_y(hit_y_rel);
+
+      if (is_valid_cell(hit_cell_x, hit_cell_y))
+      {
+        const int idx = get_cell_index(hit_cell_x, hit_cell_y);
+        if (grid[idx].state == CellState::Frontier)
+        {
+          return get_cell_center(idx);
+        }
+      }
+    }
+
+    return Point(0, 0); // Default fallback
+  }
+
+  const int get_region_index_from(const Point &pos) const
+  {
+    for (size_t i = 0; i < frontier_regions.size(); ++i)
+    {
+      const FrontierRegion &region = frontier_regions[i];
+      for (const auto &cell_center : region.cell_centers)
+      {
+        if (CGAL::squared_distance(pos, cell_center) < (CELL_SIZE * CELL_SIZE))
+        {
+          return region.id;
+        }
+      }
+    }
+    return -1;
+  }
+
   void draw(float scale_factor, float offset_x, float offset_y) const
   {
     for (int y = 0; y < MAP_HEIGHT; ++y)
@@ -351,7 +432,7 @@ public:
 
     if (!f.is_open())
     {
-      std::cerr << "BOT: Failed to open " << filename << " for writing" << std::endl;
+      std::cerr << "GRID: Failed to open " << filename << " for writing" << std::endl;
       return;
     }
 
@@ -366,7 +447,7 @@ public:
     }
 
     f.close();
-    std::cout << "BOT: Occupation grid saved to " << filename << std::endl;
+    std::cout << "GRID: Occupation grid saved to " << filename << std::endl;
   }
 };
 
