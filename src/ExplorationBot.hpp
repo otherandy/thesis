@@ -351,11 +351,9 @@ private:
 
   void phase4_region_discovery()
   {
-    const auto &regions = exploration_grid.get_frontier_regions();
-
-    if (regions.empty())
+    if (exploration_grid.get_frontier_cell_count() == 0)
     {
-      std::cout << "EXPLORATION: No frontier regions found. Exploration completed.\n";
+      std::cout << "EXPLORATION: No frontier cells found. Exploration completed.\n";
       exploration_phase = ExplorationPhase::Completed;
       return;
     }

@@ -84,9 +84,11 @@ private:
   Point origin;
   std::array<Cell, MAP_SIZE> grid;
 
+  int current_frontier_id = 0;
   bool frontier_cell_was_added = false;
   std::vector<FrontierRegion> frontier_regions;
-  int current_frontier_id = 0;
+
+  int number_of_frontier_cells = 0;
 
   // Track bounding box of frontier cells for optimization
   int min_frontier_idx = std::numeric_limits<int>::max();
@@ -168,6 +170,18 @@ private:
         max_frontier_idx = std::max(max_frontier_idx, idx);
       }
 
+      if (cell.state != CellState::Frontier &&
+          new_state == CellState::Frontier)
+      {
+        number_of_frontier_cells++;
+      }
+
+      if (cell.state == CellState::Frontier &&
+          new_state != CellState::Frontier)
+      {
+        number_of_frontier_cells--;
+      }
+
       cell.state = new_state;
       return true;
     }
@@ -220,6 +234,30 @@ public:
   bool was_frontier_cell_added() const
   {
     return frontier_cell_was_added;
+  }
+
+  int get_frontier_cell_count() const
+  {
+    return number_of_frontier_cells;
+  }
+
+  const std::vector<FrontierRegion> &get_frontier_regions() const
+  {
+    return frontier_regions;
+  }
+
+  const Point get_cell_center(int idx) const
+  {
+    const auto [cell_x, cell_y] = get_cell_coordinates(idx);
+    const double cell_center_x = (cell_x + 0.5) * CELL_SIZE - ENV_WIDTH;
+    const double cell_center_y = (cell_y + 0.5) * CELL_SIZE - ENV_HEIGHT;
+    return Point(cell_center_x, cell_center_y);
+  }
+
+  const int get_frontier_id_from(const Point &pos) const
+  {
+    const Cell &cell = get_cell_from_position(pos);
+    return cell.frontier_id;
   }
 
   void mark_cells(const Point &relative_position,
@@ -353,8 +391,8 @@ public:
             continue;
           }
 
-          const int neighbor_cell_x = current_cell_x + dx * CELL_SIZE;
-          const int neighbor_cell_y = current_cell_y + dy * CELL_SIZE;
+          const int neighbor_cell_x = current_cell_x + dx;
+          const int neighbor_cell_y = current_cell_y + dy;
 
           if (!is_valid_cell(neighbor_cell_x, neighbor_cell_y))
           {
@@ -386,19 +424,6 @@ public:
     return path;
   }
 
-  const std::vector<FrontierRegion> &get_frontier_regions() const
-  {
-    return frontier_regions;
-  }
-
-  const Point get_cell_center(int idx) const
-  {
-    const auto [cell_x, cell_y] = get_cell_coordinates(idx);
-    const double cell_center_x = (cell_x + 0.5) * CELL_SIZE - ENV_WIDTH;
-    const double cell_center_y = (cell_y + 0.5) * CELL_SIZE - ENV_HEIGHT;
-    return Point(cell_center_x, cell_center_y);
-  }
-
   const Point target_frontier_from_readings(
       const Point &relative_position,
       const std::array<Reading, MAX_LIDAR_SAMPLES> &readings) const
@@ -425,12 +450,6 @@ public:
     }
 
     return Point(0, 0); // Default fallback
-  }
-
-  const int get_frontier_id_from(const Point &pos) const
-  {
-    const Cell &cell = get_cell_from_position(pos);
-    return cell.frontier_id;
   }
 
   void draw(float scale_factor, float offset_x, float offset_y) const
