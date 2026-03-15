@@ -1,0 +1,187 @@
+#include "Bot.hpp"
+#include "Utils.hpp"
+#include <raylib-cpp.hpp>
+
+void Bot::reset()
+{
+  real_position = START_POSITION;
+  real_visited_positions.clear();
+  current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
+  closest_wall_reading_index = INVALID_INDEX;
+}
+
+Point Bot::reading_index_to_point(int index) const
+{
+  const Reading &r = current_readings[index];
+  return point_at_reading(real_position, r);
+}
+
+// Returns delta applied to position
+Vector Bot::move(const Vector &dir)
+{
+  Vector delta = normalize_vector(dir) * speed;
+  Point new_position = real_position + delta;
+
+  if (!point_in_environment(new_position))
+  {
+    return Vector(0, 0);
+  }
+
+  real_position = new_position;
+  return delta;
+}
+
+Point Bot::get_real_position() const
+{
+  return real_position;
+}
+
+void Bot::update_visited_positions()
+{
+  real_visited_positions.push_back(real_position);
+}
+
+void Bot::take_lidar_readings()
+{
+  const double angle_step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
+
+  double closest_distance = std::numeric_limits<double>::max();
+  closest_wall_reading_index = -1;
+
+  for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
+  {
+    double angle = angle_step * i;
+    double distance = LIDAR_RADIUS;
+
+    // Binary search for wall intersection
+    double min_dist = LIDAR_RESOLUTION;
+    double max_dist = LIDAR_RADIUS;
+
+    while (max_dist - min_dist > LIDAR_RESOLUTION)
+    {
+      double mid_dist = (min_dist + max_dist) / 2.0;
+      double sample_x = real_position.x() + mid_dist * cos(angle);
+      double sample_y = real_position.y() + mid_dist * sin(angle);
+
+      if (point_in_environment(Point(sample_x, sample_y)))
+      {
+        min_dist = mid_dist;
+      }
+      else
+      {
+        max_dist = mid_dist;
+      }
+    }
+
+    distance = max_dist;
+
+    if (distance < LIDAR_RADIUS && distance < closest_distance)
+    {
+      closest_distance = distance;
+      closest_wall_reading_index = i;
+    }
+
+    current_readings[i] = Reading{angle, distance};
+  }
+}
+
+void Bot::draw_body(float scale_factor, float offset_x, float offset_y) const
+{
+  DrawCircle(real_position.x() * scale_factor + offset_x,
+             real_position.y() * scale_factor + offset_y,
+             DRAWN_BODY_RADIUS,
+             RED);
+}
+
+void Bot::draw_lidar(float scale_factor, float offset_x, float offset_y) const
+{
+  DrawCircleLines(real_position.x() * scale_factor + offset_x,
+                  real_position.y() * scale_factor + offset_y,
+                  LIDAR_RADIUS * scale_factor,
+                  BLUE);
+}
+
+void Bot::draw_readings(float scale_factor, float offset_x, float offset_y) const
+{
+  float pos_x;
+  float pos_y;
+
+  if (draw_as_hud)
+  {
+    pos_x = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
+    pos_y = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
+  }
+  else
+  {
+    pos_x = real_position.x() * scale_factor + offset_x;
+    pos_y = real_position.y() * scale_factor + offset_y;
+  }
+
+  for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
+  {
+    const Reading &r = current_readings[i];
+    const float end_x = pos_x + r.distance * scale_factor * cos(r.angle);
+    const float end_y = pos_y + r.distance * scale_factor * sin(r.angle);
+
+    if (i == closest_wall_reading_index)
+    {
+      DrawLine(pos_x, pos_y,
+               end_x, end_y,
+               RED);
+      DrawCircle(end_x, end_y, DRAWN_POINT_RADIUS, RED);
+    }
+    else
+    {
+      DrawLine(pos_x, pos_y,
+               end_x, end_y,
+               GRAY);
+    }
+  }
+}
+
+void Bot::draw_path(float scale_factor, float offset_x, float offset_y) const
+{
+
+  if (real_visited_positions.size() < 2)
+  {
+    return;
+  }
+
+  for (size_t i = 1; i < real_visited_positions.size(); ++i)
+  {
+    const Point &p1 = real_visited_positions[i - 1];
+    const Point &p2 = real_visited_positions[i];
+
+    DrawLine(p1.x() * scale_factor + offset_x,
+             p1.y() * scale_factor + offset_y,
+             p2.x() * scale_factor + offset_x,
+             p2.y() * scale_factor + offset_y,
+             RED);
+  }
+}
+
+Bot::Bot(const Point &start_pos)
+    : real_position(start_pos)
+{
+  current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
+}
+
+void Bot::visited_to_file(const std::string &filename) const
+{
+  ensure_parent_dir_exists(filename);
+  std::ofstream f(filename);
+
+  if (!f.is_open())
+  {
+    std::cerr << "BOT: Failed to open " << filename << " for writing" << std::endl;
+    return;
+  }
+
+  for (const auto &v : real_visited_positions)
+  {
+    f << v.x() << "," << v.y() << "\n";
+  }
+
+  f.close();
+  std::cout << "BOT: Visited positions saved to " << filename << std::endl;
+}

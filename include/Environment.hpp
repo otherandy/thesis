@@ -1,13 +1,8 @@
 #ifndef ENVIRONMENT_HPP
 #define ENVIRONMENT_HPP
 
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Polygon_2.h>
+#include "cgal_types.hpp"
 #include <raylib-cpp.hpp>
-
-using Kernel = CGAL::Simple_cartesian<double>;
-using Point = Kernel::Point_2;
-using Polygon = CGAL::Polygon_2<Kernel>;
 
 constexpr std::pair<double, double> POLYGON_ENV_DATA[] = {
     {0, 0}, {8, 0}, {8, 6}, {12, 6}, {12, 12}, {4, 12}, {4, 6}, {0, 6}};
@@ -68,14 +63,14 @@ inline const Polygon &get_environment()
     return env;
 }
 
-const Polygon &ENVIRONMENT = get_environment();
+inline const Polygon &ENVIRONMENT = get_environment();
 
 inline bool point_in_environment(const Point &p)
 {
     return ENVIRONMENT.bounded_side(p) == CGAL::ON_BOUNDED_SIDE;
 }
 
-void draw_environment(float scale_factor, float offset_x, float offset_y)
+inline void draw_environment(float scale_factor, float offset_x, float offset_y)
 {
     for (size_t i = 0; i < ENVIRONMENT.size(); ++i)
     {

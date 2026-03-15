@@ -1,18 +1,17 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include <filesystem>
 #include "Environment.hpp"
-
-using Vector = Kernel::Vector_2;
+#include "Bot.hpp"
+#include "cgal_types.hpp"
+#include <filesystem>
 
 const float WINDOW_PADDING = 10.0f;
 
-struct Reading
+inline int relative_index(int index, int offset)
 {
-  double angle;
-  double distance;
-};
+  return (index + offset + MAX_LIDAR_SAMPLES) % MAX_LIDAR_SAMPLES;
+}
 
 inline double compute_angle_to_point(const Point &from, const Point &to)
 {

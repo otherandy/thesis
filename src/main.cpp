@@ -1,4 +1,6 @@
 #include "ExplorationBot.hpp"
+#include "Utils.hpp"
+#include <raylib-cpp.hpp>
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
