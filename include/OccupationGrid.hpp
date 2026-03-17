@@ -3,6 +3,7 @@
 
 #include "Bot.hpp"
 #include "Environment.hpp"
+#include "FrontierRegion.hpp"
 #include <raylib-cpp.hpp>
 
 constexpr double CELL_SIZE = 0.1;
@@ -33,38 +34,16 @@ const std::map<CellState, Color> CellColors = {
     {CellState::Visited, RED},
     {CellState::Frontier, BLUE}};
 
-const std::array<Color, 9> FrontierColors = {
-    BLUE,
-    LIME,
-    VIOLET,
-    DARKBLUE,
-    DARKGREEN,
-    DARKPURPLE,
-    SKYBLUE,
-    GREEN,
-    PURPLE,
-};
-
-struct FrontierRegion
-{
-  int id;
-  std::vector<Point> cell_centers;
-
-  std::vector<Point> get_points() const;
-  Polygon to_polygon() const;
-  Point get_closest_from(const Point &pos) const;
-};
-
 class OccupationGrid
 {
 private:
   Point origin;
   std::array<Cell, MAP_SIZE> grid;
 
-  int current_frontier_id = 0;
-  bool frontier_cell_was_added = false;
   std::vector<FrontierRegion> frontier_regions;
 
+  bool frontier_cell_was_added = false;
+  int current_frontier_id = 0;
   int number_of_frontier_cells = 0;
 
   // Track bounding box of frontier cells for optimization
@@ -85,16 +64,20 @@ public:
   OccupationGrid(Point origin);
   bool was_frontier_cell_added() const;
   int get_frontier_cell_count() const;
+
   const std::vector<FrontierRegion> &get_frontier_regions() const;
   const Point get_cell_center(int idx) const;
   const int get_frontier_id_from(const Point &pos) const;
+
   void mark_cells(const Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings);
+
   void compute_frontier_regions();
   std::vector<Point> calculate_path_from(const Point start,
                                          const int frontier_id) const;
   const Point target_frontier_from_readings(const Point &relative_position,
                                             const std::array<Reading, MAX_LIDAR_SAMPLES> &readings) const;
+
   void draw(float scale_factor, float offset_x, float offset_y) const;
   void draw_frontier_count() const;
   void save_to_file(const std::string &filename) const;
