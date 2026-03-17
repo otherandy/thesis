@@ -1,8 +1,8 @@
 #include "Cell.hpp"
 
-std::array<std::unique_ptr<Cell>, 8> Cell::get_neighbors(Grid2D<Cell> grid)
+std::array<Index2D, 8> Cell::get_neighbors()
 {
-  std::array<std::unique_ptr<Cell>, 8> neighbors;
+  std::array<Index2D, 8> neighbors;
 
   int idx = 0;
   for (int dy = -1; dy <= 1; ++dy)
@@ -14,18 +14,11 @@ std::array<std::unique_ptr<Cell>, 8> Cell::get_neighbors(Grid2D<Cell> grid)
         continue;
       }
 
-      const int neighbor_x = static_cast<int>((center.x() + dx * CELL_SIZE) * INV_CELL_SIZE + ENV_WIDTH * INV_CELL_SIZE);
-      const int neighbor_y = static_cast<int>((center.y() + dy * CELL_SIZE) * INV_CELL_SIZE + ENV_HEIGHT * INV_CELL_SIZE);
+      const auto [cell_y, cell_x] = get_cell_index_from(center.x(), center.y());
+      const int neighbor_x = cell_x + dx;
+      const int neighbor_y = cell_y + dy;
 
-      if (neighbor_x >= 0 && neighbor_x < MAP_WIDTH &&
-          neighbor_y >= 0 && neighbor_y < MAP_HEIGHT)
-      {
-        neighbors[idx] = std::make_unique<Cell>(grid[neighbor_y][neighbor_x]);
-      }
-      else
-      {
-        neighbors[idx] = nullptr;
-      }
+      neighbors[idx++] = std::make_pair(neighbor_y, neighbor_x);
     }
   }
 
@@ -34,11 +27,11 @@ std::array<std::unique_ptr<Cell>, 8> Cell::get_neighbors(Grid2D<Cell> grid)
 
 bool is_valid_index(Index2D index)
 {
-  const int cell_x = index.first;
-  const int cell_y = index.second;
+  const int cell_y = index.first;
+  const int cell_x = index.second;
 
-  return cell_x >= 0 && cell_x < MAP_WIDTH &&
-         cell_y >= 0 && cell_y < MAP_HEIGHT;
+  return cell_y >= 0 && cell_y < MAP_HEIGHT &&
+         cell_x >= 0 && cell_x < MAP_WIDTH;
 }
 
 Index2D get_cell_index_from(const double x, const double y)

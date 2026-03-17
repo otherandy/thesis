@@ -1,10 +1,11 @@
 #include "FrontierRegion.hpp"
 #include "Cell.hpp"
+#include <algorithm>
 
 std::vector<Point> FrontierRegion::get_points() const
 {
   std::vector<Point> points;
-  for (const auto &cell : cells)
+  for (const Cell &cell : cells)
   {
     points.push_back(cell.center);
   }
@@ -14,7 +15,7 @@ std::vector<Point> FrontierRegion::get_points() const
 Polygon FrontierRegion::to_polygon() const
 {
   std::vector<Point> cell_centers;
-  for (const auto &cell : cells)
+  for (const Cell &cell : cells)
   {
     cell_centers.push_back(cell.center);
   }
@@ -26,7 +27,7 @@ Point FrontierRegion::get_closest_from(const Point &pos) const
   Point closest_point = cells.front().center;
   double closest_distance = CGAL::squared_distance(pos, closest_point);
 
-  for (const auto &cell : cells)
+  for (const Cell &cell : cells)
   {
     double distance = CGAL::squared_distance(pos, cell.center);
     if (distance < closest_distance)
@@ -43,16 +44,44 @@ std::vector<Point> FrontierRegion::calculate_path_from(const Point &start) const
 {
   std::vector<Point> path;
 
-  for (const auto &cell : cells)
+  if (cells.empty())
   {
-    path.push_back(cell.center);
+    path.push_back(start);
+    return path;
   }
 
-  std::sort(path.begin(), path.end(),
-            [&start](const Point &a, const Point &b)
-            {
-              return CGAL::squared_distance(start, a) < CGAL::squared_distance(start, b);
-            });
+  std::vector<Point> remaining_points;
+  remaining_points.reserve(cells.size());
+  for (const Cell &cell : cells)
+  {
+    remaining_points.push_back(cell.center);
+  }
+
+  path.reserve(remaining_points.size() + 2);
+  path.push_back(start);
+
+  Point current_point = start;
+  while (!remaining_points.empty())
+  {
+    auto next_it = remaining_points.begin();
+    double best_distance = CGAL::squared_distance(current_point, *next_it);
+
+    for (auto it = std::next(remaining_points.begin()); it != remaining_points.end(); ++it)
+    {
+      const double distance = CGAL::squared_distance(current_point, *it);
+      if (distance < best_distance)
+      {
+        best_distance = distance;
+        next_it = it;
+      }
+    }
+
+    current_point = *next_it;
+    path.push_back(current_point);
+    remaining_points.erase(next_it);
+  }
+
+  path.push_back(start);
 
   return path;
 }

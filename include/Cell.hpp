@@ -28,7 +28,7 @@ struct Cell
   int frontier_id;
 
   std::pair<double, double> get_position() const;
-  std::array<std::unique_ptr<Cell>, 8> get_neighbors(Grid2D<Cell> grid);
+  std::array<Index2D, 8> get_neighbors();
 };
 
 bool is_valid_index(Index2D index);

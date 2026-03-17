@@ -21,6 +21,7 @@ struct FrontierRegion
 {
   int id;
   std::vector<Cell> cells;
+  bool explored = false;
 
   std::vector<Point> get_points() const;
   Polygon to_polygon() const;

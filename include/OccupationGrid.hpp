@@ -11,7 +11,6 @@ private:
   Grid2D<Cell> grid;
 
   std::vector<FrontierRegion> frontier_regions;
-  int current_frontier_id = 0;
 
   bool frontier_cell_was_added = false;
   int number_of_frontier_cells = 0;
@@ -19,9 +18,13 @@ private:
   bool verify_and_mark_cell(Index2D index,
                             CellState new_state);
 
+  std::vector<FrontierRegion> get_unexplored_frontier_regions();
+
   void draw_cell(Index2D index,
                  float scale_factor,
                  float offset_x, float offset_y) const;
+  void draw_cell_centers(float scale_factor,
+                         float offset_x, float offset_y) const;
 
 public:
   OccupationGrid(Point origin);
@@ -33,11 +36,9 @@ public:
   Cell &get_cell_from_position(const Point &position);
 
   void compute_frontier_regions();
-  const FrontierRegion *get_nearest_frontier_region(const Point &position) const;
+  FrontierRegion *get_nearest_frontier_region(const Point &position);
 
   void draw(float scale_factor, float offset_x, float offset_y) const;
-  void draw_cell_centers(float scale_factor,
-                         float offset_x, float offset_y) const;
   void draw_frontier_count() const;
   void save_to_file(const std::string &filename) const;
 };

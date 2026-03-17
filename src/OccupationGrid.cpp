@@ -54,6 +54,21 @@ bool OccupationGrid::verify_and_mark_cell(Index2D index,
   return true;
 }
 
+std::vector<FrontierRegion> OccupationGrid::get_unexplored_frontier_regions()
+{
+  std::vector<FrontierRegion> unexplored;
+
+  for (const FrontierRegion &region : frontier_regions)
+  {
+    if (!region.explored)
+    {
+      unexplored.push_back(region);
+    }
+  }
+
+  return unexplored;
+}
+
 void OccupationGrid::draw_cell(std::pair<int, int> cell_index,
                                float scale_factor,
                                float offset_x, float offset_y) const
@@ -65,8 +80,8 @@ void OccupationGrid::draw_cell(std::pair<int, int> cell_index,
     return;
   }
 
-  const double relative_x = (cell_index.first * CELL_SIZE) - ENV_WIDTH;
-  const double relative_y = (cell_index.second * CELL_SIZE) - ENV_HEIGHT;
+  const double relative_x = (cell_index.second * CELL_SIZE) - ENV_WIDTH;
+  const double relative_y = (cell_index.first * CELL_SIZE) - ENV_HEIGHT;
 
   const float screen_x = (origin.x() + relative_x) * scale_factor + offset_x;
   const float screen_y = (origin.y() + relative_y) * scale_factor + offset_y;
@@ -89,6 +104,25 @@ void OccupationGrid::draw_cell(std::pair<int, int> cell_index,
   DrawRectangleLines(screen_x, screen_y,
                      cell_size_scaled, cell_size_scaled,
                      color);
+}
+
+void OccupationGrid::draw_cell_centers(float scale_factor,
+                                       float offset_x, float offset_y) const
+{
+  for (int y = 0; y < MAP_HEIGHT; ++y)
+  {
+    for (int x = 0; x < MAP_WIDTH; ++x)
+    {
+      const Cell &cell = grid[y][x];
+      if (cell.state != CellState::Unknown)
+      {
+        const float screen_x = (cell.center.x() + origin.x()) * scale_factor + offset_x;
+        const float screen_y = (cell.center.y() + origin.y()) * scale_factor + offset_y;
+
+        DrawCircle(screen_x, screen_y, 2, CellColors.at(cell.state));
+      }
+    }
+  }
 }
 
 OccupationGrid::OccupationGrid(Point origin) : origin(origin)
@@ -123,19 +157,19 @@ void OccupationGrid::mark_cells(const Point &relative_position,
   const double rel_pos_x = relative_position.x();
   const double rel_pos_y = relative_position.y();
 
-  const auto relative_cell_index = get_cell_index_from(rel_pos_x, rel_pos_y);
+  const Index2D relative_cell_index = get_cell_index_from(rel_pos_x, rel_pos_y);
 
   verify_and_mark_cell(relative_cell_index, CellState::Visited);
 
   frontier_cell_was_added = false;
   std::vector<int> frontier_cells_to_update;
 
-  for (const auto &r : readings)
+  for (const Reading &r : readings)
   {
     const double hit_x_rel = rel_pos_x + r.distance * cos(r.angle);
     const double hit_y_rel = rel_pos_y + r.distance * sin(r.angle);
 
-    const auto hit_cell_index = get_cell_index_from(hit_x_rel, hit_y_rel);
+    const Index2D hit_cell_index = get_cell_index_from(hit_x_rel, hit_y_rel);
 
     const double steps_count = r.distance / CELL_SIZE;
     const double step_x = (hit_x_rel - rel_pos_x) / steps_count;
@@ -146,7 +180,7 @@ void OccupationGrid::mark_cells(const Point &relative_position,
 
     for (int i = 0; i < steps_count; ++i)
     {
-      const auto cell = get_cell_index_from(curr_x, curr_y);
+      const Index2D cell = get_cell_index_from(curr_x, curr_y);
       verify_and_mark_cell(cell, CellState::Free);
       curr_x += step_x;
       curr_y += step_y;
@@ -168,14 +202,14 @@ Cell &OccupationGrid::get_cell_from_position(const Point &position)
   const double rel_x = position.x() - origin.x();
   const double rel_y = position.y() - origin.y();
 
-  const auto cell_index = get_cell_index_from(rel_x, rel_y);
+  const Index2D cell_index = get_cell_index_from(rel_x, rel_y);
 
   if (!is_valid_index(cell_index))
   {
     throw std::out_of_range("Position is out of grid bounds");
   }
 
-  return grid[cell_index.second][cell_index.first];
+  return grid[cell_index.first][cell_index.second];
 }
 
 void OccupationGrid::compute_frontier_regions()
@@ -186,60 +220,66 @@ void OccupationGrid::compute_frontier_regions()
   {
     for (int x = 0; x < MAP_WIDTH; ++x)
     {
+      grid[y][x].frontier_id = -1;
+    }
+  }
+
+  for (int y = 0; y < MAP_HEIGHT; ++y)
+  {
+    for (int x = 0; x < MAP_WIDTH; ++x)
+    {
       Cell &cell = grid[y][x];
 
       if (cell.state == CellState::Frontier && cell.frontier_id == -1)
       {
-        std::queue<Index2D> q;
-        q.push({x, y});
-        cell.frontier_id = current_frontier_id;
-        frontier_regions.push_back({current_frontier_id, {cell}});
+        FrontierRegion new_region;
+        new_region.id = frontier_regions.size();
 
-        while (!q.empty())
+        std::queue<Cell> to_visit;
+        to_visit.push(cell);
+        cell.frontier_id = new_region.id;
+
+        while (!to_visit.empty())
         {
-          const Index2D current_idx = q.front();
-          q.pop();
+          Cell current_cell = to_visit.front();
+          to_visit.pop();
 
-          for (int dy = -1; dy <= 1; ++dy)
+          new_region.cells.push_back(current_cell);
+
+          for (Index2D neighbor_cell : current_cell.get_neighbors())
           {
-            for (int dx = -1; dx <= 1; ++dx)
+            if (is_valid_index(neighbor_cell))
             {
-              if (dx == 0 && dy == 0)
-              {
-                continue;
-              }
+              Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
 
-              const int nx = current_idx.first + dx;
-              const int ny = current_idx.second + dy;
-
-              if (is_valid_index({nx, ny}))
+              if (neighbor.state == CellState::Frontier &&
+                  neighbor.frontier_id == -1)
               {
-                Cell &neighbor_cell = grid[ny][nx];
-                if (neighbor_cell.state == CellState::Frontier &&
-                    neighbor_cell.frontier_id == -1)
-                {
-                  neighbor_cell.frontier_id = current_frontier_id;
-                  frontier_regions.back().cells.push_back(neighbor_cell);
-                  q.push({nx, ny});
-                }
+                neighbor.frontier_id = new_region.id;
+                to_visit.push(neighbor);
               }
             }
           }
         }
 
-        current_frontier_id++;
+        frontier_regions.push_back(new_region);
       }
     }
   }
 }
 
-const FrontierRegion *OccupationGrid::get_nearest_frontier_region(const Point &position) const
+FrontierRegion *OccupationGrid::get_nearest_frontier_region(const Point &position)
 {
-  const FrontierRegion *nearest_region = nullptr;
+  FrontierRegion *nearest_region = nullptr;
   double nearest_distance = std::numeric_limits<double>::max();
 
-  for (const auto &region : frontier_regions)
+  for (FrontierRegion &region : frontier_regions)
   {
+    if (region.explored)
+    {
+      continue;
+    }
+
     const double distance = std::sqrt(CGAL::squared_distance(position, region.get_closest_from(position)));
 
     if (distance < nearest_distance)
@@ -255,40 +295,13 @@ const FrontierRegion *OccupationGrid::get_nearest_frontier_region(const Point &p
 void OccupationGrid::draw(float scale_factor,
                           float offset_x, float offset_y) const
 {
-  draw_cell_centers(scale_factor, offset_x, offset_y);
-  // for (int y = 0; y < MAP_HEIGHT; ++y)
-  // {
-  //   for (int x = 0; x < MAP_WIDTH; ++x)
-  //   {
-  //     draw_cell({x, y}, scale_factor, offset_x, offset_y);
-  //   }
-  // }
-}
-
-void OccupationGrid::draw_cell_centers(float scale_factor,
-                                       float offset_x, float offset_y) const
-{
   for (int y = 0; y < MAP_HEIGHT; ++y)
   {
     for (int x = 0; x < MAP_WIDTH; ++x)
     {
-      const Cell &cell = grid[y][x];
-      if (cell.state != CellState::Unknown)
-      {
-        const float screen_x = (cell.center.x() + origin.x()) * scale_factor + offset_x;
-        const float screen_y = (cell.center.y() + origin.y()) * scale_factor + offset_y;
-
-        DrawCircle(screen_x, screen_y, 2, CellColors.at(cell.state));
-      }
+      draw_cell({y, x}, scale_factor, offset_x, offset_y);
     }
   }
-}
-
-void OccupationGrid::draw_frontier_count() const
-{
-  const std::string text = "Frontiers: " +
-                           std::to_string(frontier_regions.size());
-  DrawText(text.c_str(), 10, GetScreenHeight() - 30, 20, BLACK);
 }
 
 void OccupationGrid::save_to_file(const std::string &filename) const

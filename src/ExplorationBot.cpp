@@ -306,19 +306,22 @@ void ExplorationBot::phase4_region_discovery()
     return;
   }
 
-  const auto target_frontier = exploration_grid.get_nearest_frontier_region(relative_position);
+  const FrontierRegion *target_frontier = exploration_grid.get_nearest_frontier_region(relative_position);
 
   if (target_frontier != nullptr)
   {
     current_frontier_region = *target_frontier;
     target_point = current_frontier_region.get_closest_from(relative_position);
 
-    std::cout << "EXPLORATION: Frontier detected during region discovery at position ("
-              << relative_position.x() << ", " << relative_position.y()
-              << ")\n";
-    start_point = relative_position;
-    exploration_phase = ExplorationPhase::RegionAlignment;
-    return;
+    if (std::sqrt(CGAL::squared_distance(relative_position, target_point)) <= LIDAR_RADIUS + speed)
+    {
+      std::cout << "EXPLORATION: Frontier detected during region discovery at position ("
+                << relative_position.x() << ", " << relative_position.y()
+                << ")\n";
+      start_point = relative_position;
+      exploration_phase = ExplorationPhase::RegionAlignment;
+      return;
+    }
   }
 
   const Vector wall_vector = calculate_wall_correction_vector();
@@ -355,6 +358,8 @@ void ExplorationBot::phase6_region_exploration()
   {
     std::cout << "EXPLORATION: Completed exploration of region " << current_frontier_region.id << "\n";
 
+    current_frontier_region.explored = true;
+
     if (!exploration_grid.was_frontier_cell_added())
     {
       std::cout << "EXPLORATION: No new frontier cells found. Returning to start point.\n";
@@ -384,6 +389,7 @@ void ExplorationBot::phase7_return_to_start()
   if (std::sqrt(CGAL::squared_distance(relative_position, start_point)) < speed)
   {
     std::cout << "EXPLORATION: Returned to start point.\n";
+    exploration_grid.compute_frontier_regions();
     exploration_phase = ExplorationPhase::RegionDiscovery;
     return;
   }
@@ -454,7 +460,6 @@ void ExplorationBot::draw(float scale_factor,
   draw_lidar(scale_factor, offset_x, offset_y);
   draw_follow_vector(scale_factor, offset_x, offset_y);
   draw_target_point(scale_factor, offset_x, offset_y);
-  // exploration_grid.draw_frontier_count();
   draw_position_text(scale_factor, offset_x, offset_y);
 }
 
