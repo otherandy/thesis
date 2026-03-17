@@ -193,8 +193,6 @@ void ExplorationBot::phase3_wall_following()
   {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
-    move(desired_vector * -1.0); // Step back to ensure frontier detection
-
     // initialize_graph();
     // select_region();
 
@@ -308,7 +306,7 @@ void ExplorationBot::phase4_region_discovery()
     return;
   }
 
-  const auto target_frontier = exploration_grid.target_frontier_from_readings(relative_position, current_readings);
+  const auto target_frontier = exploration_grid.get_nearest_frontier_region(relative_position);
 
   if (target_frontier != nullptr)
   {

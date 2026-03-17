@@ -33,9 +33,7 @@ public:
   Cell &get_cell_from_position(const Point &position);
 
   void compute_frontier_regions();
-  const FrontierRegion *target_frontier_from_readings(
-      const Point &relative_position,
-      const std::array<Reading, MAX_LIDAR_SAMPLES> &readings) const;
+  const FrontierRegion *get_nearest_frontier_region(const Point &position) const;
 
   void draw(float scale_factor, float offset_x, float offset_y) const;
   void draw_cell_centers(float scale_factor,

@@ -97,8 +97,8 @@ OccupationGrid::OccupationGrid(Point origin) : origin(origin)
   {
     for (int x = 0; x < MAP_WIDTH; ++x)
     {
-      const double cell_center_x = origin.x() + (x + 0.5) * CELL_SIZE - ENV_WIDTH;
-      const double cell_center_y = origin.y() + (y + 0.5) * CELL_SIZE - ENV_HEIGHT;
+      const double cell_center_x = (x + 0.5) * CELL_SIZE - ENV_WIDTH;
+      const double cell_center_y = (y + 0.5) * CELL_SIZE - ENV_HEIGHT;
 
       grid[y][x] = {Point(cell_center_x, cell_center_y),
                     CellState::Unknown,
@@ -233,31 +233,23 @@ void OccupationGrid::compute_frontier_regions()
   }
 }
 
-const FrontierRegion *OccupationGrid::target_frontier_from_readings(
-    const Point &relative_position,
-    const std::array<Reading, MAX_LIDAR_SAMPLES> &readings) const
+const FrontierRegion *OccupationGrid::get_nearest_frontier_region(const Point &position) const
 {
-  const double rel_pos_x = relative_position.x();
-  const double rel_pos_y = relative_position.y();
+  const FrontierRegion *nearest_region = nullptr;
+  double nearest_distance = std::numeric_limits<double>::max();
 
-  for (const auto &r : readings)
+  for (const auto &region : frontier_regions)
   {
-    const double hit_x_rel = rel_pos_x + r.distance * cos(r.angle);
-    const double hit_y_rel = rel_pos_y + r.distance * sin(r.angle);
+    const double distance = std::sqrt(CGAL::squared_distance(position, region.get_closest_from(position)));
 
-    const auto hit_cell = get_cell_index_from(hit_x_rel, hit_y_rel);
-
-    if (is_valid_index(hit_cell))
+    if (distance < nearest_distance)
     {
-      const Cell &cell = grid[hit_cell.first][hit_cell.second];
-      if (cell.state == CellState::Frontier)
-      {
-        return &frontier_regions[cell.frontier_id];
-      }
+      nearest_distance = distance;
+      nearest_region = &region;
     }
   }
 
-  return nullptr;
+  return nearest_region;
 }
 
 void OccupationGrid::draw(float scale_factor,
@@ -283,8 +275,8 @@ void OccupationGrid::draw_cell_centers(float scale_factor,
       const Cell &cell = grid[y][x];
       if (cell.state != CellState::Unknown)
       {
-        const float screen_x = cell.center.x() * scale_factor + offset_x;
-        const float screen_y = cell.center.y() * scale_factor + offset_y;
+        const float screen_x = (cell.center.x() + origin.x()) * scale_factor + offset_x;
+        const float screen_y = (cell.center.y() + origin.y()) * scale_factor + offset_y;
 
         DrawCircle(screen_x, screen_y, 2, CellColors.at(cell.state));
       }
