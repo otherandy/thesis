@@ -31,7 +31,7 @@ struct Cell
   std::array<std::unique_ptr<Cell>, 8> get_neighbors(Grid2D<Cell> grid);
 };
 
-inline bool is_valid_index(Index2D index);
-inline Index2D get_cell_index_from(const double x, const double y);
+bool is_valid_index(Index2D index);
+Index2D get_cell_index_from(const double x, const double y);
 
 #endif

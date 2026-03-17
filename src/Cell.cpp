@@ -32,7 +32,7 @@ std::array<std::unique_ptr<Cell>, 8> Cell::get_neighbors(Grid2D<Cell> grid)
   return neighbors;
 }
 
-inline bool is_valid_index(Index2D index)
+bool is_valid_index(Index2D index)
 {
   const int cell_x = index.first;
   const int cell_y = index.second;
@@ -41,11 +41,9 @@ inline bool is_valid_index(Index2D index)
          cell_y >= 0 && cell_y < MAP_HEIGHT;
 }
 
-inline Index2D get_cell_index_from(const double x, const double y)
+Index2D get_cell_index_from(const double x, const double y)
 {
-  Index2D index = std::make_pair(
+  return std::make_pair(
       std::floor((y + ENV_HEIGHT) * INV_CELL_SIZE),
       std::floor((x + ENV_WIDTH) * INV_CELL_SIZE));
-
-  return index;
 }

@@ -74,8 +74,6 @@ void ExplorationBot::move(const Vector &dir)
   if (exploration_phase != ExplorationPhase::Idle)
   {
     Bot::update_visited_positions();
-    exploration_grid.mark_cells(relative_position,
-                                current_readings);
   }
 }
 
@@ -153,6 +151,7 @@ void ExplorationBot::phase1_wall_discovery()
   }
 
   move(random_direction);
+  exploration_grid.mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::phase2_wall_alignment()
@@ -161,6 +160,7 @@ void ExplorationBot::phase2_wall_alignment()
 
   if (closest_reading.distance <= DESIRED_WALL_DISTANCE)
   {
+    first_wall_point = relative_position;
     std::cout << "EXPLORATION: Aligned with wall at position ("
               << relative_position.x() << ", " << relative_position.y()
               << ")\n";
@@ -173,6 +173,7 @@ void ExplorationBot::phase2_wall_alignment()
       sin(closest_reading.angle));
 
   move(to_wall);
+  exploration_grid.mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::phase3_wall_following()
@@ -184,10 +185,13 @@ void ExplorationBot::phase3_wall_following()
 
   move(desired_vector);
 
-  if (!exploration_grid.was_frontier_cell_added())
+  const Cell &current_cell = exploration_grid.get_cell_from_position(relative_position);
+
+  if (current_cell.state == CellState::Visited &&
+      !exploration_grid.was_frontier_cell_added() &&
+      std::sqrt(CGAL::squared_distance(relative_position, first_wall_point)) < LIDAR_RADIUS)
   {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
-    exploration_end_point = relative_position;
 
     move(desired_vector * -1.0); // Step back to ensure frontier detection
 
@@ -197,6 +201,8 @@ void ExplorationBot::phase3_wall_following()
     exploration_grid.compute_frontier_regions();
     exploration_phase = ExplorationPhase::RegionDiscovery;
   }
+
+  exploration_grid.mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::create_follow_vector()
@@ -323,6 +329,7 @@ void ExplorationBot::phase4_region_discovery()
                                 wall_vector * WALL_DISTANCE_STRENGTH;
 
   move(desired_vector);
+  exploration_grid.mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::phase5_region_alignment()
@@ -341,6 +348,7 @@ void ExplorationBot::phase5_region_alignment()
 
   const Vector to_target = target_point - relative_position;
   move(to_target);
+  exploration_grid.mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::phase6_region_exploration()
@@ -370,6 +378,7 @@ void ExplorationBot::phase6_region_exploration()
 
   const Vector to_target = target - relative_position;
   move(to_target);
+  exploration_grid.mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::phase7_return_to_start()
@@ -383,6 +392,7 @@ void ExplorationBot::phase7_return_to_start()
 
   const Vector to_start = start_point - relative_position;
   move(to_start);
+  exploration_grid.mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::draw_follow_vector(float scale_factor,

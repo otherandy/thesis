@@ -30,6 +30,7 @@ public:
 
   void mark_cells(const Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings);
+  Cell &get_cell_from_position(const Point &position);
 
   void compute_frontier_regions();
   const FrontierRegion *target_frontier_from_readings(

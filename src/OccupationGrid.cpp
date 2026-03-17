@@ -163,6 +163,21 @@ void OccupationGrid::mark_cells(const Point &relative_position,
   }
 }
 
+Cell &OccupationGrid::get_cell_from_position(const Point &position)
+{
+  const double rel_x = position.x() - origin.x();
+  const double rel_y = position.y() - origin.y();
+
+  const auto cell_index = get_cell_index_from(rel_x, rel_y);
+
+  if (!is_valid_index(cell_index))
+  {
+    throw std::out_of_range("Position is out of grid bounds");
+  }
+
+  return grid[cell_index.second][cell_index.first];
+}
+
 void OccupationGrid::compute_frontier_regions()
 {
   frontier_regions.clear();

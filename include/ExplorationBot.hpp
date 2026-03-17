@@ -36,16 +36,16 @@ private:
 
   Point exploration_start_point;
   Vector random_direction;
+  Point first_wall_point;
   Vector current_follow_vector;
-  Point exploration_end_point;
 
   // bool graph_initialized = false;
   // Graph frontier_graph;
   // incremental_dfs frontier_dfs{frontier_graph, 1};
   // Vertex current_region_vertex;
 
-  Point target_point = Point(0, 0);
-  Point start_point = Point(0, 0);
+  Point target_point;
+  Point start_point;
   FrontierRegion current_frontier_region;
 
   std::vector<Point> current_region_path;
