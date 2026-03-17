@@ -7,6 +7,9 @@
 constexpr std::pair<double, double> POLYGON_ENV_DATA[] = {
     {0, 0}, {8, 0}, {8, 6}, {12, 6}, {12, 12}, {4, 12}, {4, 6}, {0, 6}};
 
+constexpr std::pair<double, double> POLYGON2_ENV_DATA[] = {
+    {0, 0}, {16, 0}, {16, 12}, {24, 12}, {24, 24}, {8, 24}, {8, 12}, {0, 12}};
+
 constexpr std::pair<double, double> SQUARE_ENV_DATA[] = {
     {0, 0}, {10, 0}, {10, 10}, {0, 10}};
 
@@ -34,9 +37,9 @@ constexpr auto get_bounds(const std::pair<double, double> *data, std::size_t siz
     return std::make_tuple(xmin, xmax, ymin, ymax);
 }
 
-constexpr auto POLYGON_BOUNDS = get_bounds(POLYGON_ENV_DATA,
-                                           sizeof(POLYGON_ENV_DATA) /
-                                               sizeof(POLYGON_ENV_DATA[0]));
+constexpr auto POLYGON_BOUNDS = get_bounds(POLYGON2_ENV_DATA,
+                                           sizeof(POLYGON2_ENV_DATA) /
+                                               sizeof(POLYGON2_ENV_DATA[0]));
 
 constexpr double ENV_WIDTH = std::get<1>(POLYGON_BOUNDS) -
                              std::get<0>(POLYGON_BOUNDS);
@@ -54,7 +57,7 @@ inline const Polygon &get_environment()
     static bool initialized = false;
     if (!initialized)
     {
-        for (const auto &p : POLYGON_ENV_DATA)
+        for (const auto &p : POLYGON2_ENV_DATA)
         {
             env.push_back(Point(p.first, p.second));
         }
