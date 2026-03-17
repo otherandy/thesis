@@ -184,12 +184,12 @@ void ExplorationBot::phase3_wall_following()
                                 wall_vector * WALL_DISTANCE_STRENGTH;
 
   move(desired_vector);
+  exploration_grid.mark_cells(relative_position, current_readings);
 
   const Cell &current_cell = exploration_grid.get_cell_from_position(relative_position);
 
-  if (current_cell.state == CellState::Visited &&
-      !exploration_grid.was_frontier_cell_added() &&
-      std::sqrt(CGAL::squared_distance(relative_position, first_wall_point)) < LIDAR_RADIUS)
+  if (!exploration_grid.was_frontier_cell_added() &&
+      std::sqrt(CGAL::squared_distance(relative_position, first_wall_point)) < speed)
   {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
@@ -199,8 +199,6 @@ void ExplorationBot::phase3_wall_following()
     exploration_grid.compute_frontier_regions();
     exploration_phase = ExplorationPhase::RegionDiscovery;
   }
-
-  exploration_grid.mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::create_follow_vector()
