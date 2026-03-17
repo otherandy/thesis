@@ -2,141 +2,109 @@
 #include "Utils.hpp"
 #include <queue>
 
-inline int OccupationGrid::coord_to_cell_x(double x) const
-{
-  return std::floor((x + ENV_WIDTH) * INV_CELL_SIZE);
-}
-
-inline int OccupationGrid::coord_to_cell_y(double y) const
-{
-  return std::floor((y + ENV_HEIGHT) * INV_CELL_SIZE);
-}
-
-inline bool OccupationGrid::is_valid_cell(int cell_x, int cell_y) const
-{
-  return cell_x >= 0 && cell_x < MAP_WIDTH &&
-         cell_y >= 0 && cell_y < MAP_HEIGHT;
-}
-
-inline int OccupationGrid::get_cell_index(int cell_x, int cell_y) const
-{
-  return cell_y * MAP_WIDTH + cell_x;
-}
-
-inline std::pair<int, int> OccupationGrid::get_cell_coordinates(int idx) const
-{
-  int cell_x = idx % MAP_WIDTH;
-  int cell_y = idx / MAP_WIDTH;
-  return {cell_x, cell_y};
-}
-
-inline Cell OccupationGrid::get_cell_from_position(const Point &pos) const
-{
-  int cell_x = coord_to_cell_x(pos.x());
-  int cell_y = coord_to_cell_y(pos.y());
-
-  if (is_valid_cell(cell_x, cell_y))
-  {
-    return grid[get_cell_index(cell_x, cell_y)];
-  }
-
-  return {CellState::Unknown, -1}; // Default for out-of-bounds
-}
-
-bool OccupationGrid::verify_and_mark_cell(int cell_x, int cell_y,
+bool OccupationGrid::verify_and_mark_cell(Index2D index,
                                           CellState new_state)
 {
-  if (is_valid_cell(cell_x, cell_y))
+  if (!is_valid_index(index))
   {
-    int idx = get_cell_index(cell_x, cell_y);
-    Cell &cell = grid[idx];
+    return false;
+  }
 
-    // Always overwrite cells to Visited
-    if (new_state == CellState::Visited)
-    {
-      cell.state = CellState::Visited;
-      return true;
-    }
+  Cell &cell = grid[index.first][index.second];
 
-    // Don't overwrite Occupied or Visited states
-    if (cell.state == CellState::Occupied ||
-        cell.state == CellState::Visited)
-    {
-      return false;
-    }
-
-    // Don't mark known cells as Frontier
-    if (cell.state == CellState::Free &&
-        new_state == CellState::Frontier)
-    {
-      return false;
-    }
-
-    if (new_state == CellState::Frontier)
-    {
-      frontier_cell_was_added = true;
-      min_frontier_idx = std::min(min_frontier_idx, idx);
-      max_frontier_idx = std::max(max_frontier_idx, idx);
-    }
-
-    if (cell.state != CellState::Frontier &&
-        new_state == CellState::Frontier)
-    {
-      number_of_frontier_cells++;
-    }
-
-    if (cell.state == CellState::Frontier &&
-        new_state != CellState::Frontier)
-    {
-      number_of_frontier_cells--;
-    }
-
-    cell.state = new_state;
+  // Always overwrite cells to Visited
+  if (new_state == CellState::Visited)
+  {
+    cell.state = CellState::Visited;
     return true;
   }
 
-  return false;
+  // Don't overwrite Occupied or Visited states
+  if (cell.state == CellState::Occupied ||
+      cell.state == CellState::Visited)
+  {
+    return false;
+  }
+
+  // Don't mark known cells as Frontier
+  if (cell.state == CellState::Free &&
+      new_state == CellState::Frontier)
+  {
+    return false;
+  }
+
+  if (new_state == CellState::Frontier)
+  {
+    frontier_cell_was_added = true;
+  }
+
+  if (cell.state != CellState::Frontier &&
+      new_state == CellState::Frontier)
+  {
+    number_of_frontier_cells++;
+  }
+
+  if (cell.state == CellState::Frontier &&
+      new_state != CellState::Frontier)
+  {
+    number_of_frontier_cells--;
+  }
+
+  cell.state = new_state;
+  return true;
 }
 
-void OccupationGrid::draw_cell(int x, int y, float scale_factor,
+void OccupationGrid::draw_cell(std::pair<int, int> cell_index,
+                               float scale_factor,
                                float offset_x, float offset_y) const
 {
-  const int idx = get_cell_index(x, y);
-  const CellState state = grid[idx].state;
+  const Cell cell = grid[cell_index.first][cell_index.second];
 
-  if (state != CellState::Unknown)
+  if (cell.state == CellState::Unknown)
   {
-    const double relative_x = (x * CELL_SIZE) - ENV_WIDTH;
-    const double relative_y = (y * CELL_SIZE) - ENV_HEIGHT;
-
-    const float screen_x = (origin.x() + relative_x) * scale_factor + offset_x;
-    const float screen_y = (origin.y() + relative_y) * scale_factor + offset_y;
-    const float cell_size_scaled = CELL_SIZE * scale_factor;
-
-    if (state == CellState::Frontier)
-    {
-      const int frontier_id = grid[idx].frontier_id;
-      const int color_idx = (frontier_id + 1) % FrontierColors.size();
-      const Color color = FrontierColors[color_idx];
-
-      DrawRectangleLines(screen_x, screen_y,
-                         cell_size_scaled, cell_size_scaled,
-                         color);
-    }
-    else
-    {
-      Color color = CellColors.at(state);
-
-      DrawRectangleLines(screen_x, screen_y,
-                         cell_size_scaled, cell_size_scaled,
-                         color);
-    }
+    return;
   }
+
+  const double relative_x = (cell_index.first * CELL_SIZE) - ENV_WIDTH;
+  const double relative_y = (cell_index.second * CELL_SIZE) - ENV_HEIGHT;
+
+  const float screen_x = (origin.x() + relative_x) * scale_factor + offset_x;
+  const float screen_y = (origin.y() + relative_y) * scale_factor + offset_y;
+  const float cell_size_scaled = CELL_SIZE * scale_factor;
+
+  if (cell.state == CellState::Frontier)
+  {
+    const int frontier_id = cell.frontier_id;
+    const int color_idx = frontier_id % FrontierColors.size();
+    const Color color = FrontierColors[color_idx];
+
+    DrawRectangleLines(screen_x, screen_y,
+                       cell_size_scaled, cell_size_scaled,
+                       color);
+    return;
+  }
+
+  Color color = CellColors.at(cell.state);
+
+  DrawRectangleLines(screen_x, screen_y,
+                     cell_size_scaled, cell_size_scaled,
+                     color);
 }
 
 OccupationGrid::OccupationGrid(Point origin) : origin(origin)
 {
-  grid.fill({CellState::Unknown, -1});
+  for (int y = 0; y < MAP_HEIGHT; ++y)
+  {
+    for (int x = 0; x < MAP_WIDTH; ++x)
+    {
+      const double cell_center_x = origin.x() + (x + 0.5) * CELL_SIZE - ENV_WIDTH;
+      const double cell_center_y = origin.y() + (y + 0.5) * CELL_SIZE - ENV_HEIGHT;
+
+      grid[y][x] = {Point(cell_center_x, cell_center_y),
+                    CellState::Unknown,
+                    -1};
+    }
+  }
 }
 
 bool OccupationGrid::was_frontier_cell_added() const
@@ -149,35 +117,15 @@ int OccupationGrid::get_frontier_cell_count() const
   return number_of_frontier_cells;
 }
 
-const std::vector<FrontierRegion> &OccupationGrid::get_frontier_regions() const
-{
-  return frontier_regions;
-}
-
-const Point OccupationGrid::get_cell_center(int idx) const
-{
-  const auto [cell_x, cell_y] = get_cell_coordinates(idx);
-  const double cell_center_x = (cell_x + 0.5) * CELL_SIZE - ENV_WIDTH;
-  const double cell_center_y = (cell_y + 0.5) * CELL_SIZE - ENV_HEIGHT;
-  return Point(cell_center_x, cell_center_y);
-}
-
-const int OccupationGrid::get_frontier_id_from(const Point &pos) const
-{
-  const Cell &cell = get_cell_from_position(pos);
-  return cell.frontier_id;
-}
-
 void OccupationGrid::mark_cells(const Point &relative_position,
                                 const std::array<Reading, MAX_LIDAR_SAMPLES> &readings)
 {
   const double rel_pos_x = relative_position.x();
   const double rel_pos_y = relative_position.y();
 
-  const int pos_cell_x = coord_to_cell_x(rel_pos_x);
-  const int pos_cell_y = coord_to_cell_y(rel_pos_y);
+  const auto relative_cell_index = get_cell_index_from(rel_pos_x, rel_pos_y);
 
-  verify_and_mark_cell(pos_cell_x, pos_cell_y, CellState::Visited);
+  verify_and_mark_cell(relative_cell_index, CellState::Visited);
 
   frontier_cell_was_added = false;
   std::vector<int> frontier_cells_to_update;
@@ -187,8 +135,7 @@ void OccupationGrid::mark_cells(const Point &relative_position,
     const double hit_x_rel = rel_pos_x + r.distance * cos(r.angle);
     const double hit_y_rel = rel_pos_y + r.distance * sin(r.angle);
 
-    const int hit_cell_x = coord_to_cell_x(hit_x_rel);
-    const int hit_cell_y = coord_to_cell_y(hit_y_rel);
+    const auto hit_cell_index = get_cell_index_from(hit_x_rel, hit_y_rel);
 
     const double steps_count = r.distance / CELL_SIZE;
     const double step_x = (hit_x_rel - rel_pos_x) / steps_count;
@@ -199,20 +146,19 @@ void OccupationGrid::mark_cells(const Point &relative_position,
 
     for (int i = 0; i < steps_count; ++i)
     {
-      const int cell_x = coord_to_cell_x(curr_x);
-      const int cell_y = coord_to_cell_y(curr_y);
-      verify_and_mark_cell(cell_x, cell_y, CellState::Free);
+      const auto cell = get_cell_index_from(curr_x, curr_y);
+      verify_and_mark_cell(cell, CellState::Free);
       curr_x += step_x;
       curr_y += step_y;
     }
 
     if (r.distance < LIDAR_RADIUS)
     {
-      verify_and_mark_cell(hit_cell_x, hit_cell_y, CellState::Occupied);
+      verify_and_mark_cell(hit_cell_index, CellState::Occupied);
     }
     else
     {
-      verify_and_mark_cell(hit_cell_x, hit_cell_y, CellState::Frontier);
+      verify_and_mark_cell(hit_cell_index, CellState::Frontier);
     }
   }
 }
@@ -221,118 +167,58 @@ void OccupationGrid::compute_frontier_regions()
 {
   frontier_regions.clear();
 
-  for (int idx = min_frontier_idx; idx <= max_frontier_idx; ++idx)
+  for (int y = 0; y < MAP_HEIGHT; ++y)
   {
-    if (grid[idx].state == CellState::Frontier && grid[idx].frontier_id == -1)
+    for (int x = 0; x < MAP_WIDTH; ++x)
     {
-      std::queue<int> q;
-      q.push(idx);
-      grid[idx].frontier_id = current_frontier_id;
-      Point cell_center = get_cell_center(idx);
-      frontier_regions.push_back({current_frontier_id, {cell_center}});
+      Cell &cell = grid[y][x];
 
-      while (!q.empty())
+      if (cell.state == CellState::Frontier && cell.frontier_id == -1)
       {
-        const int current_idx = q.front();
-        q.pop();
+        std::queue<Index2D> q;
+        q.push({x, y});
+        cell.frontier_id = current_frontier_id;
+        frontier_regions.push_back({current_frontier_id, {cell}});
 
-        const auto [cx, cy] = get_cell_coordinates(current_idx);
-
-        for (int dy = -1; dy <= 1; ++dy)
+        while (!q.empty())
         {
-          for (int dx = -1; dx <= 1; ++dx)
+          const Index2D current_idx = q.front();
+          q.pop();
+
+          for (int dy = -1; dy <= 1; ++dy)
           {
-            if (dx == 0 && dy == 0)
+            for (int dx = -1; dx <= 1; ++dx)
             {
-              continue;
-            }
-
-            const int nx = cx + dx;
-            const int ny = cy + dy;
-
-            if (is_valid_cell(nx, ny))
-            {
-              const int neighbor_idx = get_cell_index(nx, ny);
-              if (grid[neighbor_idx].state == CellState::Frontier &&
-                  grid[neighbor_idx].frontier_id == -1)
+              if (dx == 0 && dy == 0)
               {
-                grid[neighbor_idx].frontier_id = current_frontier_id;
-                Point neighbor_center = get_cell_center(neighbor_idx);
-                frontier_regions.back().cell_centers.push_back(neighbor_center);
-                q.push(neighbor_idx);
+                continue;
+              }
+
+              const int nx = current_idx.first + dx;
+              const int ny = current_idx.second + dy;
+
+              if (is_valid_index({nx, ny}))
+              {
+                Cell &neighbor_cell = grid[ny][nx];
+                if (neighbor_cell.state == CellState::Frontier &&
+                    neighbor_cell.frontier_id == -1)
+                {
+                  neighbor_cell.frontier_id = current_frontier_id;
+                  frontier_regions.back().cells.push_back(neighbor_cell);
+                  q.push({nx, ny});
+                }
               }
             }
           }
         }
-      }
 
-      current_frontier_id++;
+        current_frontier_id++;
+      }
     }
   }
 }
 
-std::vector<Point> OccupationGrid::calculate_path_from(const Point start,
-                                                       const int frontier_id) const
-{
-  std::vector<Point> path;
-  std::set<Point> visited;
-
-  path.push_back(start);
-  visited.insert(start);
-
-  bool found_next = true;
-
-  while (found_next)
-  {
-    const Point &current = path.back();
-    const int current_cell_x = coord_to_cell_x(current.x());
-    const int current_cell_y = coord_to_cell_y(current.y());
-
-    found_next = false;
-
-    for (int dy = -1; dy <= 1 && !found_next; ++dy)
-    {
-      for (int dx = -1; dx <= 1 && !found_next; ++dx)
-      {
-        if (dx == 0 && dy == 0)
-        {
-          continue;
-        }
-
-        const int neighbor_cell_x = current_cell_x + dx;
-        const int neighbor_cell_y = current_cell_y + dy;
-
-        if (!is_valid_cell(neighbor_cell_x, neighbor_cell_y))
-        {
-          continue;
-        }
-
-        const int neighbor_cell_idx = get_cell_index(neighbor_cell_x,
-                                                     neighbor_cell_y);
-
-        Point neighbor = get_cell_center(neighbor_cell_idx);
-
-        if (visited.count(neighbor) > 0)
-        {
-          continue;
-        }
-
-        const Cell &cell = grid[neighbor_cell_idx];
-
-        if (cell.frontier_id == frontier_id)
-        {
-          path.push_back(neighbor);
-          visited.insert(neighbor);
-          found_next = true;
-        }
-      }
-    }
-  }
-
-  return path;
-}
-
-const Point OccupationGrid::target_frontier_from_readings(
+const FrontierRegion *OccupationGrid::target_frontier_from_readings(
     const Point &relative_position,
     const std::array<Reading, MAX_LIDAR_SAMPLES> &readings) const
 {
@@ -344,30 +230,49 @@ const Point OccupationGrid::target_frontier_from_readings(
     const double hit_x_rel = rel_pos_x + r.distance * cos(r.angle);
     const double hit_y_rel = rel_pos_y + r.distance * sin(r.angle);
 
-    const int hit_cell_x = coord_to_cell_x(hit_x_rel);
-    const int hit_cell_y = coord_to_cell_y(hit_y_rel);
+    const auto hit_cell = get_cell_index_from(hit_x_rel, hit_y_rel);
 
-    if (is_valid_cell(hit_cell_x, hit_cell_y))
+    if (is_valid_index(hit_cell))
     {
-      const int idx = get_cell_index(hit_cell_x, hit_cell_y);
-      if (grid[idx].state == CellState::Frontier)
+      const Cell &cell = grid[hit_cell.first][hit_cell.second];
+      if (cell.state == CellState::Frontier)
       {
-        return get_cell_center(idx);
+        return &frontier_regions[cell.frontier_id];
       }
     }
   }
 
-  return Point(0, 0); // Default fallback
+  return nullptr;
 }
 
 void OccupationGrid::draw(float scale_factor,
                           float offset_x, float offset_y) const
 {
+  draw_cell_centers(scale_factor, offset_x, offset_y);
+  // for (int y = 0; y < MAP_HEIGHT; ++y)
+  // {
+  //   for (int x = 0; x < MAP_WIDTH; ++x)
+  //   {
+  //     draw_cell({x, y}, scale_factor, offset_x, offset_y);
+  //   }
+  // }
+}
+
+void OccupationGrid::draw_cell_centers(float scale_factor,
+                                       float offset_x, float offset_y) const
+{
   for (int y = 0; y < MAP_HEIGHT; ++y)
   {
     for (int x = 0; x < MAP_WIDTH; ++x)
     {
-      draw_cell(x, y, scale_factor, offset_x, offset_y);
+      const Cell &cell = grid[y][x];
+      if (cell.state != CellState::Unknown)
+      {
+        const float screen_x = cell.center.x() * scale_factor + offset_x;
+        const float screen_y = cell.center.y() * scale_factor + offset_y;
+
+        DrawCircle(screen_x, screen_y, 2, CellColors.at(cell.state));
+      }
     }
   }
 }
@@ -394,8 +299,7 @@ void OccupationGrid::save_to_file(const std::string &filename) const
   {
     for (int x = 0; x < MAP_WIDTH; ++x)
     {
-      const int idx = get_cell_index(x, y);
-      f << static_cast<int>(grid[idx].state) << " ";
+      f << static_cast<int>(grid[y][x].state) << " ";
     }
     f << "\n";
   }

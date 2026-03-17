@@ -302,10 +302,13 @@ void ExplorationBot::phase4_region_discovery()
     return;
   }
 
-  target_point = exploration_grid.target_frontier_from_readings(relative_position, current_readings);
+  const auto target_frontier = exploration_grid.target_frontier_from_readings(relative_position, current_readings);
 
-  if (target_point != Point(0, 0))
+  if (target_frontier != nullptr)
   {
+    current_frontier_region = *target_frontier;
+    target_point = current_frontier_region.get_closest_from(relative_position);
+
     std::cout << "EXPLORATION: Frontier detected during region discovery at position ("
               << relative_position.x() << ", " << relative_position.y()
               << ")\n";
@@ -326,11 +329,10 @@ void ExplorationBot::phase5_region_alignment()
 {
   if (std::sqrt(CGAL::squared_distance(relative_position, target_point)) < speed)
   {
-    current_frontier_idx = exploration_grid.get_frontier_id_from(target_point);
+    std::cout << "EXPLORATION: Aligned with region "
+              << current_frontier_region.id << "\n";
 
-    std::cout << "EXPLORATION: Aligned with region " << current_frontier_idx << "\n";
-
-    current_region_path = exploration_grid.calculate_path_from(target_point, current_frontier_idx);
+    current_region_path = current_frontier_region.calculate_path_from(relative_position);
     current_region_path_index = 0;
 
     exploration_phase = ExplorationPhase::RegionExploration;
@@ -345,7 +347,7 @@ void ExplorationBot::phase6_region_exploration()
 {
   if (current_region_path_index >= current_region_path.size())
   {
-    std::cout << "EXPLORATION: Completed exploration of region " << current_frontier_idx << "\n";
+    std::cout << "EXPLORATION: Completed exploration of region " << current_frontier_region.id << "\n";
 
     if (!exploration_grid.was_frontier_cell_added())
     {

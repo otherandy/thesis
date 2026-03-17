@@ -46,7 +46,7 @@ private:
 
   Point target_point = Point(0, 0);
   Point start_point = Point(0, 0);
-  int current_frontier_idx = -1;
+  FrontierRegion current_frontier_region;
 
   std::vector<Point> current_region_path;
   int current_region_path_index;
