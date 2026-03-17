@@ -20,11 +20,10 @@ private:
 
   std::vector<FrontierRegion> get_unexplored_frontier_regions();
 
-  void draw_cell(Index2D index,
-                 float scale_factor,
+  void draw_cell(Index2D index, float scale_factor,
                  float offset_x, float offset_y) const;
-  void draw_cell_centers(float scale_factor,
-                         float offset_x, float offset_y) const;
+  void draw_cell_center(Index2D index, float scale_factor,
+                        float offset_x, float offset_y) const;
 
 public:
   OccupationGrid(Point origin);

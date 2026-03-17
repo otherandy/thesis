@@ -106,23 +106,30 @@ void OccupationGrid::draw_cell(std::pair<int, int> cell_index,
                      color);
 }
 
-void OccupationGrid::draw_cell_centers(float scale_factor,
-                                       float offset_x, float offset_y) const
+void OccupationGrid::draw_cell_center(Index2D index, float scale_factor,
+                                      float offset_x, float offset_y) const
 {
-  for (int y = 0; y < MAP_HEIGHT; ++y)
-  {
-    for (int x = 0; x < MAP_WIDTH; ++x)
-    {
-      const Cell &cell = grid[y][x];
-      if (cell.state != CellState::Unknown)
-      {
-        const float screen_x = (cell.center.x() + origin.x()) * scale_factor + offset_x;
-        const float screen_y = (cell.center.y() + origin.y()) * scale_factor + offset_y;
+  const Cell &cell = grid[index.first][index.second];
 
-        DrawCircle(screen_x, screen_y, 2, CellColors.at(cell.state));
-      }
-    }
+  if (cell.state == CellState::Unknown)
+  {
+    return;
   }
+
+  const float screen_x = (cell.center.x() + origin.x()) * scale_factor + offset_x;
+  const float screen_y = (cell.center.y() + origin.y()) * scale_factor + offset_y;
+
+  if (cell.state == CellState::Frontier)
+  {
+    const int frontier_id = cell.frontier_id;
+    const int color_idx = frontier_id % FrontierColors.size();
+    const Color color = FrontierColors[color_idx];
+
+    DrawCircle(screen_x, screen_y, 2, color);
+    return;
+  }
+
+  DrawCircle(screen_x, screen_y, 2, CellColors.at(cell.state));
 }
 
 OccupationGrid::OccupationGrid(Point origin) : origin(origin)
@@ -299,7 +306,7 @@ void OccupationGrid::draw(float scale_factor,
   {
     for (int x = 0; x < MAP_WIDTH; ++x)
     {
-      draw_cell({y, x}, scale_factor, offset_x, offset_y);
+      draw_cell_center({y, x}, scale_factor, offset_x, offset_y);
     }
   }
 }
