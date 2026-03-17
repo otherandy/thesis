@@ -160,6 +160,12 @@ void Bot::draw_path(float scale_factor, float offset_x, float offset_y) const
   }
 }
 
+void Bot::draw_position_text(float scale_factor, float offset_x, float offset_y) const
+{
+  std::string pos_text = "Pos: (" + std::to_string(real_position.x()) + ", " + std::to_string(real_position.y()) + ")";
+  DrawText(pos_text.c_str(), 10, GetScreenHeight() - 30, 20, BLACK);
+}
+
 Bot::Bot(const Point &start_pos)
     : real_position(start_pos)
 {

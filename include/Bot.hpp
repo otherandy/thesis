@@ -45,6 +45,7 @@ protected:
   void draw_lidar(float scale_factor, float offset_x, float offset_y) const;
   void draw_readings(float scale_factor, float offset_x, float offset_y) const;
   void draw_path(float scale_factor, float offset_x, float offset_y) const;
+  void draw_position_text(float scale_factor, float offset_x, float offset_y) const;
 
 public:
   Bot(const Point &start_pos);

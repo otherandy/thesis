@@ -445,6 +445,7 @@ void ExplorationBot::draw(float scale_factor,
   draw_follow_vector(scale_factor, offset_x, offset_y);
   draw_target_point(scale_factor, offset_x, offset_y);
   // exploration_grid.draw_frontier_count();
+  draw_position_text(scale_factor, offset_x, offset_y);
 }
 
 void ExplorationBot::grid_to_file(const std::string &filename) const
