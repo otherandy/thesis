@@ -279,12 +279,20 @@ void ExplorationBot::phase4_region_discovery()
     }
   }
 
-  const Vector wall_vector = calculate_wall_correction_vector();
-  const Vector desired_vector = current_follow_vector *
-                                    (1.0 - WALL_DISTANCE_STRENGTH) +
-                                wall_vector * WALL_DISTANCE_STRENGTH;
+  if (exploration_grid.there_is_obstacle_between(relative_position, target_point))
+  {
+    const Vector wall_vector = calculate_wall_correction_vector();
+    const Vector desired_vector = current_follow_vector *
+                                      (1.0 - WALL_DISTANCE_STRENGTH) +
+                                  wall_vector * WALL_DISTANCE_STRENGTH;
 
-  move(desired_vector);
+    move(desired_vector);
+    exploration_grid.mark_cells(relative_position, current_readings);
+    return;
+  }
+
+  const Vector to_target = target_point - relative_position;
+  move(to_target);
   exploration_grid.mark_cells(relative_position, current_readings);
 }
 

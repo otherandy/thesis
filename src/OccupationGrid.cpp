@@ -245,14 +245,14 @@ void OccupationGrid::compute_frontier_regions()
 
           for (Index2D neighbor_cell : current_cell.get_neighbors())
           {
-                          Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
+            Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
 
-              if (neighbor.state == CellState::Frontier &&
-                  neighbor.frontier_id == -1)
-              {
-                neighbor.frontier_id = new_region.id;
-                to_visit.push(neighbor);
-                          }
+            if (neighbor.state == CellState::Frontier &&
+                neighbor.frontier_id == -1)
+            {
+              neighbor.frontier_id = new_region.id;
+              to_visit.push(neighbor);
+            }
           }
         }
 
@@ -284,6 +284,34 @@ FrontierRegion *OccupationGrid::get_nearest_frontier_region(const Point &positio
   }
 
   return nearest_region;
+}
+
+bool OccupationGrid::there_is_obstacle_between(const Point &from, const Point &to) const
+{
+  const double distance = std::sqrt(CGAL::squared_distance(from, to));
+  const double step_x = (to.x() - from.x()) / distance;
+  const double step_y = (to.y() - from.y()) / distance;
+
+  double curr_x = from.x();
+  double curr_y = from.y();
+
+  for (double traveled = 0; traveled < distance; traveled += CELL_SIZE / 2.0)
+  {
+    const Index2D cell_index = get_cell_index_from(curr_x - origin.x(),
+                                                   curr_y - origin.y());
+
+    const Cell &cell = grid[cell_index.first][cell_index.second];
+
+    if (cell.state == CellState::Occupied)
+    {
+      return true;
+    }
+
+    curr_x += step_x * (CELL_SIZE / 2.0);
+    curr_y += step_y * (CELL_SIZE / 2.0);
+  }
+
+  return false;
 }
 
 void OccupationGrid::draw(float scale_factor,

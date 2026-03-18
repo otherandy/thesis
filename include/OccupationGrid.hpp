@@ -36,6 +36,7 @@ public:
 
   void compute_frontier_regions();
   FrontierRegion *get_nearest_frontier_region(const Point &position);
+  bool there_is_obstacle_between(const Point &from, const Point &to) const;
 
   void draw(float scale_factor, float offset_x, float offset_y) const;
   void draw_frontier_count() const;

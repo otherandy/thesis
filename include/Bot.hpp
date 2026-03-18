@@ -9,7 +9,7 @@
 #define INVALID_INDEX -1
 #define MAX_LIDAR_SAMPLES 360
 
-const Point START_POSITION(4.0, 4.0);
+const Point START_POSITION(9.0, 9.0);
 const double LIDAR_RADIUS = 1.5;
 const double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
 
