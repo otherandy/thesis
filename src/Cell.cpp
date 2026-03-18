@@ -25,15 +25,6 @@ std::array<Index2D, 8> Cell::get_neighbors()
   return neighbors;
 }
 
-bool is_valid_index(Index2D index)
-{
-  const int cell_y = index.first;
-  const int cell_x = index.second;
-
-  return cell_y >= 0 && cell_y < MAP_HEIGHT &&
-         cell_x >= 0 && cell_x < MAP_WIDTH;
-}
-
 Index2D get_cell_index_from(const double x, const double y)
 {
   return std::make_pair(

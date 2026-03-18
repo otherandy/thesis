@@ -184,19 +184,9 @@ void OccupationGrid::mark_cells(const Point &relative_position,
     {
       const Index2D cell = get_cell_index_from(curr_x, curr_y);
 
-      if (!is_valid_index(cell))
-      {
-        break;
-      }
-
       mark_cell(cell, CellState::Free);
       curr_x += step_x;
       curr_y += step_y;
-    }
-
-    if (!is_valid_index(hit_cell_index))
-    {
-      continue;
     }
 
     if (r.distance < LIDAR_RADIUS)
@@ -215,11 +205,6 @@ Cell &OccupationGrid::get_cell_from_position(const Point &position)
   const double rel_y = position.y() - origin.y();
 
   const Index2D cell_index = get_cell_index_from(rel_x, rel_y);
-
-  if (!is_valid_index(cell_index))
-  {
-    throw std::out_of_range("Position is out of grid bounds");
-  }
 
   return grid[cell_index.first][cell_index.second];
 }
@@ -260,17 +245,14 @@ void OccupationGrid::compute_frontier_regions()
 
           for (Index2D neighbor_cell : current_cell.get_neighbors())
           {
-            if (is_valid_index(neighbor_cell))
-            {
-              Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
+                          Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
 
               if (neighbor.state == CellState::Frontier &&
                   neighbor.frontier_id == -1)
               {
                 neighbor.frontier_id = new_region.id;
                 to_visit.push(neighbor);
-              }
-            }
+                          }
           }
         }
 

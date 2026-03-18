@@ -31,7 +31,6 @@ struct Cell
   std::array<Index2D, 8> get_neighbors();
 };
 
-bool is_valid_index(Index2D index);
 Index2D get_cell_index_from(const double x, const double y);
 
 #endif
