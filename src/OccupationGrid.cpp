@@ -2,14 +2,9 @@
 #include "Utils.hpp"
 #include <queue>
 
-bool OccupationGrid::verify_and_mark_cell(Index2D index,
-                                          CellState new_state)
+bool OccupationGrid::mark_cell(Index2D index,
+                               CellState new_state)
 {
-  if (!is_valid_index(index))
-  {
-    return false;
-  }
-
   Cell &cell = grid[index.first][index.second];
 
   // Always overwrite cells to Visited
@@ -166,7 +161,7 @@ void OccupationGrid::mark_cells(const Point &relative_position,
 
   const Index2D relative_cell_index = get_cell_index_from(rel_pos_x, rel_pos_y);
 
-  verify_and_mark_cell(relative_cell_index, CellState::Visited);
+  mark_cell(relative_cell_index, CellState::Visited);
 
   frontier_cell_was_added = false;
   std::vector<int> frontier_cells_to_update;
@@ -188,19 +183,29 @@ void OccupationGrid::mark_cells(const Point &relative_position,
     for (int i = 0; i < steps_count; ++i)
     {
       const Index2D cell = get_cell_index_from(curr_x, curr_y);
-      verify_and_mark_cell(cell, CellState::Free);
+
+      if (!is_valid_index(cell))
+      {
+        break;
+      }
+
+      mark_cell(cell, CellState::Free);
       curr_x += step_x;
       curr_y += step_y;
     }
 
+    if (!is_valid_index(hit_cell_index))
+    {
+      continue;
+    }
+
     if (r.distance < LIDAR_RADIUS)
     {
-      verify_and_mark_cell(hit_cell_index, CellState::Occupied);
+      mark_cell(hit_cell_index, CellState::Occupied);
+      continue;
     }
-    else
-    {
-      verify_and_mark_cell(hit_cell_index, CellState::Frontier);
-    }
+
+    mark_cell(hit_cell_index, CellState::Frontier);
   }
 }
 

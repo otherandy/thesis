@@ -15,8 +15,8 @@ private:
   bool frontier_cell_was_added = false;
   int number_of_frontier_cells = 0;
 
-  bool verify_and_mark_cell(Index2D index,
-                            CellState new_state);
+  bool mark_cell(Index2D index,
+                 CellState new_state);
 
   std::vector<FrontierRegion> get_unexplored_frontier_regions();
 
