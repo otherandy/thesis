@@ -252,49 +252,6 @@ inline Vector ExplorationBot::calculate_wall_correction_vector() const
   return to_wall * distance_error;
 }
 
-// void initialize_graph()
-// {
-//   const auto regions = exploration_grid.get_frontier_regions();
-
-//   if (regions.empty())
-//   {
-//     std::cout << "EXPLORATION: No frontier regions found. Exploration completed.\n";
-//     exploration_phase = ExplorationPhase::Completed;
-//     return;
-//   }
-
-//   for (size_t i = 0; i < regions.size(); ++i)
-//   {
-//     add_edge(0, i + 1, frontier_graph);
-//   }
-// }
-
-// void select_region()
-// {
-//   if (frontier_dfs.next(current_region_vertex))
-//   {
-//     std::cout << "EXPLORATION: Aligning with region " << current_region_vertex << "\n";
-
-//     if (current_region_vertex != 0)
-//     {
-//       const auto &regions = exploration_grid.get_frontier_regions();
-//       const FrontierRegion &target_region = regions[current_region_vertex - 1];
-//       target_point = target_region.get_closest_from(relative_position);
-//     }
-//     else
-//     {
-//       target_point = exploration_end_point;
-//     }
-
-//     exploration_phase = ExplorationPhase::RegionAlignment;
-//   }
-//   else
-//   {
-//     std::cout << "EXPLORATION: Completed region graph exploration.\n";
-//     exploration_phase = ExplorationPhase::Completed;
-//   }
-// }
-
 void ExplorationBot::phase4_region_discovery()
 {
   if (exploration_grid.get_frontier_cell_count() == 0)
