@@ -5,12 +5,12 @@
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 const int FRAME_RATE = 60;
+const std::string WINDOW_TITLE = "Exploration Bot Simulation";
 
 int main()
 {
-  raylib::Window window(WINDOW_WIDTH, WINDOW_HEIGHT,
-                        "Exploration Bot Simulation");
-  SetTargetFPS(FRAME_RATE);
+  raylib::Window window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
+  window.SetTargetFPS(FRAME_RATE);
 
   ExplorationBot bot(START_POSITION);
 
@@ -33,6 +33,5 @@ int main()
   // bot.visited_to_file("Testing/real_visited_positions.csv");
   // bot.grid_to_file("Testing/exploration_grid.txt");
 
-  CloseWindow();
   return 0;
 }

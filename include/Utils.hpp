@@ -8,7 +8,7 @@
 
 const float WINDOW_PADDING = 10.0f;
 
-inline int relative_index(int index, int offset)
+inline std::size_t relative_index(std::size_t index, int offset)
 {
   return (index + offset + MAX_LIDAR_SAMPLES) % MAX_LIDAR_SAMPLES;
 }
@@ -39,7 +39,8 @@ inline float calculate_scale_factor(const raylib::Window &window)
                   padded_height / ENV_HEIGHT);
 }
 
-inline std::pair<float, float> calculate_offset(const raylib::Window &window, float scale_factor)
+inline std::pair<float, float> calculate_offset(
+    const raylib::Window &window, float scale_factor)
 {
   const float draw_width = ENV_WIDTH * scale_factor;
   const float draw_height = ENV_HEIGHT * scale_factor;

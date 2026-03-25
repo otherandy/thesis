@@ -25,7 +25,7 @@ struct Cell
 {
   Point center;
   CellState state;
-  int frontier_id;
+  std::optional<std::size_t> frontier_id;
 
   std::pair<double, double> get_position() const;
   std::array<Index2D, 8> get_neighbors();

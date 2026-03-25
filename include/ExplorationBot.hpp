@@ -3,6 +3,7 @@
 
 #include "Bot.hpp"
 #include "OccupationGrid.hpp"
+#include "FrontierRegion.hpp"
 #include "cgal_types.hpp"
 
 #define NEXT_INDEX 1
@@ -23,7 +24,6 @@ enum class ExplorationPhase
   RegionDiscovery,
   RegionAlignment,
   RegionExploration,
-  ReturnToStart,
   Completed
 };
 
@@ -39,17 +39,12 @@ private:
   Point first_wall_point;
   Vector current_follow_vector;
 
-  // bool graph_initialized = false;
-  // Graph frontier_graph;
-  // incremental_dfs frontier_dfs{frontier_graph, 1};
-  // Vertex current_region_vertex;
-
+  std::vector<FrontierRegion> frontier_regions;
+  std::size_t current_frontier_region_id;
   Point target_point;
-  Point start_point;
-  FrontierRegion current_frontier_region;
 
   std::vector<Point> current_region_path;
-  int current_region_path_index;
+  std::size_t current_region_path_index;
 
   bool is_paused = false;
 
@@ -65,7 +60,6 @@ private:
   void phase4_region_discovery();
   void phase5_region_alignment();
   void phase6_region_exploration();
-  void phase7_return_to_start();
   void draw_follow_vector(float scale_factor,
                           float offset_x, float offset_y) const;
   void draw_target_point(float scale_factor,
@@ -77,4 +71,5 @@ public:
   void draw(float scale_factor, float offset_x, float offset_y) const;
   void grid_to_file(const std::string &filename) const;
 };
+
 #endif

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.11...3.30)
 project(ExplorationBot LANGUAGES CXX)
 
 # CMake >= 3.30 removed FindBoost
@@ -7,7 +7,7 @@ if(POLICY CMP0167)
   set(CMAKE_POLICY_DEFAULT_CMP0167 NEW)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -22,6 +22,10 @@ endif()
 
 include(FetchContent)
 
+# Raise policy floor for third-party subprojects (e.g. raylib's CMakeLists uses 3.5).
+# This suppresses CMake's deprecation warning about compatibility with < 3.10.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
+
 # Configure fetched dependencies for this project.
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
@@ -35,7 +39,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   raylib_cpp
   GIT_REPOSITORY https://github.com/RobLoach/raylib-cpp.git
-  GIT_TAG v5.5.0
+  GIT_TAG v5.5.1
 )
 
 FetchContent_MakeAvailable(raylib raylib_cpp)

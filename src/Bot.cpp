@@ -7,10 +7,10 @@ void Bot::reset()
   real_position = START_POSITION;
   real_visited_positions.clear();
   current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
-  closest_wall_reading_index = INVALID_INDEX;
+  closest_wall_reading_index = std::nullopt;
 }
 
-Point Bot::reading_index_to_point(int index) const
+Point Bot::reading_index_to_point(std::size_t index) const
 {
   const Reading &r = current_readings[index];
   return point_at_reading(real_position, r);
@@ -31,11 +31,6 @@ Vector Bot::move(const Vector &dir)
   return delta;
 }
 
-Point Bot::get_real_position() const
-{
-  return real_position;
-}
-
 void Bot::update_visited_positions()
 {
   real_visited_positions.push_back(real_position);
@@ -46,7 +41,7 @@ void Bot::take_lidar_readings()
   const double angle_step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
 
   double closest_distance = std::numeric_limits<double>::max();
-  closest_wall_reading_index = -1;
+  closest_wall_reading_index = std::nullopt;
 
   for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
   {

@@ -10,6 +10,6 @@ constexpr std::size_t MAP_HEIGHT = (ENV_HEIGHT * 2.0 / CELL_SIZE);
 
 template <typename T>
 using Grid2D = std::array<std::array<T, MAP_WIDTH>, MAP_HEIGHT>;
-using Index2D = std::pair<int, int>;
+using Index2D = std::pair<std::size_t, std::size_t>;
 
 #endif

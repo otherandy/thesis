@@ -6,8 +6,7 @@
 #include <string>
 #include <vector>
 
-#define INVALID_INDEX -1
-#define MAX_LIDAR_SAMPLES 360
+constexpr std::size_t MAX_LIDAR_SAMPLES = 360;
 
 const Point START_POSITION(9.0, 9.0);
 const double LIDAR_RADIUS = 1.5;
@@ -30,16 +29,18 @@ private:
 
 protected:
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
-  int closest_wall_reading_index = INVALID_INDEX;
+  std::optional<std::size_t> closest_wall_reading_index = std::nullopt;
 
   bool draw_as_hud = true;
   double speed = 0.1;
 
   void reset();
-  Point reading_index_to_point(int index) const;
+  Point reading_index_to_point(std::size_t index) const;
   Vector move(const Vector &dir);
-  Point get_real_position() const;
+
+  Point get_real_position() const { return real_position; }
   void update_visited_positions();
+
   void take_lidar_readings();
   void draw_body(float scale_factor, float offset_x, float offset_y) const;
   void draw_lidar(float scale_factor, float offset_x, float offset_y) const;
