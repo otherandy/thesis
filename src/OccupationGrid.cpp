@@ -105,9 +105,14 @@ void OccupationGrid::draw_cell_center(
 
   if (cell.state == CellState::Frontier)
   {
-    const int frontier_id = cell.frontier_id.value();
-    const int color_idx = frontier_id % FrontierColors.size();
-    const Color color = FrontierColors[color_idx];
+    Color color = CellColors.at(CellState::Frontier);
+
+    if (cell.frontier_id)
+    {
+      const int frontier_id = cell.frontier_id.value();
+      const int color_idx = frontier_id % FrontierColors.size();
+      color = FrontierColors[color_idx];
+    }
 
     DrawCircle(screen_x, screen_y, 2, color);
     return;
