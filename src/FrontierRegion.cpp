@@ -99,7 +99,7 @@ void compute_frontier_regions(
     {
       Cell &cell = grid[y][x];
 
-      if (cell.state == CellState::Frontier && cell.frontier_id == -1)
+      if (cell.state == CellState::Frontier && !cell.frontier_id)
       {
         FrontierRegion new_region;
         new_region.id = frontier_regions->size() + 1;

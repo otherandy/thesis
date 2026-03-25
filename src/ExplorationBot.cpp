@@ -300,10 +300,6 @@ void ExplorationBot::phase5_region_alignment()
     exploration_phase = ExplorationPhase::RegionExploration;
     return;
   }
-
-  const Vector to_target = target_point - relative_position;
-  move(to_target);
-  exploration_grid.mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::phase6_region_exploration()
