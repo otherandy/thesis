@@ -190,7 +190,7 @@ void ExplorationBot::phase3_wall_following()
     // initialize_graph();
     // select_region();
 
-    compute_frontier_regions(&frontier_regions, exploration_grid.get_grid());
+    compute_frontier_regions(&frontier_regions, exploration_grid.get_grid(), 0);
     exploration_phase = ExplorationPhase::RegionDiscovery;
   }
 }
@@ -320,7 +320,9 @@ void ExplorationBot::phase6_region_exploration()
       return;
     }
 
-    compute_frontier_regions(&frontier_regions, exploration_grid.get_grid());
+    compute_frontier_regions(&frontier_regions,
+                             exploration_grid.get_grid(),
+                             current_frontier_region_id);
     exploration_phase = ExplorationPhase::RegionDiscovery;
     return;
   }

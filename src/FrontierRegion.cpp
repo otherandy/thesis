@@ -88,15 +88,10 @@ std::vector<Point> FrontierRegion::calculate_path_from(const Point &start) const
 
 void compute_frontier_regions(
     std::vector<FrontierRegion> *frontier_regions,
-    Grid2D<Cell> &grid)
+    Grid2D<Cell> &grid,
+    std::size_t parent_region_id)
 {
-  for (int y = 0; y < MAP_HEIGHT; ++y)
-  {
-    for (int x = 0; x < MAP_WIDTH; ++x)
-    {
-      grid[y][x].frontier_id = -1;
-    }
-  }
+  std::vector<FrontierRegion> new_regions;
 
   for (int y = 0; y < MAP_HEIGHT; ++y)
   {
@@ -107,7 +102,8 @@ void compute_frontier_regions(
       if (cell.state == CellState::Frontier && cell.frontier_id == -1)
       {
         FrontierRegion new_region;
-        new_region.id = frontier_regions->size();
+        new_region.id = frontier_regions->size() + 1;
+        new_region.parent_region_id = parent_region_id;
 
         std::queue<Cell> to_visit;
         to_visit.push(cell);
@@ -133,10 +129,22 @@ void compute_frontier_regions(
           }
         }
 
-        frontier_regions->push_back(new_region);
+        new_regions.push_back(new_region);
       }
     }
   }
+
+  if (parent_region_id != 0)
+  {
+    auto &parent_region = (*frontier_regions)[parent_region_id];
+    for (const FrontierRegion &new_region : new_regions)
+    {
+      parent_region.inner_region_ids.push_back(new_region.id);
+    }
+  }
+
+  frontier_regions->insert(frontier_regions->end(),
+                           new_regions.begin(), new_regions.end());
 }
 
 std::size_t get_nearest_frontier_region_id(

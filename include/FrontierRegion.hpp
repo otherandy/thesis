@@ -23,6 +23,7 @@ struct FrontierRegion
     std::vector<Cell> cells;
     bool explored = false;
 
+    std::size_t parent_region_id = -1;
     std::vector<std::size_t> inner_region_ids;
 
     std::vector<Point> get_points() const;
@@ -33,7 +34,8 @@ struct FrontierRegion
 
 void compute_frontier_regions(
     std::vector<FrontierRegion> *frontier_regions,
-    Grid2D<Cell> &grid);
+    Grid2D<Cell> &grid,
+    std::size_t parent_region_id);
 
 std::size_t get_nearest_frontier_region_id(
     const Point &position,
