@@ -2,6 +2,7 @@
 #define BOT_HPP
 
 #include "cgal_types.hpp"
+#include "DrawUtils.hpp"
 #include <array>
 #include <string>
 #include <vector>
@@ -42,11 +43,11 @@ protected:
   void update_visited_positions();
 
   void take_lidar_readings();
-  void draw_body(float scale_factor, float offset_x, float offset_y) const;
-  void draw_lidar(float scale_factor, float offset_x, float offset_y) const;
-  void draw_readings(float scale_factor, float offset_x, float offset_y) const;
-  void draw_path(float scale_factor, float offset_x, float offset_y) const;
-  void draw_position_text(float scale_factor, float offset_x, float offset_y) const;
+  void draw_body(DrawData draw_data) const;
+  void draw_lidar(DrawData draw_data) const;
+  void draw_readings(DrawData draw_data) const;
+  void draw_path(DrawData draw_data) const;
+  void draw_position_text() const;
 
 public:
   Bot(const Point &start_pos);

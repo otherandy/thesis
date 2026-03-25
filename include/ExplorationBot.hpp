@@ -60,15 +60,13 @@ private:
   void phase4_region_discovery();
   void phase5_region_alignment();
   void phase6_region_exploration();
-  void draw_follow_vector(float scale_factor,
-                          float offset_x, float offset_y) const;
-  void draw_target_point(float scale_factor,
-                         float offset_x, float offset_y) const;
+  void draw_follow_vector(DrawData draw_data) const;
+  void draw_target_point(DrawData draw_data) const;
 
 public:
   ExplorationBot(const Point &start_pos);
   void update();
-  void draw(float scale_factor, float offset_x, float offset_y) const;
+  void draw(DrawData draw_data) const;
   void grid_to_file(const std::string &filename) const;
 };
 

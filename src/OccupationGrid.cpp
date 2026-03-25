@@ -53,8 +53,7 @@ bool OccupationGrid::mark_cell(Index2D index,
 }
 
 void OccupationGrid::draw_cell(
-    Index2D cell_index,
-    float scale_factor, float offset_x, float offset_y) const
+    Index2D cell_index, DrawData draw_data) const
 {
   const Cell cell = grid[cell_index.first][cell_index.second];
 
@@ -66,9 +65,9 @@ void OccupationGrid::draw_cell(
   const double relative_x = (cell_index.second * CELL_SIZE) - ENV_WIDTH;
   const double relative_y = (cell_index.first * CELL_SIZE) - ENV_HEIGHT;
 
-  const float screen_x = (origin.x() + relative_x) * scale_factor + offset_x;
-  const float screen_y = (origin.y() + relative_y) * scale_factor + offset_y;
-  const float cell_size_scaled = CELL_SIZE * scale_factor;
+  const float screen_x = (origin.x() + relative_x) * draw_data.scale_factor + draw_data.offset_x;
+  const float screen_y = (origin.y() + relative_y) * draw_data.scale_factor + draw_data.offset_y;
+  const float cell_size_scaled = CELL_SIZE * draw_data.scale_factor;
 
   if (cell.state == CellState::Frontier)
   {
@@ -90,8 +89,7 @@ void OccupationGrid::draw_cell(
 }
 
 void OccupationGrid::draw_cell_center(
-    Index2D index,
-    float scale_factor, float offset_x, float offset_y) const
+    Index2D index, DrawData draw_data) const
 {
   const Cell &cell = grid[index.first][index.second];
 
@@ -100,8 +98,8 @@ void OccupationGrid::draw_cell_center(
     return;
   }
 
-  const float screen_x = (cell.center.x() + origin.x()) * scale_factor + offset_x;
-  const float screen_y = (cell.center.y() + origin.y()) * scale_factor + offset_y;
+  const float screen_x = (cell.center.x() + origin.x()) * draw_data.scale_factor + draw_data.offset_x;
+  const float screen_y = (cell.center.y() + origin.y()) * draw_data.scale_factor + draw_data.offset_y;
 
   if (cell.state == CellState::Frontier)
   {
@@ -223,14 +221,13 @@ bool OccupationGrid::there_is_obstacle_between(
   return false;
 }
 
-void OccupationGrid::draw(
-    float scale_factor, float offset_x, float offset_y) const
+void OccupationGrid::draw(DrawData draw_data) const
 {
   for (int y = 0; y < MAP_HEIGHT; ++y)
   {
     for (int x = 0; x < MAP_WIDTH; ++x)
     {
-      draw_cell_center({y, x}, scale_factor, offset_x, offset_y);
+      draw_cell_center({y, x}, draw_data);
     }
   }
 }

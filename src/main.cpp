@@ -1,7 +1,6 @@
 #include "ExplorationBot.hpp"
-#include "Utils.hpp"
+#include "DrawUtils.hpp"
 #include <memory>
-#include <raylib-cpp.hpp>
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
@@ -25,8 +24,10 @@ int main()
     const float scale_factor = calculate_scale_factor(window);
     const auto [offset_x, offset_y] = calculate_offset(window, scale_factor);
 
-    draw_environment(scale_factor, offset_x, offset_y);
-    bot->draw(scale_factor, offset_x, offset_y);
+    DrawData draw_data{scale_factor, offset_x, offset_y};
+
+    draw_environment(draw_data);
+    bot->draw(draw_data);
 
     window.EndDrawing();
   }

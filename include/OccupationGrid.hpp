@@ -3,6 +3,7 @@
 
 #include "Cell.hpp"
 #include "Bot.hpp"
+#include "DrawUtils.hpp"
 
 class OccupationGrid
 {
@@ -16,10 +17,8 @@ private:
   bool mark_cell(Index2D index,
                  CellState new_state);
 
-  void draw_cell(Index2D index, float scale_factor,
-                 float offset_x, float offset_y) const;
-  void draw_cell_center(Index2D index, float scale_factor,
-                        float offset_x, float offset_y) const;
+  void draw_cell(Index2D index, DrawData draw_data) const;
+  void draw_cell_center(Index2D index, DrawData draw_data) const;
 
 public:
   OccupationGrid(Point origin);
@@ -35,7 +34,7 @@ public:
 
   bool there_is_obstacle_between(const Point &from, const Point &to) const;
 
-  void draw(float scale_factor, float offset_x, float offset_y) const;
+  void draw(DrawData draw_data) const;
   void draw_frontier_count() const;
   void save_to_file(const std::string &filename) const;
 };

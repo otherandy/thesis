@@ -337,8 +337,7 @@ void ExplorationBot::phase6_region_exploration()
   exploration_grid.mark_cells(relative_position, current_readings);
 }
 
-void ExplorationBot::draw_follow_vector(float scale_factor,
-                                        float offset_x, float offset_y) const
+void ExplorationBot::draw_follow_vector(DrawData draw_data) const
 {
   if (!closest_wall_reading_index)
   {
@@ -346,15 +345,16 @@ void ExplorationBot::draw_follow_vector(float scale_factor,
   }
 
   const Point &pos = get_real_position();
+  const int endPosX = (pos.x() + current_follow_vector.x()) * draw_data.scale_factor + draw_data.offset_x;
+  const int endPosY = (pos.y() + current_follow_vector.y()) * draw_data.scale_factor + draw_data.offset_y;
 
-  DrawLine(pos.x() * scale_factor + offset_x,
-           pos.y() * scale_factor + offset_y,
-           (pos.x() + current_follow_vector.x()) * scale_factor + offset_x,
-           (pos.y() + current_follow_vector.y()) * scale_factor + offset_y,
+  DrawLine(pos.x() * draw_data.scale_factor + draw_data.offset_x,
+           pos.y() * draw_data.scale_factor + draw_data.offset_y,
+           endPosX, endPosY,
            GREEN);
 }
 
-void ExplorationBot::draw_target_point(float scale_factor, float offset_x, float offset_y) const
+void ExplorationBot::draw_target_point(DrawData draw_data) const
 {
   if (target_point == Point(0, 0))
   {
@@ -367,8 +367,8 @@ void ExplorationBot::draw_target_point(float scale_factor, float offset_x, float
       pos.y() + (target_point.y() - relative_position.y()));
 
   DrawCircle(
-      target_screen_pos.x() * scale_factor + offset_x,
-      target_screen_pos.y() * scale_factor + offset_y,
+      target_screen_pos.x() * draw_data.scale_factor + draw_data.offset_x,
+      target_screen_pos.y() * draw_data.scale_factor + draw_data.offset_y,
       DRAWN_POINT_RADIUS,
       PURPLE);
 }
@@ -388,17 +388,16 @@ void ExplorationBot::update()
   run_exploration();
 }
 
-void ExplorationBot::draw(float scale_factor,
-                          float offset_x, float offset_y) const
+void ExplorationBot::draw(DrawData draw_data) const
 {
-  exploration_grid.draw(scale_factor, offset_x, offset_y);
-  draw_path(scale_factor, offset_x, offset_y);
-  draw_readings(scale_factor, offset_x, offset_y);
-  draw_body(scale_factor, offset_x, offset_y);
-  draw_lidar(scale_factor, offset_x, offset_y);
-  draw_follow_vector(scale_factor, offset_x, offset_y);
-  draw_target_point(scale_factor, offset_x, offset_y);
-  draw_position_text(scale_factor, offset_x, offset_y);
+  exploration_grid.draw(draw_data);
+  draw_path(draw_data);
+  draw_readings(draw_data);
+  draw_body(draw_data);
+  draw_lidar(draw_data);
+  draw_follow_vector(draw_data);
+  draw_target_point(draw_data);
+  draw_position_text();
 }
 
 void ExplorationBot::grid_to_file(const std::string &filename) const

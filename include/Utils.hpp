@@ -1,12 +1,9 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include "Environment.hpp"
 #include "Bot.hpp"
 #include "cgal_types.hpp"
 #include <filesystem>
-
-const float WINDOW_PADDING = 10.0f;
 
 inline std::size_t relative_index(std::size_t index, int offset)
 {
@@ -28,26 +25,6 @@ inline Vector normalize_vector(const Vector &v)
 {
   double length = std::sqrt(v.squared_length());
   return Vector(v.x() / length, v.y() / length);
-}
-
-inline float calculate_scale_factor(const raylib::Window &window)
-{
-  const float padded_width = window.GetWidth() - 2.0f * WINDOW_PADDING;
-  const float padded_height = window.GetHeight() - 2.0f * WINDOW_PADDING;
-
-  return std::min(padded_width / ENV_WIDTH,
-                  padded_height / ENV_HEIGHT);
-}
-
-inline std::pair<float, float> calculate_offset(
-    const raylib::Window &window, float scale_factor)
-{
-  const float draw_width = ENV_WIDTH * scale_factor;
-  const float draw_height = ENV_HEIGHT * scale_factor;
-
-  return std::make_pair(
-      (window.GetWidth() - draw_width) * 0.5f,
-      (window.GetHeight() - draw_height) * 0.5f);
 }
 
 inline void ensure_parent_dir_exists(const std::string &filename)

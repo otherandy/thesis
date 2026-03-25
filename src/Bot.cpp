@@ -80,43 +80,43 @@ void Bot::take_lidar_readings()
   }
 }
 
-void Bot::draw_body(float scale_factor, float offset_x, float offset_y) const
+void Bot::draw_body(DrawData draw_data) const
 {
-  DrawCircle(real_position.x() * scale_factor + offset_x,
-             real_position.y() * scale_factor + offset_y,
+  DrawCircle(real_position.x() * draw_data.scale_factor + draw_data.offset_x,
+             real_position.y() * draw_data.scale_factor + draw_data.offset_y,
              DRAWN_BODY_RADIUS,
              RED);
 }
 
-void Bot::draw_lidar(float scale_factor, float offset_x, float offset_y) const
+void Bot::draw_lidar(DrawData draw_data) const
 {
-  DrawCircleLines(real_position.x() * scale_factor + offset_x,
-                  real_position.y() * scale_factor + offset_y,
-                  LIDAR_RADIUS * scale_factor,
+  DrawCircleLines(real_position.x() * draw_data.scale_factor + draw_data.offset_x,
+                  real_position.y() * draw_data.scale_factor + draw_data.offset_y,
+                  LIDAR_RADIUS * draw_data.scale_factor,
                   BLUE);
 }
 
-void Bot::draw_readings(float scale_factor, float offset_x, float offset_y) const
+void Bot::draw_readings(DrawData draw_data) const
 {
   float pos_x;
   float pos_y;
 
   if (draw_as_hud)
   {
-    pos_x = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
-    pos_y = LIDAR_RADIUS * scale_factor + WINDOW_PADDING;
+    pos_x = LIDAR_RADIUS * draw_data.scale_factor + WINDOW_PADDING;
+    pos_y = LIDAR_RADIUS * draw_data.scale_factor + WINDOW_PADDING;
   }
   else
   {
-    pos_x = real_position.x() * scale_factor + offset_x;
-    pos_y = real_position.y() * scale_factor + offset_y;
+    pos_x = real_position.x() * draw_data.scale_factor + draw_data.offset_x;
+    pos_y = real_position.y() * draw_data.scale_factor + draw_data.offset_y;
   }
 
   for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
   {
     const Reading &r = current_readings[i];
-    const float end_x = pos_x + r.distance * scale_factor * cos(r.angle);
-    const float end_y = pos_y + r.distance * scale_factor * sin(r.angle);
+    const float end_x = pos_x + r.distance * draw_data.scale_factor * cos(r.angle);
+    const float end_y = pos_y + r.distance * draw_data.scale_factor * sin(r.angle);
 
     if (i == closest_wall_reading_index)
     {
@@ -134,7 +134,7 @@ void Bot::draw_readings(float scale_factor, float offset_x, float offset_y) cons
   }
 }
 
-void Bot::draw_path(float scale_factor, float offset_x, float offset_y) const
+void Bot::draw_path(DrawData draw_data) const
 {
 
   if (real_visited_positions.size() < 2)
@@ -147,15 +147,15 @@ void Bot::draw_path(float scale_factor, float offset_x, float offset_y) const
     const Point &p1 = real_visited_positions[i - 1];
     const Point &p2 = real_visited_positions[i];
 
-    DrawLine(p1.x() * scale_factor + offset_x,
-             p1.y() * scale_factor + offset_y,
-             p2.x() * scale_factor + offset_x,
-             p2.y() * scale_factor + offset_y,
+    DrawLine(p1.x() * draw_data.scale_factor + draw_data.offset_x,
+             p1.y() * draw_data.scale_factor + draw_data.offset_y,
+             p2.x() * draw_data.scale_factor + draw_data.offset_x,
+             p2.y() * draw_data.scale_factor + draw_data.offset_y,
              RED);
   }
 }
 
-void Bot::draw_position_text(float scale_factor, float offset_x, float offset_y) const
+void Bot::draw_position_text() const
 {
   std::string pos_text = "Pos: (" + std::to_string(real_position.x()) + ", " + std::to_string(real_position.y()) + ")";
   DrawText(pos_text.c_str(), 10, GetScreenHeight() - 30, 20, BLACK);
