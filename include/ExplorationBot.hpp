@@ -27,6 +27,13 @@ enum class ExplorationPhase
   Completed
 };
 
+struct Path
+{
+  std::vector<Point> points;
+  std::size_t index = 0;
+  Point &next() { return points[index]; }
+};
+
 class ExplorationBot : public Bot
 {
 private:
@@ -43,8 +50,7 @@ private:
   std::size_t current_frontier_region_id;
   Point target_point;
 
-  std::vector<Point> current_region_path;
-  std::size_t current_region_path_index;
+  Path current_region_path;
 
   bool is_paused = false;
 

@@ -187,9 +187,6 @@ void ExplorationBot::phase3_wall_following()
   {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
-    // initialize_graph();
-    // select_region();
-
     compute_frontier_regions(&frontier_regions, exploration_grid.get_grid(), 0);
     exploration_phase = ExplorationPhase::RegionDiscovery;
   }
@@ -294,8 +291,8 @@ void ExplorationBot::phase5_region_alignment()
     std::cout << "EXPLORATION: Aligned with region "
               << current_frontier_region_id << "\n";
 
-    current_region_path = frontier_regions[current_frontier_region_id].calculate_path_from(relative_position);
-    current_region_path_index = 0;
+    current_region_path.points = frontier_regions[current_frontier_region_id].calculate_path_from(relative_position);
+    current_region_path.index = 0;
 
     exploration_phase = ExplorationPhase::RegionExploration;
     return;
@@ -304,7 +301,7 @@ void ExplorationBot::phase5_region_alignment()
 
 void ExplorationBot::phase6_region_exploration()
 {
-  if (current_region_path_index >= current_region_path.size())
+  if (current_region_path.index >= current_region_path.points.size())
   {
     std::cout << "EXPLORATION: Completed exploration of region " << current_frontier_region_id << "\n";
 
@@ -323,11 +320,11 @@ void ExplorationBot::phase6_region_exploration()
     return;
   }
 
-  Point &target = current_region_path[current_region_path_index];
+  Point &target = current_region_path.next();
 
   if (std::sqrt(CGAL::squared_distance(relative_position, target)) < speed)
   {
-    current_region_path_index++;
+    current_region_path.index++;
   }
 
   const Vector to_target = target - relative_position;
