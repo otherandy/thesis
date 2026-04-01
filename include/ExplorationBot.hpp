@@ -28,11 +28,17 @@ enum class ExplorationPhase
   Completed
 };
 
-struct Path
+struct ExplorationData
 {
-  std::vector<Point> points;
-  std::size_t index = 0;
-  Point &next() { return points[index]; }
+  Vector random_direction;
+  Point start_point;
+  Point first_wall_point;
+};
+
+struct MovementData
+{
+  Vector current_follow_vector;
+  Point target_point;
 };
 
 class ExplorationBot : public Bot
@@ -42,18 +48,14 @@ private:
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
   OccupationGrid exploration_grid;
 
-  Point exploration_start_point;
-  Vector random_direction;
-  Point first_wall_point;
-  Vector current_follow_vector;
+  ExplorationData exploration_data;
+  MovementData movement_data;
 
   Graph frontier_region_graph;
   std::optional<StepDFS> traversal_dfs;
+
   std::vector<FrontierRegion> frontier_regions;
   std::optional<std::size_t> current_frontier_region_id;
-  Point target_point;
-
-  Path current_region_path;
 
   bool is_paused = false;
 
