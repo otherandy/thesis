@@ -5,6 +5,7 @@
 #include "OccupationGrid.hpp"
 #include "FrontierRegion.hpp"
 #include "cgal_types.hpp"
+#include <optional>
 
 #define NEXT_INDEX 1
 #define PREV_INDEX -1
@@ -46,8 +47,10 @@ private:
   Point first_wall_point;
   Vector current_follow_vector;
 
+  Graph frontier_region_graph;
+  std::optional<StepDFS> traversal_dfs;
   std::vector<FrontierRegion> frontier_regions;
-  std::size_t current_frontier_region_id;
+  std::optional<std::size_t> current_frontier_region_id;
   Point target_point;
 
   Path current_region_path;

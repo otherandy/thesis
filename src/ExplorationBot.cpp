@@ -62,6 +62,12 @@ void ExplorationBot::reset()
   relative_position = Point(0.0, 0.0);
   exploration_phase = ExplorationPhase::Idle;
   exploration_grid = OccupationGrid(START_POSITION);
+
+  frontier_region_graph.clear();
+  traversal_dfs.reset();
+  frontier_regions.clear();
+  current_frontier_region_id.reset();
+
   is_paused = false;
 
   Bot::reset();
@@ -187,7 +193,9 @@ void ExplorationBot::phase3_wall_following()
   {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
-    compute_frontier_regions(&frontier_regions, exploration_grid.get_grid(), 0);
+    compute_frontier_regions(&frontier_regions,
+                             exploration_grid.get_grid(),
+                             *traversal_dfs, 0);
     exploration_phase = ExplorationPhase::RegionDiscovery;
   }
 }
@@ -255,14 +263,18 @@ void ExplorationBot::phase4_region_discovery()
     return;
   }
 
-  const std::size_t target_frontier_id = get_nearest_frontier_region_id(relative_position, frontier_regions);
+  current_frontier_region_id = traversal_dfs->next();
+  if (!current_frontier_region_id)
+  {
+    std::cout << "EXPLORATION: No frontier regions found. Exploration completed.\n";
+    exploration_phase = ExplorationPhase::Completed;
+    return;
+  }
 
-  current_frontier_region_id = target_frontier_id;
-  FrontierRegion &current_frontier_region = frontier_regions[current_frontier_region_id];
-  target_point = current_frontier_region.get_closest_from(relative_position);
+  target_point = frontier_regions[current_frontier_region_id.value()].get_closest_from(relative_position);
 
-  std::cout << "EXPLORATION: Targeting frontier region " << current_frontier_region_id
-            << " with " << current_frontier_region.cells.size() << " cells.\n";
+  std::cout << "EXPLORATION: Targeting frontier region "
+            << current_frontier_region_id.value() << ".\n";
   exploration_phase = ExplorationPhase::RegionAlignment;
 }
 
@@ -289,9 +301,9 @@ void ExplorationBot::phase5_region_alignment()
   if (std::sqrt(CGAL::squared_distance(relative_position, target_point)) < speed)
   {
     std::cout << "EXPLORATION: Aligned with region "
-              << current_frontier_region_id << "\n";
+              << *current_frontier_region_id << "\n";
 
-    current_region_path.points = frontier_regions[current_frontier_region_id].calculate_path_from(relative_position);
+    current_region_path.points = frontier_regions[*current_frontier_region_id].calculate_path_from(relative_position);
     current_region_path.index = 0;
 
     exploration_phase = ExplorationPhase::RegionExploration;
@@ -303,9 +315,9 @@ void ExplorationBot::phase6_region_exploration()
 {
   if (current_region_path.index >= current_region_path.points.size())
   {
-    std::cout << "EXPLORATION: Completed exploration of region " << current_frontier_region_id << "\n";
+    std::cout << "EXPLORATION: Completed exploration of region " << *current_frontier_region_id << "\n";
 
-    frontier_regions[current_frontier_region_id].explored = true;
+    frontier_regions[*current_frontier_region_id].explored = true;
 
     if (!exploration_grid.was_frontier_cell_added())
     {
@@ -315,7 +327,8 @@ void ExplorationBot::phase6_region_exploration()
 
     compute_frontier_regions(&frontier_regions,
                              exploration_grid.get_grid(),
-                             current_frontier_region_id);
+                             *traversal_dfs,
+                             *current_frontier_region_id);
     exploration_phase = ExplorationPhase::RegionDiscovery;
     return;
   }
@@ -373,6 +386,9 @@ ExplorationBot::ExplorationBot(const Point &start_pos)
 {
   const double heading = (rand() / RAND_MAX) * 2.0 * M_PI;
   random_direction = Vector(cos(heading), sin(heading));
+
+  vertex_t root = boost::add_vertex(frontier_region_graph);
+  traversal_dfs.emplace(frontier_region_graph, root);
 }
 
 void ExplorationBot::update()

@@ -1,32 +1,48 @@
 #include "Graph.hpp"
 
-incremental_dfs::incremental_dfs(const Graph &g, Vertex start)
-    : g_(g)
+StepDFS::StepDFS(Graph &g_, vertex_t start)
+    : StepTraversal(g_), color(num_vertices(g_), 0),
+      out_it(num_vertices(g_)), out_end(num_vertices(g_))
 {
-  stack_.push(start);
-  visited_.insert(start);
+  auto idx = get(boost::vertex_index, g);
+  st.push(start);
+  color[idx[start]] = 1;
+  std::tie(out_it[idx[start]], out_end[idx[start]]) = out_edges(start, g);
 }
 
-bool incremental_dfs::next(Vertex &out)
+std::optional<vertex_t> StepDFS::next()
 {
-  if (stack_.empty())
+  auto idx = get(boost::vertex_index, g);
+  while (!st.empty())
   {
-    return false;
-  }
-
-  Vertex u = stack_.top();
-  stack_.pop();
-  out = u;
-
-  auto [ei, ei_end] = boost::out_edges(u, g_);
-  for (; ei != ei_end; ++ei)
-  {
-    Vertex v = boost::target(*ei, g_);
-    if (!visited_.count(v))
+    vertex_t v = st.top();
+    if (color[idx[v]] == 1)
     {
-      visited_.insert(v);
-      stack_.push(v);
+      color[idx[v]] = 3;
+      return v;
     }
+
+    if (color[idx[v]] == 3)
+    {
+      for (; out_it[idx[v]] != out_end[idx[v]]; ++out_it[idx[v]])
+      {
+        edge_t e = *out_it[idx[v]];
+        vertex_t u = target(e, g);
+        if (color[idx[u]] == 0)
+        {
+          color[idx[u]] = 1;
+          std::tie(out_it[idx[u]], out_end[idx[u]]) = out_edges(u, g);
+          st.push(u);
+          ++out_it[idx[v]];
+          return u;
+        }
+      }
+      color[idx[v]] = 2;
+      st.pop();
+      continue;
+    }
+
+    st.pop();
   }
-  return true;
+  return std::nullopt;
 }

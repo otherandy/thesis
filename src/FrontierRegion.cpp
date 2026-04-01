@@ -89,67 +89,55 @@ std::vector<Point> FrontierRegion::calculate_path_from(const Point &start) const
 void compute_frontier_regions(
     std::vector<FrontierRegion> *frontier_regions,
     Grid2D<Cell> &grid,
-    std::size_t parent_region_id)
+    StepTraversal &traversal_graph,
+    std::size_t current_parent_region_id)
 {
-  std::vector<FrontierRegion> new_regions;
-
   for (int y = 0; y < MAP_HEIGHT; ++y)
   {
     for (int x = 0; x < MAP_WIDTH; ++x)
     {
       Cell &cell = grid[y][x];
 
-      if (cell.state == CellState::Frontier && !cell.frontier_id)
+      if (cell.state != CellState::Frontier || cell.frontier_id)
       {
-        FrontierRegion new_region;
-        new_region.id = frontier_regions->size() + 1;
-        new_region.parent_region_id = parent_region_id;
+        continue;
+      }
 
-        std::queue<Cell> to_visit;
-        to_visit.push(cell);
-        cell.frontier_id = new_region.id;
+      FrontierRegion new_region;
+      new_region.id = traversal_graph.add_vertex_and_edge(current_parent_region_id);
 
-        while (!to_visit.empty())
+      std::queue<Cell> to_visit;
+      to_visit.push(cell);
+      cell.frontier_id = new_region.id;
+
+      while (!to_visit.empty())
+      {
+        Cell current_cell = to_visit.front();
+        to_visit.pop();
+
+        new_region.cells.push_back(current_cell);
+
+        for (Index2D neighbor_cell : current_cell.get_neighbors())
         {
-          Cell current_cell = to_visit.front();
-          to_visit.pop();
+          Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
 
-          new_region.cells.push_back(current_cell);
-
-          for (Index2D neighbor_cell : current_cell.get_neighbors())
+          if (neighbor.state == CellState::Frontier &&
+              neighbor.frontier_id == -1)
           {
-            Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
-
-            if (neighbor.state == CellState::Frontier &&
-                neighbor.frontier_id == -1)
-            {
-              neighbor.frontier_id = new_region.id;
-              to_visit.push(neighbor);
-            }
+            neighbor.frontier_id = new_region.id;
+            to_visit.push(neighbor);
           }
         }
-
-        new_regions.push_back(new_region);
       }
+
+      frontier_regions->push_back(new_region);
     }
   }
-
-  if (parent_region_id != 0)
-  {
-    auto &parent_region = (*frontier_regions)[parent_region_id];
-    for (const FrontierRegion &new_region : new_regions)
-    {
-      parent_region.inner_region_ids.push_back(new_region.id);
-    }
-  }
-
-  frontier_regions->insert(frontier_regions->end(),
-                           new_regions.begin(), new_regions.end());
 }
 
 std::size_t get_nearest_frontier_region_id(
-    const Point &position,
-    const std::vector<FrontierRegion> &regions)
+    const std::vector<FrontierRegion> &regions,
+    const Point &position)
 {
   std::size_t nearest_region_id = 0;
   double nearest_distance = std::numeric_limits<double>::max();
