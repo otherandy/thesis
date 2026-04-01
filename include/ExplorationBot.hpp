@@ -55,7 +55,7 @@ private:
   std::optional<StepDFS> traversal_dfs;
 
   std::vector<FrontierRegion> frontier_regions;
-  std::optional<std::size_t> current_frontier_region_id;
+  std::size_t current_frontier_region_id = 0;
 
   bool is_paused = false;
 

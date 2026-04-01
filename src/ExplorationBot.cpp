@@ -67,7 +67,6 @@ void ExplorationBot::reset()
   frontier_region_graph.clear();
   traversal_dfs.reset();
   frontier_regions.clear();
-  current_frontier_region_id.reset();
 
   Bot::reset();
 }
@@ -266,18 +265,18 @@ void ExplorationBot::phase4_region_discovery()
     return;
   }
 
-  current_frontier_region_id = traversal_dfs->next();
-  if (!current_frontier_region_id)
+  current_frontier_region_id = traversal_dfs->next().value_or(0);
+  if (current_frontier_region_id == 0)
   {
     std::cout << "EXPLORATION: No frontier regions found. Exploration completed.\n";
     exploration_phase = ExplorationPhase::Completed;
     return;
   }
 
-  movement_data.target_point = frontier_regions[current_frontier_region_id.value()].get_closest_from(relative_position);
+  movement_data.target_point = frontier_regions[current_frontier_region_id].get_closest_point(relative_position);
 
   std::cout << "EXPLORATION: Targeting frontier region "
-            << current_frontier_region_id.value() << ".\n";
+            << current_frontier_region_id << ".\n";
   exploration_phase = ExplorationPhase::RegionAlignment;
 }
 
@@ -306,7 +305,7 @@ void ExplorationBot::phase5_region_alignment()
   if (distance < speed)
   {
     std::cout << "EXPLORATION: Aligned with region "
-              << *current_frontier_region_id << "\n";
+              << current_frontier_region_id << "\n";
 
     exploration_phase = ExplorationPhase::RegionExploration;
     return;
@@ -315,9 +314,29 @@ void ExplorationBot::phase5_region_alignment()
 
 void ExplorationBot::phase6_region_exploration()
 {
-  // TODO: Implement new target selection
+  FrontierRegion &current_region = frontier_regions[current_frontier_region_id];
 
-  const Vector to_target = target - relative_position;
+  if (current_region.explored)
+  {
+    std::cout << "EXPLORATION: Region "
+              << current_frontier_region_id
+              << " already explored. Moving to next region.\n";
+    exploration_phase = ExplorationPhase::RegionDiscovery;
+    return;
+  }
+
+  std::optional<Point> closest_unexplored_opt = current_region.get_closest_unexplored(relative_position);
+
+  if (!closest_unexplored_opt)
+  {
+    std::cout << "EXPLORATION: No unexplored cells found in region "
+              << current_frontier_region_id << ". Moving to next region.\n";
+    current_region.explored = true;
+    exploration_phase = ExplorationPhase::RegionDiscovery;
+    return;
+  }
+
+  const Vector to_target = closest_unexplored_opt.value() - relative_position;
   move(to_target);
   exploration_grid.mark_cells(relative_position, current_readings);
 }
