@@ -55,7 +55,7 @@ std::optional<Point> FrontierRegion::get_closest_unexplored(const Point &pos) co
 void compute_frontier_regions(
     std::vector<FrontierRegion> *frontier_regions,
     Grid2D<Cell> &grid,
-    StepTraversal &traversal_graph,
+    std::shared_ptr<StepTraversal> traversal_graph,
     std::size_t current_parent_region_id)
 {
   for (int y = 0; y < MAP_HEIGHT; ++y)
@@ -70,7 +70,7 @@ void compute_frontier_regions(
       }
 
       FrontierRegion new_region;
-      new_region.id = traversal_graph.add_vertex_and_edge(current_parent_region_id);
+      new_region.id = traversal_graph->add_vertex_and_edge(current_parent_region_id);
 
       std::queue<Cell> to_visit;
       to_visit.push(cell);

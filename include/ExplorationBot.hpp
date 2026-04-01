@@ -46,13 +46,13 @@ class ExplorationBot : public Bot
 private:
   Point relative_position = Point(0.0, 0.0);
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;
-  OccupationGrid exploration_grid;
+  std::shared_ptr<OccupationGrid> exploration_grid;
 
   ExplorationData exploration_data;
   MovementData movement_data;
 
   Graph frontier_region_graph;
-  std::optional<StepDFS> traversal_dfs;
+  std::shared_ptr<StepDFS> traversal_dfs;
 
   std::vector<FrontierRegion> frontier_regions;
   std::size_t current_frontier_region_id = 0;

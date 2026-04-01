@@ -59,10 +59,7 @@ void ExplorationBot::reset()
 {
   relative_position = Point(0.0, 0.0);
   exploration_phase = ExplorationPhase::Idle;
-  exploration_grid = OccupationGrid(START_POSITION);
-
-  exploration_data = ExplorationData();
-  movement_data = MovementData();
+  exploration_grid = std::make_shared<OccupationGrid>(START_POSITION);
 
   frontier_region_graph.clear();
   traversal_dfs.reset();
@@ -151,7 +148,7 @@ void ExplorationBot::phase1_wall_discovery()
   }
 
   move(exploration_data.random_direction);
-  exploration_grid.mark_cells(relative_position, current_readings);
+  exploration_grid->mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::phase2_wall_alignment()
@@ -173,7 +170,7 @@ void ExplorationBot::phase2_wall_alignment()
       sin(closest_reading.angle));
 
   move(to_wall);
-  exploration_grid.mark_cells(relative_position, current_readings);
+  exploration_grid->mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::phase3_wall_following()
@@ -184,20 +181,20 @@ void ExplorationBot::phase3_wall_following()
                                 wall_vector * WALL_DISTANCE_STRENGTH;
 
   move(desired_vector);
-  exploration_grid.mark_cells(relative_position, current_readings);
+  exploration_grid->mark_cells(relative_position, current_readings);
 
-  const Cell &current_cell = exploration_grid.get_cell_from_position(relative_position);
+  const Cell &current_cell = exploration_grid->get_cell_from_position(relative_position);
 
   const double distance = std::sqrt(CGAL::squared_distance(relative_position, exploration_data.first_wall_point));
 
-  if (!exploration_grid.was_frontier_cell_added() &&
+  if (!exploration_grid->was_frontier_cell_added() &&
       distance < speed)
   {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
     compute_frontier_regions(&frontier_regions,
-                             exploration_grid.get_grid(),
-                             *traversal_dfs, 0);
+                             exploration_grid->get_grid(),
+                             traversal_dfs, 0);
     exploration_phase = ExplorationPhase::RegionDiscovery;
   }
 }
@@ -258,13 +255,14 @@ inline Vector ExplorationBot::calculate_wall_correction_vector() const
 
 void ExplorationBot::phase4_region_discovery()
 {
-  if (exploration_grid.get_frontier_cell_count() == 0)
+  if (exploration_grid->get_frontier_cell_count() == 0)
   {
     std::cout << "EXPLORATION: No frontier cells found. Exploration completed.\n";
     exploration_phase = ExplorationPhase::Completed;
     return;
   }
 
+  traversal_dfs->next(); // Skip the root vertex which corresponds to the whole map
   current_frontier_region_id = traversal_dfs->next().value_or(0);
   if (current_frontier_region_id == 0)
   {
@@ -284,7 +282,7 @@ void ExplorationBot::phase5_region_alignment()
 {
   Vector desired_vector;
 
-  if (exploration_grid.there_is_obstacle_between(
+  if (exploration_grid->there_is_obstacle_between(
           relative_position, movement_data.target_point))
   {
     const Vector wall_vector = calculate_wall_correction_vector();
@@ -298,7 +296,7 @@ void ExplorationBot::phase5_region_alignment()
   }
 
   move(desired_vector);
-  exploration_grid.mark_cells(relative_position, current_readings);
+  exploration_grid->mark_cells(relative_position, current_readings);
 
   const double distance = std::sqrt(CGAL::squared_distance(relative_position, movement_data.target_point));
 
@@ -338,7 +336,7 @@ void ExplorationBot::phase6_region_exploration()
 
   const Vector to_target = closest_unexplored_opt.value() - relative_position;
   move(to_target);
-  exploration_grid.mark_cells(relative_position, current_readings);
+  exploration_grid->mark_cells(relative_position, current_readings);
 }
 
 void ExplorationBot::draw_follow_vector(DrawData draw_data) const
@@ -378,13 +376,14 @@ void ExplorationBot::draw_target_point(DrawData draw_data) const
 }
 
 ExplorationBot::ExplorationBot(const Point &start_pos)
-    : Bot(start_pos), exploration_grid(start_pos)
+    : Bot(start_pos),
+      exploration_grid(std::make_shared<OccupationGrid>(start_pos))
 {
   const double heading = (rand() / RAND_MAX) * 2.0 * M_PI;
   exploration_data.random_direction = Vector(cos(heading), sin(heading));
 
   vertex_t root = boost::add_vertex(frontier_region_graph);
-  traversal_dfs.emplace(frontier_region_graph, root);
+  traversal_dfs = std::make_shared<StepDFS>(frontier_region_graph, root);
 }
 
 void ExplorationBot::update()
@@ -397,7 +396,7 @@ void ExplorationBot::update()
 
 void ExplorationBot::draw(DrawData draw_data) const
 {
-  exploration_grid.draw(draw_data);
+  exploration_grid->draw(draw_data);
   draw_path(draw_data);
   draw_readings(draw_data);
   draw_body(draw_data);
@@ -409,5 +408,5 @@ void ExplorationBot::draw(DrawData draw_data) const
 
 void ExplorationBot::grid_to_file(const std::string &filename) const
 {
-  exploration_grid.save_to_file(filename);
+  exploration_grid->save_to_file(filename);
 }

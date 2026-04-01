@@ -31,7 +31,7 @@ struct FrontierRegion
 void compute_frontier_regions(
     std::vector<FrontierRegion> *frontier_regions,
     Grid2D<Cell> &grid,
-    StepTraversal &traversal_graph,
+    std::shared_ptr<StepTraversal> traversal_graph,
     std::size_t current_parent_region_id);
 
 std::size_t get_nearest_frontier_region_id(
