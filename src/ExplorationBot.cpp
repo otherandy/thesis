@@ -183,12 +183,12 @@ void ExplorationBot::phase3_wall_following()
   move(desired_vector);
   exploration_grid->mark_cells(relative_position, current_readings);
 
-  const Cell &current_cell = exploration_grid->get_cell_from_position(relative_position);
-
-  const double distance = std::sqrt(CGAL::squared_distance(relative_position, exploration_data.first_wall_point));
+  const double distance = std::sqrt(
+      CGAL::squared_distance(relative_position,
+                             exploration_data.first_wall_point));
 
   if (!exploration_grid->was_frontier_cell_added() &&
-      distance < speed)
+      distance < speed * 2)
   {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
