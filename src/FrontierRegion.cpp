@@ -92,18 +92,18 @@ void compute_frontier_regions(
       FrontierRegion new_region;
       new_region.id = traversal_graph->add_vertex_and_edge(current_parent_region_id);
 
-      std::queue<Cell> to_visit;
-      to_visit.push(cell);
+      std::queue<Cell *> to_visit;
+      to_visit.push(&cell);
       cell.frontier_id = new_region.id;
 
       while (!to_visit.empty())
       {
-        Cell current_cell = to_visit.front();
+        Cell *current_cell = to_visit.front();
         to_visit.pop();
 
-        new_region.cells.push_back(&current_cell);
+        new_region.cells.push_back(current_cell);
 
-        for (Index2D neighbor_cell : current_cell.get_neighbors())
+        for (Index2D neighbor_cell : current_cell->get_neighbors())
         {
           Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
 
@@ -111,7 +111,7 @@ void compute_frontier_regions(
               neighbor.frontier_id == std::nullopt)
           {
             neighbor.frontier_id = new_region.id;
-            to_visit.push(neighbor);
+            to_visit.push(&neighbor);
           }
         }
       }
