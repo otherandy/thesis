@@ -99,6 +99,8 @@ void compute_frontier_regions(
       frontier_regions->push_back(new_region);
     }
   }
+
+  traversal_graph->post_update();
 }
 
 std::size_t get_nearest_frontier_region_id(

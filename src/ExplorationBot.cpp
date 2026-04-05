@@ -262,19 +262,41 @@ void ExplorationBot::phase4_region_discovery()
     return;
   }
 
-  traversal_dfs->next(); // Skip the root vertex which corresponds to the whole map
-  current_frontier_region_id = traversal_dfs->next().value_or(0);
-  if (current_frontier_region_id == 0)
+  while (true)
   {
-    std::cout << "EXPLORATION: No frontier regions found. Exploration completed.\n";
-    exploration_phase = ExplorationPhase::Completed;
-    return;
+    const std::optional<vertex_t> next_region = traversal_dfs->next();
+    if (!next_region)
+    {
+      std::cout << "EXPLORATION: No frontier regions found. Exploration completed.\n";
+      exploration_phase = ExplorationPhase::Completed;
+      return;
+    }
+
+    if (*next_region == 0)
+    {
+      continue;
+    }
+
+    if (*next_region > frontier_regions.size())
+    {
+      continue;
+    }
+
+    if (frontier_regions[*next_region - 1].explored)
+    {
+      continue;
+    }
+
+    current_frontier_region_id = *next_region;
+    movement_data.target_point = frontier_regions[current_frontier_region_id - 1].get_closest_point(relative_position);
+    break;
   }
 
-  movement_data.target_point = frontier_regions[current_frontier_region_id].get_closest_point(relative_position);
-
   std::cout << "EXPLORATION: Targeting frontier region "
-            << current_frontier_region_id << ".\n";
+            << current_frontier_region_id
+            << " at position ("
+            << movement_data.target_point.x() << ", "
+            << movement_data.target_point.y() << ").\n";
   exploration_phase = ExplorationPhase::RegionAlignment;
 }
 
@@ -312,7 +334,7 @@ void ExplorationBot::phase5_region_alignment()
 
 void ExplorationBot::phase6_region_exploration()
 {
-  FrontierRegion &current_region = frontier_regions[current_frontier_region_id];
+  FrontierRegion &current_region = frontier_regions[current_frontier_region_id - 1];
 
   if (current_region.explored)
   {
@@ -402,7 +424,7 @@ void ExplorationBot::draw(DrawData draw_data) const
   draw_body(draw_data);
   draw_lidar(draw_data);
   draw_follow_vector(draw_data);
-  draw_target_point(draw_data);
+  // draw_target_point(draw_data);
   draw_position_text();
 }
 

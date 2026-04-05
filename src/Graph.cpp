@@ -4,7 +4,7 @@ StepDFS::StepDFS(Graph &g_, vertex_t start)
     : StepTraversal(g_), color(num_vertices(g_), 0),
       out_it(num_vertices(g_)), out_end(num_vertices(g_))
 {
-  auto idx = get(boost::vertex_index, g);
+  auto idx = boost::get(boost::vertex_index, g);
   st.push(start);
   color[idx[start]] = 1;
   std::tie(out_it[idx[start]], out_end[idx[start]]) = out_edges(start, g);
@@ -12,7 +12,7 @@ StepDFS::StepDFS(Graph &g_, vertex_t start)
 
 std::optional<vertex_t> StepDFS::next()
 {
-  auto idx = get(boost::vertex_index, g);
+  auto idx = boost::get(boost::vertex_index, g);
   while (!st.empty())
   {
     vertex_t v = st.top();

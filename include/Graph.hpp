@@ -60,6 +60,14 @@ public:
     color.resize(n, 0);
     out_it.resize(n);
     out_end.resize(n);
+
+    auto idx = boost::get(boost::vertex_index, g);
+    auto [vi, vi_end] = boost::vertices(g);
+    for (; vi != vi_end; ++vi)
+    {
+      const vertex_t v = *vi;
+      std::tie(out_it[idx[v]], out_end[idx[v]]) = boost::out_edges(v, g);
+    }
   }
 };
 
