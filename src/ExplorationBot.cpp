@@ -192,9 +192,6 @@ void ExplorationBot::phase3_wall_following()
   {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
-    compute_frontier_regions(&frontier_regions,
-                             exploration_grid->get_grid(),
-                             traversal_dfs, 0);
     exploration_phase = ExplorationPhase::RegionDiscovery;
   }
 }
@@ -255,6 +252,11 @@ inline Vector ExplorationBot::calculate_wall_correction_vector() const
 
 void ExplorationBot::phase4_region_discovery()
 {
+  compute_frontier_regions(&frontier_regions,
+                           exploration_grid->get_grid(),
+                           traversal_dfs,
+                           current_frontier_region_id);
+
   if (exploration_grid->get_frontier_cell_count() == 0)
   {
     std::cout << "EXPLORATION: No frontier cells found. Exploration completed.\n";
@@ -274,7 +276,8 @@ void ExplorationBot::phase4_region_discovery()
 
     if (*next_region == 0)
     {
-      continue;
+      movement_data.target_point = relative_position;
+      break;
     }
 
     if (*next_region > frontier_regions.size())
@@ -336,6 +339,12 @@ void ExplorationBot::phase5_region_alignment()
 
 void ExplorationBot::phase6_region_exploration()
 {
+  if (current_frontier_region_id == 0)
+  {
+    exploration_phase = ExplorationPhase::RegionDiscovery;
+    return;
+  }
+
   FrontierRegion *current_region = const_cast<FrontierRegion *>(
       get_frontier_region_by_id(frontier_regions, current_frontier_region_id));
 
