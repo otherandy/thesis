@@ -282,13 +282,15 @@ void ExplorationBot::phase4_region_discovery()
       continue;
     }
 
-    if (frontier_regions[*next_region - 1].explored)
+    const FrontierRegion *target_region = get_frontier_region_by_id(frontier_regions, *next_region);
+
+    if (target_region->explored)
     {
       continue;
     }
 
     current_frontier_region_id = *next_region;
-    movement_data.target_point = frontier_regions[current_frontier_region_id - 1].get_closest_point(relative_position);
+    movement_data.target_point = target_region->get_closest_point(relative_position);
     break;
   }
 
@@ -334,9 +336,10 @@ void ExplorationBot::phase5_region_alignment()
 
 void ExplorationBot::phase6_region_exploration()
 {
-  FrontierRegion &current_region = frontier_regions[current_frontier_region_id - 1];
+  FrontierRegion *current_region = const_cast<FrontierRegion *>(
+      get_frontier_region_by_id(frontier_regions, current_frontier_region_id));
 
-  if (current_region.explored)
+  if (current_region->explored)
   {
     std::cout << "EXPLORATION: Region "
               << current_frontier_region_id
@@ -345,13 +348,13 @@ void ExplorationBot::phase6_region_exploration()
     return;
   }
 
-  std::optional<Point> closest_unexplored_opt = current_region.get_closest_unexplored(relative_position);
+  std::optional<Point> closest_unexplored_opt = current_region->get_closest_unexplored(relative_position);
 
   if (!closest_unexplored_opt)
   {
     std::cout << "EXPLORATION: No unexplored cells found in region "
               << current_frontier_region_id << ". Moving to next region.\n";
-    current_region.explored = true;
+    current_region->explored = true;
     exploration_phase = ExplorationPhase::RegionDiscovery;
     return;
   }

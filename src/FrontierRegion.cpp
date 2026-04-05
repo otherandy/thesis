@@ -2,6 +2,26 @@
 #include <algorithm>
 #include <queue>
 
+const FrontierRegion *get_frontier_region_by_id(
+    const std::vector<FrontierRegion> &regions,
+    std::size_t id)
+{
+  auto it = std::find_if(regions.begin(), regions.end(),
+                         [id](const FrontierRegion &region)
+                         {
+                           return region.id == id;
+                         });
+
+  if (it != regions.end())
+  {
+    return &(*it);
+  }
+  else
+  {
+    return nullptr;
+  }
+}
+
 Point FrontierRegion::get_closest_point(const Point &pos) const
 {
   Point closest_point;
