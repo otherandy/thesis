@@ -271,7 +271,7 @@ void ExplorationBot::phase4_region_discovery()
                            traversal_dfs,
                            current_frontier_region_id);
 
-  if (exploration_grid->get_frontier_cell_count() == 0)
+  if (exploration_grid->get_frontier_cell_count() < 2)
   {
     std::cout << "EXPLORATION: No frontier cells found. Exploration completed.\n";
     exploration_phase = ExplorationPhase::Completed;
