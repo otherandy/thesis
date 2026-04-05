@@ -7,6 +7,12 @@ const Vector SOUTH(0, 1);
 const Vector EAST(1, 0);
 const Vector WEST(-1, 0);
 
+Vector random_unit_heading()
+{
+  double heading = (static_cast<double>(rand()) / RAND_MAX) * 2.0 * M_PI;
+  return Vector(cos(heading), sin(heading));
+}
+
 void ExplorationBot::get_input_and_move()
 {
   if (IsKeyPressed(KEY_L))
@@ -61,8 +67,16 @@ void ExplorationBot::reset()
   exploration_phase = ExplorationPhase::Idle;
   exploration_grid = std::make_shared<OccupationGrid>(START_POSITION);
 
+  exploration_data = ExplorationData{};
+  exploration_data.random_direction = random_unit_heading();
+
+  movement_data = MovementData{};
+  current_frontier_region_id = 0;
+  is_paused = false;
+
   frontier_region_graph.clear();
-  traversal_dfs.reset();
+  const vertex_t root = boost::add_vertex(frontier_region_graph);
+  traversal_dfs = std::make_shared<StepDFS>(frontier_region_graph, root);
   frontier_regions.clear();
 
   Bot::reset();
@@ -413,8 +427,7 @@ ExplorationBot::ExplorationBot(const Point &start_pos)
     : Bot(start_pos),
       exploration_grid(std::make_shared<OccupationGrid>(start_pos))
 {
-  const double heading = (rand() / RAND_MAX) * 2.0 * M_PI;
-  exploration_data.random_direction = Vector(cos(heading), sin(heading));
+  exploration_data.random_direction = random_unit_heading();
 
   vertex_t root = boost::add_vertex(frontier_region_graph);
   traversal_dfs = std::make_shared<StepDFS>(frontier_region_graph, root);

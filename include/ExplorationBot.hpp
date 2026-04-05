@@ -41,6 +41,8 @@ struct MovementData
   Point target_point;
 };
 
+Vector random_unit_heading();
+
 class ExplorationBot : public Bot
 {
 private:
