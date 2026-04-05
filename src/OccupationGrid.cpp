@@ -1,6 +1,7 @@
 #include "OccupationGrid.hpp"
 #include "FrontierRegion.hpp"
 #include "Utils.hpp"
+#include <limits>
 #include <queue>
 
 bool OccupationGrid::mark_cell(Index2D index,
@@ -196,16 +197,43 @@ bool OccupationGrid::there_is_obstacle_between(
     const Point &from, const Point &to) const
 {
   const double distance = std::sqrt(CGAL::squared_distance(from, to));
+  const auto is_outside_grid = [this](double world_x, double world_y)
+  {
+    const double rel_x = world_x - origin.x();
+    const double rel_y = world_y - origin.y();
+
+    return rel_x < -ENV_WIDTH || rel_x >= ENV_WIDTH ||
+           rel_y < -ENV_HEIGHT || rel_y >= ENV_HEIGHT;
+  };
+
+  if (distance <= std::numeric_limits<double>::epsilon())
+  {
+    if (is_outside_grid(from.x(), from.y()))
+    {
+      return true;
+    }
+
+    const Index2D cell_index = get_cell_index_from(from.x(),
+                                                   from.y());
+    return grid[cell_index.first][cell_index.second].state == CellState::Occupied;
+  }
+
+  const double sample_step = CELL_SIZE / 2.0;
   const double step_x = (to.x() - from.x()) / distance;
   const double step_y = (to.y() - from.y()) / distance;
 
   double curr_x = from.x();
   double curr_y = from.y();
 
-  for (double traveled = 0; traveled < distance; traveled += CELL_SIZE / 2.0)
+  for (double traveled = 0; traveled <= distance; traveled += sample_step)
   {
-    const Index2D cell_index = get_cell_index_from(curr_x - origin.x(),
-                                                   curr_y - origin.y());
+    if (is_outside_grid(curr_x, curr_y))
+    {
+      return true;
+    }
+
+    const Index2D cell_index = get_cell_index_from(curr_x,
+                                                   curr_y);
 
     const Cell &cell = grid[cell_index.first][cell_index.second];
 
@@ -214,11 +242,18 @@ bool OccupationGrid::there_is_obstacle_between(
       return true;
     }
 
-    curr_x += step_x * (CELL_SIZE / 2.0);
-    curr_y += step_y * (CELL_SIZE / 2.0);
+    curr_x += step_x * sample_step;
+    curr_y += step_y * sample_step;
   }
 
-  return false;
+  if (is_outside_grid(to.x(), to.y()))
+  {
+    return true;
+  }
+
+  const Index2D to_cell_index = get_cell_index_from(to.x(),
+                                                    to.y());
+  return grid[to_cell_index.first][to_cell_index.second].state == CellState::Occupied;
 }
 
 void OccupationGrid::draw(DrawData draw_data) const

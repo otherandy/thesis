@@ -427,7 +427,7 @@ void ExplorationBot::draw(DrawData draw_data) const
   draw_body(draw_data);
   draw_lidar(draw_data);
   draw_follow_vector(draw_data);
-  // draw_target_point(draw_data);
+  draw_target_point(draw_data);
   draw_position_text();
 }
 
