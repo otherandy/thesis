@@ -1,17 +1,10 @@
 #include "ExplorationBot.hpp"
-#include "Utils.hpp"
 #include <CGAL/linear_least_squares_fitting_2.h>
 
 const Vector NORTH(0, -1);
 const Vector SOUTH(0, 1);
 const Vector EAST(1, 0);
 const Vector WEST(-1, 0);
-
-Vector random_unit_heading()
-{
-  double heading = (static_cast<double>(rand()) / RAND_MAX) * 2.0 * M_PI;
-  return Vector(cos(heading), sin(heading));
-}
 
 void ExplorationBot::get_input_and_move()
 {
@@ -68,7 +61,7 @@ void ExplorationBot::reset()
   exploration_grid = std::make_shared<OccupationGrid>(START_POSITION);
 
   exploration_data = ExplorationData{};
-  exploration_data.random_direction = random_unit_heading();
+  exploration_data.random_direction = get_random_heading();
 
   movement_data = MovementData{};
   current_frontier_region_id = 0;
@@ -324,7 +317,8 @@ void ExplorationBot::phase5_region_alignment()
   Vector desired_vector;
 
   if (exploration_grid->there_is_obstacle_between(
-          relative_position, movement_data.target_point))
+          relative_position, movement_data.target_point) &&
+      closest_wall_reading_index)
   {
     const Vector wall_vector = calculate_wall_correction_vector();
     desired_vector = movement_data.current_follow_vector *
@@ -420,14 +414,14 @@ void ExplorationBot::draw_target_point(DrawData draw_data) const
       target_screen_pos.x() * draw_data.scale_factor + draw_data.offset_x,
       target_screen_pos.y() * draw_data.scale_factor + draw_data.offset_y,
       DRAWN_POINT_RADIUS,
-      PURPLE);
+      ORANGE);
 }
 
 ExplorationBot::ExplorationBot(const Point &start_pos)
     : Bot(start_pos),
       exploration_grid(std::make_shared<OccupationGrid>(start_pos))
 {
-  exploration_data.random_direction = random_unit_heading();
+  exploration_data.random_direction = get_random_heading();
 
   vertex_t root = boost::add_vertex(frontier_region_graph);
   traversal_dfs = std::make_shared<StepDFS>(frontier_region_graph, root);
@@ -444,7 +438,7 @@ void ExplorationBot::update()
 void ExplorationBot::draw(DrawData draw_data) const
 {
   exploration_grid->draw(draw_data);
-  draw_path(draw_data);
+  // draw_path(draw_data);
   draw_readings(draw_data);
   draw_body(draw_data);
   draw_lidar(draw_data);

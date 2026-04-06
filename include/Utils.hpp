@@ -51,4 +51,10 @@ inline void ensure_parent_dir_exists(const std::string &filename)
   }
 }
 
+inline Vector get_random_heading()
+{
+  double heading = (static_cast<double>(rand()) / RAND_MAX) * 2.0 * M_PI;
+  return Vector(cos(heading), sin(heading));
+}
+
 #endif

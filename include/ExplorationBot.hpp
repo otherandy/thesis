@@ -4,6 +4,7 @@
 #include "Bot.hpp"
 #include "OccupationGrid.hpp"
 #include "FrontierRegion.hpp"
+#include "Utils.hpp"
 #include "cgal_types.hpp"
 #include <optional>
 
@@ -40,8 +41,6 @@ struct MovementData
   Vector current_follow_vector;
   Point target_point;
 };
-
-Vector random_unit_heading();
 
 class ExplorationBot : public Bot
 {
