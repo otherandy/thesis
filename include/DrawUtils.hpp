@@ -35,15 +35,24 @@ inline std::pair<float, float> calculate_offset(
 
 inline void draw_environment(DrawData draw_data)
 {
-  for (size_t i = 0; i < ENVIRONMENT.size(); ++i)
+  auto draw_polygon_edges = [&](const Polygon &poly)
   {
-    Point p1 = ENVIRONMENT[i];
-    Point p2 = ENVIRONMENT[(i + 1) % ENVIRONMENT.size()];
-    DrawLine(p1.x() * draw_data.scale_factor + draw_data.offset_x,
-             p1.y() * draw_data.scale_factor + draw_data.offset_y,
-             p2.x() * draw_data.scale_factor + draw_data.offset_x,
-             p2.y() * draw_data.scale_factor + draw_data.offset_y,
-             BLACK);
+    for (std::size_t i = 0; i < poly.size(); ++i)
+    {
+      Point p1 = poly[i];
+      Point p2 = poly[(i + 1) % poly.size()];
+      DrawLine(p1.x() * draw_data.scale_factor + draw_data.offset_x,
+               p1.y() * draw_data.scale_factor + draw_data.offset_y,
+               p2.x() * draw_data.scale_factor + draw_data.offset_x,
+               p2.y() * draw_data.scale_factor + draw_data.offset_y,
+               BLACK);
+    }
+  };
+
+  draw_polygon_edges(ENVIRONMENT.outer_boundary());
+  for (auto h = ENVIRONMENT.holes_begin(); h != ENVIRONMENT.holes_end(); ++h)
+  {
+    draw_polygon_edges(*h);
   }
 }
 
