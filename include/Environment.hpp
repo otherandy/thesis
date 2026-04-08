@@ -66,10 +66,25 @@ constexpr EnvData SQUARE2_HOLE_DATA[] = {
     {14, 6},
 };
 
+constexpr EnvData POLYGON2_HOLE1_DATA[] = {
+    {4, 2},
+    {4, 6},
+    {8, 6},
+    {8, 2},
+};
+
+constexpr EnvData POLYGON2_HOLE2_DATA[] = {
+    {16, 18},
+    {16, 22},
+    {20, 22},
+    {20, 18},
+};
+
 enum class EnvironmentPreset
 {
     Polygon,
     Polygon2,
+    Polygon2WithHoles,
     Square,
     Triangle,
     Custom,
@@ -77,14 +92,34 @@ enum class EnvironmentPreset
 };
 
 // Change this single line to switch the environment before compiling.
-constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Square2WithHole;
+constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Polygon2WithHoles;
 
 struct SelectedEnvironmentData
 {
     const EnvData *outer_data;
     std::size_t outer_size;
-    const EnvData *hole_data;
-    std::size_t hole_size;
+    const EnvData *const *hole_data_list;
+    const std::size_t *hole_size_list;
+    std::size_t hole_count;
+};
+
+constexpr const EnvData *NO_HOLE_DATA[] = {};
+constexpr std::size_t NO_HOLE_SIZES[] = {};
+
+constexpr const EnvData *SQUARE2_HOLE_DATA_LIST[] = {
+    SQUARE2_HOLE_DATA,
+};
+constexpr std::size_t SQUARE2_HOLE_SIZE_LIST[] = {
+    sizeof(SQUARE2_HOLE_DATA) / sizeof(SQUARE2_HOLE_DATA[0]),
+};
+
+constexpr const EnvData *POLYGON2_HOLE_DATA_LIST[] = {
+    POLYGON2_HOLE1_DATA,
+    POLYGON2_HOLE2_DATA,
+};
+constexpr std::size_t POLYGON2_HOLE_SIZE_LIST[] = {
+    sizeof(POLYGON2_HOLE1_DATA) / sizeof(POLYGON2_HOLE1_DATA[0]),
+    sizeof(POLYGON2_HOLE2_DATA) / sizeof(POLYGON2_HOLE2_DATA[0]),
 };
 
 constexpr SelectedEnvironmentData get_selected_environment_data()
@@ -94,38 +129,53 @@ constexpr SelectedEnvironmentData get_selected_environment_data()
     case EnvironmentPreset::Polygon:
         return {POLYGON_ENV_DATA,
                 sizeof(POLYGON_ENV_DATA) / sizeof(POLYGON_ENV_DATA[0]),
-                nullptr,
+                NO_HOLE_DATA,
+                NO_HOLE_SIZES,
                 0};
     case EnvironmentPreset::Polygon2:
         return {POLYGON2_ENV_DATA,
                 sizeof(POLYGON2_ENV_DATA) / sizeof(POLYGON2_ENV_DATA[0]),
-                nullptr,
+                NO_HOLE_DATA,
+                NO_HOLE_SIZES,
                 0};
+    case EnvironmentPreset::Polygon2WithHoles:
+        return {POLYGON2_ENV_DATA,
+                sizeof(POLYGON2_ENV_DATA) / sizeof(POLYGON2_ENV_DATA[0]),
+                POLYGON2_HOLE_DATA_LIST,
+                POLYGON2_HOLE_SIZE_LIST,
+                sizeof(POLYGON2_HOLE_DATA_LIST) /
+                    sizeof(POLYGON2_HOLE_DATA_LIST[0])};
     case EnvironmentPreset::Square:
         return {SQUARE_ENV_DATA,
                 sizeof(SQUARE_ENV_DATA) / sizeof(SQUARE_ENV_DATA[0]),
-                nullptr,
+                NO_HOLE_DATA,
+                NO_HOLE_SIZES,
                 0};
     case EnvironmentPreset::Triangle:
         return {TRIANGLE_ENV_DATA,
                 sizeof(TRIANGLE_ENV_DATA) / sizeof(TRIANGLE_ENV_DATA[0]),
-                nullptr,
+                NO_HOLE_DATA,
+                NO_HOLE_SIZES,
                 0};
     case EnvironmentPreset::Custom:
         return {CUSTOM_ENV_DATA,
                 sizeof(CUSTOM_ENV_DATA) / sizeof(CUSTOM_ENV_DATA[0]),
-                nullptr,
+                NO_HOLE_DATA,
+                NO_HOLE_SIZES,
                 0};
     case EnvironmentPreset::Square2WithHole:
         return {SQUARE2_ENV_DATA,
                 sizeof(SQUARE2_ENV_DATA) / sizeof(SQUARE2_ENV_DATA[0]),
-                SQUARE2_HOLE_DATA,
-                sizeof(SQUARE2_HOLE_DATA) / sizeof(SQUARE2_HOLE_DATA[0])};
+                SQUARE2_HOLE_DATA_LIST,
+                SQUARE2_HOLE_SIZE_LIST,
+                sizeof(SQUARE2_HOLE_DATA_LIST) /
+                    sizeof(SQUARE2_HOLE_DATA_LIST[0])};
     }
 
     return {SQUARE_ENV_DATA,
             sizeof(SQUARE_ENV_DATA) / sizeof(SQUARE_ENV_DATA[0]),
-            nullptr,
+            NO_HOLE_DATA,
+            NO_HOLE_SIZES,
             0};
 }
 
@@ -181,13 +231,18 @@ inline const PolygonWithHoles &get_environment()
         }
 
         std::vector<Polygon> holes;
-        if (SELECTED_ENV_DATA.hole_data != nullptr)
+        for (std::size_t hole_idx = 0;
+             hole_idx < SELECTED_ENV_DATA.hole_count;
+             ++hole_idx)
         {
             Polygon hole;
-            for (std::size_t i = 0; i < SELECTED_ENV_DATA.hole_size; ++i)
+            for (std::size_t i = 0;
+                 i < SELECTED_ENV_DATA.hole_size_list[hole_idx];
+                 ++i)
             {
-                hole.push_back(Point(SELECTED_ENV_DATA.hole_data[i].first,
-                                     SELECTED_ENV_DATA.hole_data[i].second));
+                hole.push_back(
+                    Point(SELECTED_ENV_DATA.hole_data_list[hole_idx][i].first,
+                          SELECTED_ENV_DATA.hole_data_list[hole_idx][i].second));
             }
 
             if (hole.is_counterclockwise_oriented())
