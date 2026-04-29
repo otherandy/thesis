@@ -13,7 +13,7 @@
 
 const double DESIRED_WALL_DISTANCE = 0.2;
 const double WALL_DISTANCE_STRENGTH = 0.9;
-constexpr double READING_ANGLE_SPAN = 0.02;
+constexpr double READING_ANGLE_SPAN = 0.015;
 constexpr int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
 constexpr std::size_t WALL_POINT_COUNT = 2 * READING_OFFSET + 1;
 

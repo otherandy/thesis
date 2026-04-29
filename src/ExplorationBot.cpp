@@ -427,7 +427,7 @@ ExplorationBot::ExplorationBot(const Point &start_pos)
     : Bot(start_pos),
       exploration_grid(std::make_shared<OccupationGrid>(start_pos))
 {
-  exploration_data.random_direction = get_random_heading();
+  exploration_data.random_direction = EAST;
 
   vertex_t root = boost::add_vertex(frontier_region_graph);
   traversal_dfs = std::make_shared<StepDFS>(frontier_region_graph, root);
