@@ -90,7 +90,6 @@ void compute_frontier_regions(
       }
 
       FrontierRegion new_region;
-      new_region.id = traversal_graph->add_vertex_and_edge(current_parent_region_id);
 
       std::queue<Cell *> to_visit;
       to_visit.push(&cell);
@@ -103,7 +102,9 @@ void compute_frontier_regions(
 
         new_region.cells.push_back(current_cell);
 
-        for (Index2D neighbor_cell : current_cell->get_neighbors())
+        auto neighbors = current_cell->get_neighbors();
+
+        for (Index2D neighbor_cell : neighbors)
         {
           Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
 
@@ -116,6 +117,17 @@ void compute_frontier_regions(
         }
       }
 
+      if (new_region.cells.size() <= 2)
+      {
+        for (Cell *cell : new_region.cells)
+        {
+          cell->frontier_id = std::nullopt;
+          cell->state = CellState::Unknown;
+        }
+        continue;
+      }
+
+      new_region.id = traversal_graph->add_vertex_and_edge(current_parent_region_id);
       frontier_regions->push_back(new_region);
     }
   }

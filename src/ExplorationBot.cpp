@@ -264,7 +264,7 @@ void ExplorationBot::phase4_region_discovery()
                            traversal_dfs,
                            current_frontier_region_id);
 
-  if (exploration_grid->get_frontier_cell_count() < 2)
+  if (exploration_grid->get_frontier_cell_count() <= 2)
   {
     std::cout << "EXPLORATION: No frontier cells found. Exploration completed.\n";
     exploration_phase = ExplorationPhase::Completed;
@@ -333,15 +333,21 @@ void ExplorationBot::phase5_region_alignment()
   move(desired_vector);
   exploration_grid->mark_cells(relative_position, current_readings);
 
-  const double distance = std::sqrt(CGAL::squared_distance(relative_position, movement_data.target_point));
+  const double distance = std::sqrt(
+      CGAL::squared_distance(relative_position, movement_data.target_point));
 
-  if (distance < speed)
+  if (distance < LIDAR_RADIUS / 2)
   {
-    std::cout << "EXPLORATION: Aligned with region "
-              << current_frontier_region_id << "\n";
+    const auto target_cell = exploration_grid->get_cell_from_position(movement_data.target_point);
 
-    exploration_phase = ExplorationPhase::RegionExploration;
-    return;
+    if (target_cell.state != CellState::Frontier)
+    {
+      std::cout << "EXPLORATION: Aligned with region "
+                << current_frontier_region_id << "\n";
+
+      exploration_phase = ExplorationPhase::RegionExploration;
+      return;
+    }
   }
 }
 
