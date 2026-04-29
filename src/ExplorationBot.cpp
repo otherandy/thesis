@@ -382,8 +382,23 @@ void ExplorationBot::phase6_region_exploration()
     return;
   }
 
-  const Vector to_target = closest_unexplored_opt.value() - relative_position;
-  move(to_target);
+  Vector desired_vector;
+
+  if (exploration_grid->there_is_obstacle_between(
+          relative_position, closest_unexplored_opt.value()) &&
+      closest_wall_reading_index)
+  {
+    const Vector wall_vector = calculate_wall_correction_vector();
+    desired_vector = movement_data.current_follow_vector *
+                         (1.0 - WALL_DISTANCE_STRENGTH) +
+                     wall_vector * WALL_DISTANCE_STRENGTH;
+  }
+  else
+  {
+    desired_vector = closest_unexplored_opt.value() - relative_position;
+  }
+
+  move(desired_vector);
   exploration_grid->mark_cells(relative_position, current_readings);
 }
 
