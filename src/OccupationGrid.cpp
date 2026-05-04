@@ -2,7 +2,6 @@
 #include "FrontierRegion.hpp"
 #include "Utils.hpp"
 #include <limits>
-#include <queue>
 
 bool OccupationGrid::mark_cell(Index2D index,
                                CellState new_state)

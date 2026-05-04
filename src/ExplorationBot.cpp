@@ -1,4 +1,5 @@
 #include "ExplorationBot.hpp"
+#include "Utils.hpp"
 #include <CGAL/linear_least_squares_fitting_2.h>
 
 const Vector NORTH(0, -1);

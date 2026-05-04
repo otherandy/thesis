@@ -4,9 +4,7 @@
 #include "Bot.hpp"
 #include "OccupationGrid.hpp"
 #include "FrontierRegion.hpp"
-#include "Utils.hpp"
 #include "cgal_types.hpp"
-#include <optional>
 
 #define NEXT_INDEX 1
 #define PREV_INDEX -1
