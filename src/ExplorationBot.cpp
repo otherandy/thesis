@@ -133,15 +133,6 @@ void ExplorationBot::run_exploration()
 
 void ExplorationBot::phase1_wall_discovery()
 {
-  const double distance = std::sqrt(CGAL::squared_distance(relative_position, exploration_data.start_point));
-
-  if (distance >= EXPLORATION_RADIUS)
-  {
-    std::cout << "EXPLORATION: Exploration radius reached without finding a wall. Exploration completed.\n";
-    exploration_phase = ExplorationPhase::Completed;
-    return;
-  }
-
   for (const auto &r : current_readings)
   {
     if (r.distance < LIDAR_RADIUS)

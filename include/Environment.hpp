@@ -207,11 +207,6 @@ constexpr double ENV_WIDTH = std::get<1>(POLYGON_BOUNDS) -
 constexpr double ENV_HEIGHT = std::get<3>(POLYGON_BOUNDS) -
                               std::get<2>(POLYGON_BOUNDS);
 
-const double EXPLORATION_RADIUS = std::sqrt(
-                                      std::pow(ENV_WIDTH, 2) +
-                                      std::pow(ENV_HEIGHT, 2)) /
-                                  2.0;
-
 inline const PolygonWithHoles &get_environment()
 {
     static PolygonWithHoles env;
