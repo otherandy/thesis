@@ -61,8 +61,6 @@ target_include_directories(
   ${PROJECT_NAME}
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/constants
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/types
 )
 
 target_link_libraries(
