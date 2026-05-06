@@ -328,18 +328,13 @@ void ExplorationBot::phase5_region_alignment()
   const double distance = std::sqrt(
       CGAL::squared_distance(relative_position, movement_data.target_point));
 
-  if (distance < LIDAR_RADIUS / 2)
+  if (distance < speed * 2)
   {
-    const auto target_cell = exploration_grid->get_cell_from_position(movement_data.target_point);
-
-    if (target_cell.state != CellState::Frontier)
-    {
       std::cout << "EXPLORATION: Aligned with region "
                 << current_frontier_region_id << "\n";
 
       exploration_phase = ExplorationPhase::RegionExploration;
       return;
-    }
   }
 }
 
@@ -363,9 +358,9 @@ void ExplorationBot::phase6_region_exploration()
     return;
   }
 
-  std::optional<Point> closest_unexplored_opt = current_region->get_closest_unexplored(relative_position);
+  auto closest_unexplored = current_region->get_closest_unexplored(relative_position);
 
-  if (!closest_unexplored_opt)
+  if (!closest_unexplored)
   {
     std::cout << "EXPLORATION: No unexplored cells found in region "
               << current_frontier_region_id << ". Moving to next region.\n";
@@ -376,20 +371,13 @@ void ExplorationBot::phase6_region_exploration()
 
   Vector desired_vector;
 
-  if (exploration_grid->there_is_obstacle_between(
-          relative_position, closest_unexplored_opt.value()) &&
-      closest_wall_reading_index)
+  if (closest_wall_reading_index)
   {
-    const Vector wall_vector = calculate_wall_correction_vector();
-    desired_vector = movement_data.current_follow_vector *
-                         (1.0 - WALL_DISTANCE_STRENGTH) +
-                     wall_vector * WALL_DISTANCE_STRENGTH;
-  }
-  else
-  {
-    desired_vector = closest_unexplored_opt.value() - relative_position;
+    exploration_phase = ExplorationPhase::WallAlignment;
+    return;
   }
 
+  desired_vector = closest_unexplored.value() - relative_position;
   move(desired_vector);
   exploration_grid->mark_cells(relative_position, current_readings);
 }
@@ -456,7 +444,7 @@ void ExplorationBot::draw(DrawData draw_data) const
   draw_body(draw_data);
   draw_lidar(draw_data);
   draw_follow_vector(draw_data);
-  draw_target_point(draw_data);
+  // draw_target_point(draw_data);
   draw_position_text();
 }
 
