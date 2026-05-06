@@ -146,8 +146,8 @@ void ExplorationBot::phase1_wall_discovery()
     }
   }
 
-  move(exploration_data.random_direction);
   exploration_grid->mark_cells(relative_position, current_readings);
+  move(exploration_data.random_direction);
 }
 
 void ExplorationBot::phase2_wall_alignment()
@@ -168,8 +168,8 @@ void ExplorationBot::phase2_wall_alignment()
       cos(closest_reading.angle),
       sin(closest_reading.angle));
 
-  move(to_wall);
   exploration_grid->mark_cells(relative_position, current_readings);
+  move(to_wall);
 }
 
 void ExplorationBot::phase3_wall_following()
@@ -179,8 +179,8 @@ void ExplorationBot::phase3_wall_following()
                                     (1.0 - WALL_DISTANCE_STRENGTH) +
                                 wall_vector * WALL_DISTANCE_STRENGTH;
 
-  move(desired_vector);
   exploration_grid->mark_cells(relative_position, current_readings);
+  move(desired_vector);
 
   const double distance = std::sqrt(
       CGAL::squared_distance(relative_position,
@@ -322,8 +322,8 @@ void ExplorationBot::phase5_region_alignment()
     desired_vector = movement_data.target_point - relative_position;
   }
 
-  move(desired_vector);
   exploration_grid->mark_cells(relative_position, current_readings);
+  move(desired_vector);
 
   const double distance = std::sqrt(
       CGAL::squared_distance(relative_position, movement_data.target_point));
@@ -373,13 +373,18 @@ void ExplorationBot::phase6_region_exploration()
 
   if (closest_wall_reading_index)
   {
-    exploration_phase = ExplorationPhase::WallAlignment;
-    return;
+    Point closest_wall_point = reading_index_to_point(closest_wall_reading_index.value());
+    auto obstacle_cell = exploration_grid->get_cell_from_position(closest_wall_point);
+
+    if (obstacle_cell.state == CellState::Unknown) {
+      exploration_phase = ExplorationPhase::WallAlignment;
+      return;
+    }
   }
 
   desired_vector = closest_unexplored.value() - relative_position;
-  move(desired_vector);
   exploration_grid->mark_cells(relative_position, current_readings);
+  move(desired_vector);
 }
 
 void ExplorationBot::draw_follow_vector(DrawData draw_data) const
