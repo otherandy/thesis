@@ -1,8 +1,8 @@
 #ifndef BOT_HPP
 #define BOT_HPP
 
-#include "cgal_types.hpp"
 #include "DrawUtils.hpp"
+#include "cgal_types.hpp"
 #include <array>
 #include <string>
 #include <vector>
@@ -16,14 +16,12 @@ const double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
 const float DRAWN_BODY_RADIUS = 5.0;
 const float DRAWN_POINT_RADIUS = 3.0;
 
-struct Reading
-{
+struct Reading {
   double angle;
   double distance;
 };
 
-class Bot
-{
+class Bot {
 private:
   Point real_position;
   std::vector<Point> real_visited_positions;

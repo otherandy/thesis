@@ -2,28 +2,24 @@
 #include "Utils.hpp"
 #include <raylib-cpp.hpp>
 
-void Bot::reset()
-{
+void Bot::reset() {
   real_position = START_POSITION;
   real_visited_positions.clear();
   current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
   closest_wall_reading_index = std::nullopt;
 }
 
-Point Bot::reading_index_to_point(std::size_t index) const
-{
+Point Bot::reading_index_to_point(std::size_t index) const {
   const Reading &r = current_readings[index];
   return point_at_reading(real_position, r);
 }
 
 // Returns delta applied to position
-Vector Bot::move(const Vector &dir)
-{
+Vector Bot::move(const Vector &dir) {
   Vector delta = normalize_vector(dir) * speed;
   Point new_position = real_position + delta;
 
-  if (!point_in_environment(new_position))
-  {
+  if (!point_in_environment(new_position)) {
     return Vector(0, 0);
   }
 
@@ -31,20 +27,17 @@ Vector Bot::move(const Vector &dir)
   return delta;
 }
 
-void Bot::update_visited_positions()
-{
+void Bot::update_visited_positions() {
   real_visited_positions.push_back(real_position);
 }
 
-void Bot::take_lidar_readings()
-{
+void Bot::take_lidar_readings() {
   const double angle_step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
 
   double closest_distance = std::numeric_limits<double>::max();
   closest_wall_reading_index = std::nullopt;
 
-  for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
-  {
+  for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i) {
     double angle = angle_step * i;
     double distance = LIDAR_RADIUS;
 
@@ -52,26 +45,21 @@ void Bot::take_lidar_readings()
     double min_dist = LIDAR_RESOLUTION;
     double max_dist = LIDAR_RADIUS;
 
-    while (max_dist - min_dist > LIDAR_RESOLUTION)
-    {
+    while (max_dist - min_dist > LIDAR_RESOLUTION) {
       double mid_dist = (min_dist + max_dist) / 2.0;
       double sample_x = real_position.x() + mid_dist * cos(angle);
       double sample_y = real_position.y() + mid_dist * sin(angle);
 
-      if (point_in_environment(Point(sample_x, sample_y)))
-      {
+      if (point_in_environment(Point(sample_x, sample_y))) {
         min_dist = mid_dist;
-      }
-      else
-      {
+      } else {
         max_dist = mid_dist;
       }
     }
 
     distance = max_dist;
 
-    if (distance < LIDAR_RADIUS && distance < closest_distance)
-    {
+    if (distance < LIDAR_RADIUS && distance < closest_distance) {
       closest_distance = distance;
       closest_wall_reading_index = i;
     }
@@ -80,106 +68,85 @@ void Bot::take_lidar_readings()
   }
 }
 
-void Bot::draw_body(DrawData draw_data) const
-{
+void Bot::draw_body(DrawData draw_data) const {
   DrawCircle(real_position.x() * draw_data.scale_factor + draw_data.offset_x,
              real_position.y() * draw_data.scale_factor + draw_data.offset_y,
-             DRAWN_BODY_RADIUS,
-             RED);
+             DRAWN_BODY_RADIUS, RED);
 }
 
-void Bot::draw_lidar(DrawData draw_data) const
-{
-  DrawCircleLines(real_position.x() * draw_data.scale_factor + draw_data.offset_x,
-                  real_position.y() * draw_data.scale_factor + draw_data.offset_y,
-                  LIDAR_RADIUS * draw_data.scale_factor,
-                  BLUE);
+void Bot::draw_lidar(DrawData draw_data) const {
+  DrawCircleLines(
+      real_position.x() * draw_data.scale_factor + draw_data.offset_x,
+      real_position.y() * draw_data.scale_factor + draw_data.offset_y,
+      LIDAR_RADIUS * draw_data.scale_factor, BLUE);
 }
 
-void Bot::draw_readings(DrawData draw_data) const
-{
+void Bot::draw_readings(DrawData draw_data) const {
   float pos_x;
   float pos_y;
 
-  if (draw_as_hud)
-  {
+  if (draw_as_hud) {
     pos_x = LIDAR_RADIUS * draw_data.scale_factor + WINDOW_PADDING;
     pos_y = LIDAR_RADIUS * draw_data.scale_factor + WINDOW_PADDING;
-  }
-  else
-  {
+  } else {
     pos_x = real_position.x() * draw_data.scale_factor + draw_data.offset_x;
     pos_y = real_position.y() * draw_data.scale_factor + draw_data.offset_y;
   }
 
-  for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i)
-  {
+  for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i) {
     const Reading &r = current_readings[i];
-    const float end_x = pos_x + r.distance * draw_data.scale_factor * cos(r.angle);
-    const float end_y = pos_y + r.distance * draw_data.scale_factor * sin(r.angle);
+    const float end_x =
+        pos_x + r.distance * draw_data.scale_factor * cos(r.angle);
+    const float end_y =
+        pos_y + r.distance * draw_data.scale_factor * sin(r.angle);
 
-    if (i == closest_wall_reading_index)
-    {
-      DrawLine(pos_x, pos_y,
-               end_x, end_y,
-               RED);
+    if (i == closest_wall_reading_index) {
+      DrawLine(pos_x, pos_y, end_x, end_y, RED);
       DrawCircle(end_x, end_y, DRAWN_POINT_RADIUS, RED);
-    }
-    else
-    {
-      DrawLine(pos_x, pos_y,
-               end_x, end_y,
-               GRAY);
+    } else {
+      DrawLine(pos_x, pos_y, end_x, end_y, GRAY);
     }
   }
 }
 
-void Bot::draw_path(DrawData draw_data) const
-{
+void Bot::draw_path(DrawData draw_data) const {
 
-  if (real_visited_positions.size() < 2)
-  {
+  if (real_visited_positions.size() < 2) {
     return;
   }
 
-  for (size_t i = 1; i < real_visited_positions.size(); ++i)
-  {
+  for (size_t i = 1; i < real_visited_positions.size(); ++i) {
     const Point &p1 = real_visited_positions[i - 1];
     const Point &p2 = real_visited_positions[i];
 
     DrawLine(p1.x() * draw_data.scale_factor + draw_data.offset_x,
              p1.y() * draw_data.scale_factor + draw_data.offset_y,
              p2.x() * draw_data.scale_factor + draw_data.offset_x,
-             p2.y() * draw_data.scale_factor + draw_data.offset_y,
-             RED);
+             p2.y() * draw_data.scale_factor + draw_data.offset_y, RED);
   }
 }
 
-void Bot::draw_position_text() const
-{
-  std::string pos_text = "Pos: (" + std::to_string(real_position.x()) + ", " + std::to_string(real_position.y()) + ")";
+void Bot::draw_position_text() const {
+  std::string pos_text = "Pos: (" + std::to_string(real_position.x()) + ", " +
+                         std::to_string(real_position.y()) + ")";
   DrawText(pos_text.c_str(), 10, GetScreenHeight() - 30, 20, BLACK);
 }
 
-Bot::Bot(const Point &start_pos)
-    : real_position(start_pos)
-{
+Bot::Bot(const Point &start_pos) : real_position(start_pos) {
   current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
 }
 
-void Bot::visited_to_file(const std::string &filename) const
-{
+void Bot::visited_to_file(const std::string &filename) const {
   ensure_parent_dir_exists(filename);
   std::ofstream f(filename);
 
-  if (!f.is_open())
-  {
-    std::cerr << "BOT: Failed to open " << filename << " for writing" << std::endl;
+  if (!f.is_open()) {
+    std::cerr << "BOT: Failed to open " << filename << " for writing"
+              << std::endl;
     return;
   }
 
-  for (const auto &v : real_visited_positions)
-  {
+  for (const auto &v : real_visited_positions) {
     f << v.x() << "," << v.y() << "\n";
   }
 

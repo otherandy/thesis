@@ -1,9 +1,9 @@
 #ifndef CGAL_TYPES_HPP
 #define CGAL_TYPES_HPP
 
-#include <CGAL/Simple_cartesian.h>
 #include <CGAL/Polygon_2.h>
 #include <CGAL/Polygon_with_holes_2.h>
+#include <CGAL/Simple_cartesian.h>
 
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;

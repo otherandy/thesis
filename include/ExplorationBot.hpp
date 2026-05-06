@@ -2,8 +2,8 @@
 #define EXPLORATION_BOT_HPP
 
 #include "Bot.hpp"
-#include "OccupationGrid.hpp"
 #include "FrontierRegion.hpp"
+#include "OccupationGrid.hpp"
 #include "cgal_types.hpp"
 
 #define NEXT_INDEX 1
@@ -15,8 +15,7 @@ constexpr double READING_ANGLE_SPAN = 0.015;
 constexpr int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
 constexpr std::size_t WALL_POINT_COUNT = 2 * READING_OFFSET + 1;
 
-enum class ExplorationPhase
-{
+enum class ExplorationPhase {
   Idle,
   WallDiscovery,
   WallAlignment,
@@ -27,21 +26,18 @@ enum class ExplorationPhase
   Completed
 };
 
-struct ExplorationData
-{
+struct ExplorationData {
   Vector random_direction;
   Point start_point;
   Point first_wall_point;
 };
 
-struct MovementData
-{
+struct MovementData {
   Vector current_follow_vector;
   Point target_point;
 };
 
-class ExplorationBot : public Bot
-{
+class ExplorationBot : public Bot {
 private:
   Point relative_position = Point(0.0, 0.0);
   ExplorationPhase exploration_phase = ExplorationPhase::Idle;

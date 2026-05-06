@@ -7,56 +7,45 @@ const Vector SOUTH(0, 1);
 const Vector EAST(1, 0);
 const Vector WEST(-1, 0);
 
-void ExplorationBot::get_input_and_move()
-{
-  if (IsKeyPressed(KEY_L))
-  {
+void ExplorationBot::get_input_and_move() {
+  if (IsKeyPressed(KEY_L)) {
     draw_as_hud = !draw_as_hud;
   }
 
-  if (IsKeyPressed(KEY_R))
-  {
+  if (IsKeyPressed(KEY_R)) {
     reset();
     return;
   }
 
-  if (IsKeyPressed(KEY_P))
-  {
+  if (IsKeyPressed(KEY_P)) {
     is_paused = !is_paused;
     return;
   }
 
-  if (exploration_phase != ExplorationPhase::Idle)
-  {
+  if (exploration_phase != ExplorationPhase::Idle) {
     return;
   }
 
-  if (IsKeyPressed(KEY_SPACE))
-  {
+  if (IsKeyPressed(KEY_SPACE)) {
     exploration_data.start_point = relative_position;
     exploration_phase = ExplorationPhase::WallDiscovery;
   }
 
-  if (IsKeyDown(KEY_UP))
-  {
+  if (IsKeyDown(KEY_UP)) {
     move(NORTH);
   }
-  if (IsKeyDown(KEY_DOWN))
-  {
+  if (IsKeyDown(KEY_DOWN)) {
     move(SOUTH);
   }
-  if (IsKeyDown(KEY_LEFT))
-  {
+  if (IsKeyDown(KEY_LEFT)) {
     move(WEST);
   }
-  if (IsKeyDown(KEY_RIGHT))
-  {
+  if (IsKeyDown(KEY_RIGHT)) {
     move(EAST);
   }
 }
 
-void ExplorationBot::reset()
-{
+void ExplorationBot::reset() {
   relative_position = Point(0.0, 0.0);
   exploration_phase = ExplorationPhase::Idle;
   exploration_grid = std::make_shared<OccupationGrid>(START_POSITION);
@@ -76,68 +65,54 @@ void ExplorationBot::reset()
   Bot::reset();
 }
 
-void ExplorationBot::move(const Vector &dir)
-{
+void ExplorationBot::move(const Vector &dir) {
   relative_position = relative_position + Bot::move(dir);
 
-  if (exploration_phase != ExplorationPhase::Idle)
-  {
+  if (exploration_phase != ExplorationPhase::Idle) {
     Bot::update_visited_positions();
   }
 }
 
-void ExplorationBot::run_exploration()
-{
+void ExplorationBot::run_exploration() {
   if (exploration_phase == ExplorationPhase::Idle ||
-      exploration_phase == ExplorationPhase::Completed ||
-      is_paused)
-  {
+      exploration_phase == ExplorationPhase::Completed || is_paused) {
     return;
   }
 
-  if (exploration_phase == ExplorationPhase::WallDiscovery)
-  {
+  if (exploration_phase == ExplorationPhase::WallDiscovery) {
     phase1_wall_discovery();
     return;
   }
 
-  if (exploration_phase == ExplorationPhase::WallAlignment)
-  {
+  if (exploration_phase == ExplorationPhase::WallAlignment) {
     phase2_wall_alignment();
     return;
   }
 
-  if (exploration_phase == ExplorationPhase::WallFollowing)
-  {
+  if (exploration_phase == ExplorationPhase::WallFollowing) {
     phase3_wall_following();
     return;
   }
 
-  if (exploration_phase == ExplorationPhase::RegionDiscovery)
-  {
+  if (exploration_phase == ExplorationPhase::RegionDiscovery) {
     phase4_region_discovery();
     return;
   }
 
-  if (exploration_phase == ExplorationPhase::RegionAlignment)
-  {
+  if (exploration_phase == ExplorationPhase::RegionAlignment) {
     phase5_region_alignment();
     return;
   }
 
-  if (exploration_phase == ExplorationPhase::RegionExploration)
-  {
+  if (exploration_phase == ExplorationPhase::RegionExploration) {
     phase6_region_exploration();
     return;
   }
 }
 
-void ExplorationBot::phase1_wall_discovery()
-{
-  for (const auto &r : current_readings)
-  {
-    if (r.distance < LIDAR_RADIUS)
-    {
+void ExplorationBot::phase1_wall_discovery() {
+  for (const auto &r : current_readings) {
+    if (r.distance < LIDAR_RADIUS) {
       std::cout << "EXPLORATION: Wall detected at position ("
                 << relative_position.x() << ", " << relative_position.y()
                 << ")\n";
@@ -150,12 +125,11 @@ void ExplorationBot::phase1_wall_discovery()
   move(exploration_data.random_direction);
 }
 
-void ExplorationBot::phase2_wall_alignment()
-{
-  const Reading &closest_reading = current_readings[closest_wall_reading_index.value()];
+void ExplorationBot::phase2_wall_alignment() {
+  const Reading &closest_reading =
+      current_readings[closest_wall_reading_index.value()];
 
-  if (closest_reading.distance <= DESIRED_WALL_DISTANCE)
-  {
+  if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
     exploration_data.first_wall_point = relative_position;
     std::cout << "EXPLORATION: Aligned with wall at position ("
               << relative_position.x() << ", " << relative_position.y()
@@ -164,81 +138,67 @@ void ExplorationBot::phase2_wall_alignment()
     return;
   }
 
-  const Vector to_wall = Vector(
-      cos(closest_reading.angle),
-      sin(closest_reading.angle));
+  const Vector to_wall =
+      Vector(cos(closest_reading.angle), sin(closest_reading.angle));
 
   exploration_grid->mark_cells(relative_position, current_readings);
   move(to_wall);
 }
 
-void ExplorationBot::phase3_wall_following()
-{
+void ExplorationBot::phase3_wall_following() {
   const Vector wall_vector = calculate_wall_correction_vector();
-  const Vector desired_vector = movement_data.current_follow_vector *
-                                    (1.0 - WALL_DISTANCE_STRENGTH) +
-                                wall_vector * WALL_DISTANCE_STRENGTH;
+  const Vector desired_vector =
+      movement_data.current_follow_vector * (1.0 - WALL_DISTANCE_STRENGTH) +
+      wall_vector * WALL_DISTANCE_STRENGTH;
 
   exploration_grid->mark_cells(relative_position, current_readings);
   move(desired_vector);
 
-  const double distance = std::sqrt(
-      CGAL::squared_distance(relative_position,
-                             exploration_data.first_wall_point));
+  const double distance = std::sqrt(CGAL::squared_distance(
+      relative_position, exploration_data.first_wall_point));
 
-  if (!exploration_grid->was_frontier_cell_added() &&
-      distance < speed * 2)
-  {
+  if (!exploration_grid->was_frontier_cell_added() && distance < speed * 2) {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
     exploration_phase = ExplorationPhase::RegionDiscovery;
   }
 }
 
-void ExplorationBot::create_follow_vector()
-{
-  if (!closest_wall_reading_index)
-  {
+void ExplorationBot::create_follow_vector() {
+  if (!closest_wall_reading_index) {
     return;
   }
 
   std::array<Point, WALL_POINT_COUNT> wall_points;
 
-  for (int offset = -READING_OFFSET; offset <= READING_OFFSET; ++offset)
-  {
-    const std::size_t idx = relative_index(
-        closest_wall_reading_index.value(), offset);
+  for (int offset = -READING_OFFSET; offset <= READING_OFFSET; ++offset) {
+    const std::size_t idx =
+        relative_index(closest_wall_reading_index.value(), offset);
     wall_points[offset + READING_OFFSET] = reading_index_to_point(idx);
   }
 
   CGAL::Line_2<Kernel> fitted_line;
-  CGAL::linear_least_squares_fitting_2(
-      wall_points.begin(),
-      wall_points.end(),
-      fitted_line,
-      CGAL::Dimension_tag<0>());
+  CGAL::linear_least_squares_fitting_2(wall_points.begin(), wall_points.end(),
+                                       fitted_line, CGAL::Dimension_tag<0>());
 
-  const int before_idx = relative_index(
-      closest_wall_reading_index.value(), PREV_INDEX);
-  const int after_idx = relative_index(
-      closest_wall_reading_index.value(), NEXT_INDEX);
+  const int before_idx =
+      relative_index(closest_wall_reading_index.value(), PREV_INDEX);
+  const int after_idx =
+      relative_index(closest_wall_reading_index.value(), NEXT_INDEX);
   const Point before_point = reading_index_to_point(before_idx);
   const Point after_point = reading_index_to_point(after_idx);
   const Vector direction_hint = after_point - before_point;
 
   Vector fitted_vector = fitted_line.to_vector();
-  if (fitted_vector * direction_hint < 0)
-  {
+  if (fitted_vector * direction_hint < 0) {
     fitted_vector = -fitted_vector;
   }
 
   movement_data.current_follow_vector = fitted_vector;
 }
 
-inline Vector ExplorationBot::calculate_wall_correction_vector() const
-{
-  if (!closest_wall_reading_index)
-  {
+inline Vector ExplorationBot::calculate_wall_correction_vector() const {
+  if (!closest_wall_reading_index) {
     return Vector(0, 0);
   }
 
@@ -249,76 +209,66 @@ inline Vector ExplorationBot::calculate_wall_correction_vector() const
   return to_wall * distance_error;
 }
 
-void ExplorationBot::phase4_region_discovery()
-{
-  compute_frontier_regions(&frontier_regions,
-                           exploration_grid->get_grid(),
-                           traversal_dfs,
-                           current_frontier_region_id);
+void ExplorationBot::phase4_region_discovery() {
+  compute_frontier_regions(&frontier_regions, exploration_grid->get_grid(),
+                           traversal_dfs, current_frontier_region_id);
 
-  if (exploration_grid->get_frontier_cell_count() <= 2)
-  {
-    std::cout << "EXPLORATION: No frontier cells found. Exploration completed.\n";
+  if (exploration_grid->get_frontier_cell_count() <= 2) {
+    std::cout
+        << "EXPLORATION: No frontier cells found. Exploration completed.\n";
     exploration_phase = ExplorationPhase::Completed;
     return;
   }
 
-  while (true)
-  {
+  while (true) {
     const std::optional<vertex_t> next_region = traversal_dfs->next();
-    if (!next_region)
-    {
-      std::cout << "EXPLORATION: No frontier regions found. Exploration completed.\n";
+    if (!next_region) {
+      std::cout
+          << "EXPLORATION: No frontier regions found. Exploration completed.\n";
       exploration_phase = ExplorationPhase::Completed;
       return;
     }
 
-    if (*next_region == 0)
-    {
+    if (*next_region == 0) {
       movement_data.target_point = relative_position;
       break;
     }
 
-    if (*next_region > frontier_regions.size())
-    {
+    if (*next_region > frontier_regions.size()) {
       continue;
     }
 
-    const FrontierRegion *target_region = get_frontier_region_by_id(frontier_regions, *next_region);
+    const FrontierRegion *target_region =
+        get_frontier_region_by_id(frontier_regions, *next_region);
 
-    if (target_region->explored)
-    {
+    if (target_region->explored) {
       continue;
     }
 
     current_frontier_region_id = *next_region;
-    movement_data.target_point = target_region->get_closest_point(relative_position);
+    movement_data.target_point =
+        target_region->get_closest_point(relative_position);
     break;
   }
 
   std::cout << "EXPLORATION: Targeting frontier region "
-            << current_frontier_region_id
-            << " at position ("
+            << current_frontier_region_id << " at position ("
             << movement_data.target_point.x() << ", "
             << movement_data.target_point.y() << ").\n";
   exploration_phase = ExplorationPhase::RegionAlignment;
 }
 
-void ExplorationBot::phase5_region_alignment()
-{
+void ExplorationBot::phase5_region_alignment() {
   Vector desired_vector;
 
-  if (exploration_grid->there_is_obstacle_between(
-          relative_position, movement_data.target_point) &&
-      closest_wall_reading_index)
-  {
+  if (exploration_grid->there_is_obstacle_between(relative_position,
+                                                  movement_data.target_point) &&
+      closest_wall_reading_index) {
     const Vector wall_vector = calculate_wall_correction_vector();
-    desired_vector = movement_data.current_follow_vector *
-                         (1.0 - WALL_DISTANCE_STRENGTH) +
-                     wall_vector * WALL_DISTANCE_STRENGTH;
-  }
-  else
-  {
+    desired_vector =
+        movement_data.current_follow_vector * (1.0 - WALL_DISTANCE_STRENGTH) +
+        wall_vector * WALL_DISTANCE_STRENGTH;
+  } else {
     desired_vector = movement_data.target_point - relative_position;
   }
 
@@ -328,20 +278,17 @@ void ExplorationBot::phase5_region_alignment()
   const double distance = std::sqrt(
       CGAL::squared_distance(relative_position, movement_data.target_point));
 
-  if (distance < speed * 2)
-  {
-      std::cout << "EXPLORATION: Aligned with region "
-                << current_frontier_region_id << "\n";
+  if (distance < speed * 2) {
+    std::cout << "EXPLORATION: Aligned with region "
+              << current_frontier_region_id << "\n";
 
-      exploration_phase = ExplorationPhase::RegionExploration;
-      return;
+    exploration_phase = ExplorationPhase::RegionExploration;
+    return;
   }
 }
 
-void ExplorationBot::phase6_region_exploration()
-{
-  if (current_frontier_region_id == 0)
-  {
+void ExplorationBot::phase6_region_exploration() {
+  if (current_frontier_region_id == 0) {
     exploration_phase = ExplorationPhase::RegionDiscovery;
     return;
   }
@@ -349,19 +296,17 @@ void ExplorationBot::phase6_region_exploration()
   FrontierRegion *current_region = const_cast<FrontierRegion *>(
       get_frontier_region_by_id(frontier_regions, current_frontier_region_id));
 
-  if (current_region->explored)
-  {
-    std::cout << "EXPLORATION: Region "
-              << current_frontier_region_id
+  if (current_region->explored) {
+    std::cout << "EXPLORATION: Region " << current_frontier_region_id
               << " already explored. Moving to next region.\n";
     exploration_phase = ExplorationPhase::RegionDiscovery;
     return;
   }
 
-  auto closest_unexplored = current_region->get_closest_unexplored(relative_position);
+  auto closest_unexplored =
+      current_region->get_closest_unexplored(relative_position);
 
-  if (!closest_unexplored)
-  {
+  if (!closest_unexplored) {
     std::cout << "EXPLORATION: No unexplored cells found in region "
               << current_frontier_region_id << ". Moving to next region.\n";
     current_region->explored = true;
@@ -371,10 +316,11 @@ void ExplorationBot::phase6_region_exploration()
 
   Vector desired_vector;
 
-  if (closest_wall_reading_index)
-  {
-    Point closest_wall_point = reading_index_to_point(closest_wall_reading_index.value());
-    auto obstacle_cell = exploration_grid->get_cell_from_position(closest_wall_point);
+  if (closest_wall_reading_index) {
+    Point closest_wall_point =
+        reading_index_to_point(closest_wall_reading_index.value());
+    auto obstacle_cell =
+        exploration_grid->get_cell_from_position(closest_wall_point);
 
     if (obstacle_cell.state == CellState::Unknown) {
       exploration_phase = ExplorationPhase::WallAlignment;
@@ -387,62 +333,57 @@ void ExplorationBot::phase6_region_exploration()
   move(desired_vector);
 }
 
-void ExplorationBot::draw_follow_vector(DrawData draw_data) const
-{
-  if (!closest_wall_reading_index)
-  {
+void ExplorationBot::draw_follow_vector(DrawData draw_data) const {
+  if (!closest_wall_reading_index) {
     return;
   }
 
   const Point &pos = get_real_position();
-  const int endPosX = (pos.x() + movement_data.current_follow_vector.x()) * draw_data.scale_factor + draw_data.offset_x;
-  const int endPosY = (pos.y() + movement_data.current_follow_vector.y()) * draw_data.scale_factor + draw_data.offset_y;
+  const int endPosX = (pos.x() + movement_data.current_follow_vector.x()) *
+                          draw_data.scale_factor +
+                      draw_data.offset_x;
+  const int endPosY = (pos.y() + movement_data.current_follow_vector.y()) *
+                          draw_data.scale_factor +
+                      draw_data.offset_y;
 
   DrawLine(pos.x() * draw_data.scale_factor + draw_data.offset_x,
-           pos.y() * draw_data.scale_factor + draw_data.offset_y,
-           endPosX, endPosY,
-           GREEN);
+           pos.y() * draw_data.scale_factor + draw_data.offset_y, endPosX,
+           endPosY, GREEN);
 }
 
-void ExplorationBot::draw_target_point(DrawData draw_data) const
-{
-  if (movement_data.target_point == Point(0, 0))
-  {
+void ExplorationBot::draw_target_point(DrawData draw_data) const {
+  if (movement_data.target_point == Point(0, 0)) {
     return;
   }
 
   const Point &pos = get_real_position();
-  const Point target_screen_pos = Point(
-      pos.x() + (movement_data.target_point.x() - relative_position.x()),
-      pos.y() + (movement_data.target_point.y() - relative_position.y()));
+  const Point target_screen_pos =
+      Point(pos.x() + (movement_data.target_point.x() - relative_position.x()),
+            pos.y() + (movement_data.target_point.y() - relative_position.y()));
 
   DrawCircle(
       target_screen_pos.x() * draw_data.scale_factor + draw_data.offset_x,
       target_screen_pos.y() * draw_data.scale_factor + draw_data.offset_y,
-      DRAWN_POINT_RADIUS,
-      ORANGE);
+      DRAWN_POINT_RADIUS, ORANGE);
 }
 
 ExplorationBot::ExplorationBot(const Point &start_pos)
     : Bot(start_pos),
-      exploration_grid(std::make_shared<OccupationGrid>(start_pos))
-{
+      exploration_grid(std::make_shared<OccupationGrid>(start_pos)) {
   exploration_data.random_direction = EAST;
 
   vertex_t root = boost::add_vertex(frontier_region_graph);
   traversal_dfs = std::make_shared<StepDFS>(frontier_region_graph, root);
 }
 
-void ExplorationBot::update()
-{
+void ExplorationBot::update() {
   get_input_and_move();
   take_lidar_readings();
   create_follow_vector();
   run_exploration();
 }
 
-void ExplorationBot::draw(DrawData draw_data) const
-{
+void ExplorationBot::draw(DrawData draw_data) const {
   exploration_grid->draw(draw_data);
   // draw_path(draw_data);
   draw_readings(draw_data);
@@ -453,7 +394,6 @@ void ExplorationBot::draw(DrawData draw_data) const
   draw_position_text();
 }
 
-void ExplorationBot::grid_to_file(const std::string &filename) const
-{
+void ExplorationBot::grid_to_file(const std::string &filename) const {
   exploration_grid->save_to_file(filename);
 }

@@ -1,12 +1,11 @@
 #ifndef OCCUPATION_GRID_HPP
 #define OCCUPATION_GRID_HPP
 
-#include "Cell.hpp"
 #include "Bot.hpp"
+#include "Cell.hpp"
 #include "DrawUtils.hpp"
 
-class OccupationGrid
-{
+class OccupationGrid {
 private:
   Point origin;
   Grid2D<Cell> grid;
@@ -14,8 +13,7 @@ private:
   bool frontier_cell_was_added = false;
   std::size_t number_of_frontier_cells = 0;
 
-  bool mark_cell(Index2D index,
-                 CellState new_state);
+  bool mark_cell(Index2D index, CellState new_state);
 
   void draw_cell(Index2D index, DrawData draw_data) const;
   void draw_cell_center(Index2D index, DrawData draw_data) const;

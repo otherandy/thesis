@@ -5,24 +5,15 @@
 #include "cgal_types.hpp"
 #include <raylib-cpp.hpp>
 
-enum class CellState
-{
-  Unknown,
-  Free,
-  Occupied,
-  Visited,
-  Frontier
-};
+enum class CellState { Unknown, Free, Occupied, Visited, Frontier };
 
-const std::map<CellState, Color> CellColors = {
-    {CellState::Unknown, GRAY},
-    {CellState::Free, YELLOW},
-    {CellState::Occupied, BLACK},
-    {CellState::Visited, RED},
-    {CellState::Frontier, BLUE}};
+const std::map<CellState, Color> CellColors = {{CellState::Unknown, GRAY},
+                                               {CellState::Free, YELLOW},
+                                               {CellState::Occupied, BLACK},
+                                               {CellState::Visited, RED},
+                                               {CellState::Frontier, BLUE}};
 
-struct Cell
-{
+struct Cell {
   Point center;
   CellState state;
   std::optional<std::size_t> frontier_id;

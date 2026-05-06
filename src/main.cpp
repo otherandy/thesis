@@ -1,5 +1,5 @@
-#include "ExplorationBot.hpp"
 #include "DrawUtils.hpp"
+#include "ExplorationBot.hpp"
 #include <memory>
 
 const int WINDOW_WIDTH = 800;
@@ -7,15 +7,13 @@ const int WINDOW_HEIGHT = 600;
 const int FRAME_RATE = 60;
 const std::string WINDOW_TITLE = "Exploration Bot Simulation";
 
-int main()
-{
+int main() {
   raylib::Window window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
   window.SetTargetFPS(FRAME_RATE);
 
   auto bot = std::make_unique<ExplorationBot>(START_POSITION);
 
-  while (!window.ShouldClose())
-  {
+  while (!window.ShouldClose()) {
     bot->update();
 
     window.BeginDrawing();
