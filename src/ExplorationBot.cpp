@@ -210,7 +210,7 @@ inline Vector ExplorationBot::calculate_wall_correction_vector() const {
 }
 
 void ExplorationBot::phase4_region_discovery() {
-  compute_frontier_regions(&frontier_regions, exploration_grid->get_grid(),
+  compute_frontier_regions(frontier_regions, exploration_grid->get_grid(),
                            traversal_dfs, current_frontier_region_id);
 
   if (exploration_grid->get_frontier_cell_count() <= 2) {
@@ -238,7 +238,7 @@ void ExplorationBot::phase4_region_discovery() {
       continue;
     }
 
-    const FrontierRegion *target_region =
+    auto target_region =
         get_frontier_region_by_id(frontier_regions, *next_region);
 
     if (target_region->explored) {
@@ -293,8 +293,8 @@ void ExplorationBot::phase6_region_exploration() {
     return;
   }
 
-  FrontierRegion *current_region = const_cast<FrontierRegion *>(
-      get_frontier_region_by_id(frontier_regions, current_frontier_region_id));
+  auto current_region =
+      get_frontier_region_by_id(frontier_regions, current_frontier_region_id);
 
   if (current_region->explored) {
     std::cout << "EXPLORATION: Region " << current_frontier_region_id

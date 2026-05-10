@@ -19,11 +19,10 @@ struct FrontierRegion {
   std::optional<Point> get_closest_unexplored(const Point &pos) const;
 };
 
-const FrontierRegion *
-get_frontier_region_by_id(const std::vector<FrontierRegion> &regions,
-                          std::size_t id);
+FrontierRegion *get_frontier_region_by_id(std::vector<FrontierRegion> &regions,
+                                          std::size_t id);
 
-void compute_frontier_regions(std::vector<FrontierRegion> *frontier_regions,
+void compute_frontier_regions(std::vector<FrontierRegion> &frontier_regions,
                               Grid2D<Cell> &grid,
                               std::shared_ptr<StepTraversal> traversal_graph,
                               std::size_t current_parent_region_id);

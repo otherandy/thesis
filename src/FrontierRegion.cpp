@@ -1,13 +1,14 @@
 #include "FrontierRegion.hpp"
 #include <algorithm>
 #include <queue>
+#include <unordered_set>
+#include <vector>
 
-const FrontierRegion *
-get_frontier_region_by_id(const std::vector<FrontierRegion> &regions,
-                          std::size_t id) {
-  auto it = std::find_if(
-      regions.begin(), regions.end(),
-      [id](const FrontierRegion &region) { return region.id == id; });
+FrontierRegion *get_frontier_region_by_id(std::vector<FrontierRegion> &regions,
+                                          std::size_t id) {
+  auto it =
+      std::find_if(regions.begin(), regions.end(),
+                   [id](FrontierRegion &region) { return region.id == id; });
 
   if (it != regions.end()) {
     return &(*it);
@@ -57,29 +58,57 @@ FrontierRegion::get_closest_unexplored(const Point &pos) const {
   }
 }
 
-void compute_frontier_regions(std::vector<FrontierRegion> *frontier_regions,
+void compute_frontier_regions(std::vector<FrontierRegion> &frontier_regions,
                               Grid2D<Cell> &grid,
                               std::shared_ptr<StepTraversal> traversal_graph,
                               std::size_t current_parent_region_id) {
+  for (FrontierRegion &region : frontier_regions) {
+    if (region.explored) {
+      continue;
+    }
+
+    region.cells.erase(std::remove_if(region.cells.begin(), region.cells.end(),
+                                      [](Cell *cell) {
+                                        if (cell->state !=
+                                            CellState::Frontier) {
+                                          cell->frontier_id = std::nullopt;
+                                          return true;
+                                        }
+                                        return false;
+                                      }),
+                       region.cells.end());
+  }
+
+  std::unordered_set<Cell *> visited;
+
   for (int y = 0; y < MAP_HEIGHT; ++y) {
     for (int x = 0; x < MAP_WIDTH; ++x) {
       Cell &cell = grid[y][x];
 
-      if (cell.state != CellState::Frontier || cell.frontier_id) {
+      if (visited.count(&cell)) {
         continue;
       }
 
-      FrontierRegion new_region;
+      if (cell.state != CellState::Frontier) {
+        continue;
+      }
+
+      if (cell.frontier_id.has_value()) {
+        continue;
+      }
+
+      std::vector<Cell *> region_cells;
+      std::optional<std::size_t> found_id;
 
       std::queue<Cell *> to_visit;
       to_visit.push(&cell);
-      cell.frontier_id = new_region.id;
+      visited.insert(&cell);
 
       while (!to_visit.empty()) {
         Cell *current_cell = to_visit.front();
         to_visit.pop();
 
-        new_region.cells.push_back(current_cell);
+        region_cells.push_back(current_cell);
 
         auto neighbors = current_cell->get_neighbors();
 
@@ -87,24 +116,34 @@ void compute_frontier_regions(std::vector<FrontierRegion> *frontier_regions,
           Cell &neighbor = grid[neighbor_cell.first][neighbor_cell.second];
 
           if (neighbor.state == CellState::Frontier &&
-              neighbor.frontier_id == std::nullopt) {
-            neighbor.frontier_id = new_region.id;
-            to_visit.push(&neighbor);
+              !visited.count(&neighbor)) {
+            if (!neighbor.frontier_id.has_value()) {
+              to_visit.push(&neighbor);
+              visited.insert(&neighbor);
+            } else {
+              found_id = neighbor.frontier_id.value();
+            }
           }
         }
       }
 
-      if (new_region.cells.size() <= 2) {
-        for (Cell *cell : new_region.cells) {
-          cell->frontier_id = std::nullopt;
-          cell->state = CellState::Unknown;
+      if (found_id.has_value()) {
+        auto region =
+            get_frontier_region_by_id(frontier_regions, found_id.value());
+        for (Cell *region_cell : region_cells) {
+          region_cell->frontier_id = found_id;
+          region->cells.push_back(region_cell);
         }
-        continue;
+      } else {
+        FrontierRegion new_region;
+        new_region.cells = std::move(region_cells);
+        new_region.id =
+            traversal_graph->add_vertex_and_edge(current_parent_region_id);
+        for (Cell *region_cell : new_region.cells) {
+          region_cell->frontier_id = new_region.id;
+        }
+        frontier_regions.push_back(new_region);
       }
-
-      new_region.id =
-          traversal_graph->add_vertex_and_edge(current_parent_region_id);
-      frontier_regions->push_back(new_region);
     }
   }
 
