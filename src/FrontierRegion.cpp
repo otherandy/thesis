@@ -67,16 +67,28 @@ void compute_frontier_regions(std::vector<FrontierRegion> &frontier_regions,
       continue;
     }
 
+    auto is_still_frontier = [](Cell *cell) {
+      if (cell->state != CellState::Frontier) {
+        cell->frontier_id = std::nullopt;
+        return true;
+      }
+      return false;
+    };
+
     region.cells.erase(std::remove_if(region.cells.begin(), region.cells.end(),
-                                      [](Cell *cell) {
-                                        if (cell->state !=
-                                            CellState::Frontier) {
-                                          cell->frontier_id = std::nullopt;
-                                          return true;
-                                        }
-                                        return false;
-                                      }),
+                                      is_still_frontier),
                        region.cells.end());
+
+    if (region.id == current_parent_region_id) {
+      for (Cell *cell : region.cells) {
+        cell->frontier_id = std::nullopt;
+      }
+      region.cells.clear();
+    }
+
+    if (region.cells.empty()) {
+      region.explored = true;
+    }
   }
 
   std::unordered_set<Cell *> visited;
