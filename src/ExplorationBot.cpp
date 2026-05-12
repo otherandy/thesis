@@ -131,6 +131,7 @@ void ExplorationBot::phase2_wall_alignment() {
 
   if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
     exploration_data.first_wall_point = relative_position;
+    exploration_data.left_wall_point = false;
     std::cout << "EXPLORATION: Aligned with wall at position ("
               << relative_position.x() << ", " << relative_position.y()
               << ")\n";
@@ -157,10 +158,13 @@ void ExplorationBot::phase3_wall_following() {
   const double distance = std::sqrt(CGAL::squared_distance(
       relative_position, exploration_data.first_wall_point));
 
-  if (!exploration_grid->was_frontier_cell_added() && distance < speed * 2) {
+  if (!exploration_grid->was_frontier_cell_added() && distance < speed * 2 &&
+      exploration_data.left_wall_point) {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
     exploration_phase = ExplorationPhase::RegionDiscovery;
+  } else if (distance >= speed * 2) {
+    exploration_data.left_wall_point = true;
   }
 }
 

@@ -30,6 +30,7 @@ struct ExplorationData {
   Vector random_direction;
   Point start_point;
   Point first_wall_point;
+  bool left_wall_point;
 };
 
 struct MovementData {
