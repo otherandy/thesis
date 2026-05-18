@@ -70,8 +70,7 @@ enum class EnvironmentPreset {
 };
 
 // Change this single line to switch the environment before compiling.
-constexpr EnvironmentPreset SELECTED_ENVIRONMENT =
-    EnvironmentPreset::Polygon2WithHoles;
+constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Custom;
 
 struct SelectedEnvironmentData {
   const EnvData *outer_data;

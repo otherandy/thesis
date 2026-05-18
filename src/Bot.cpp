@@ -101,8 +101,7 @@ void Bot::draw_readings(DrawData draw_data) const {
         pos_y + r.distance * draw_data.scale_factor * sin(r.angle);
 
     if (i == closest_wall_reading_index) {
-      DrawLine(pos_x, pos_y, end_x, end_y, RED);
-      DrawCircle(end_x, end_y, DRAWN_POINT_RADIUS, RED);
+      DrawLineEx({pos_x, pos_y}, {end_x, end_y}, 5.0, RED);
     } else {
       DrawLine(pos_x, pos_y, end_x, end_y, GRAY);
     }

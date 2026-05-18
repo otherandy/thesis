@@ -11,7 +11,7 @@
 
 const double DESIRED_WALL_DISTANCE = 0.2;
 const double WALL_DISTANCE_STRENGTH = 0.9;
-constexpr double READING_ANGLE_SPAN = 0.015;
+constexpr double READING_ANGLE_SPAN = 0.02;
 constexpr int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
 constexpr std::size_t WALL_POINT_COUNT = 2 * READING_OFFSET + 1;
 
@@ -30,12 +30,9 @@ struct ExplorationData {
   Vector random_direction;
   Point start_point;
   Point first_wall_point;
-  bool left_wall_point;
-};
-
-struct MovementData {
-  Vector current_follow_vector;
   Point target_point;
+  std::size_t last_closest_reading;
+  bool left_wall_point;
 };
 
 class ExplorationBot : public Bot {
@@ -45,7 +42,6 @@ private:
   std::shared_ptr<OccupationGrid> exploration_grid;
 
   ExplorationData exploration_data;
-  MovementData movement_data;
 
   Graph frontier_region_graph;
   std::shared_ptr<StepDFS> traversal_dfs;
@@ -61,13 +57,11 @@ private:
   void run_exploration();
   void phase1_wall_discovery();
   void phase2_wall_alignment();
+  Vector compute_wall_following_vector();
   void phase3_wall_following();
-  void create_follow_vector();
-  inline Vector calculate_wall_correction_vector() const;
   void phase4_region_discovery();
   void phase5_region_alignment();
   void phase6_region_exploration();
-  void draw_follow_vector(DrawData draw_data) const;
   void draw_target_point(DrawData draw_data) const;
 
 public:
