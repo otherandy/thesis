@@ -9,11 +9,8 @@
 #define NEXT_INDEX 1
 #define PREV_INDEX -1
 
-const double DESIRED_WALL_DISTANCE = 0.2;
+const double DESIRED_WALL_DISTANCE = SPEED * 2;
 const double WALL_DISTANCE_STRENGTH = 0.9;
-constexpr double READING_ANGLE_SPAN = 0.02;
-constexpr int READING_OFFSET = (MAX_LIDAR_SAMPLES * READING_ANGLE_SPAN) / 2 - 1;
-constexpr std::size_t WALL_POINT_COUNT = 2 * READING_OFFSET + 1;
 
 enum class ExplorationPhase {
   Idle,
@@ -27,12 +24,12 @@ enum class ExplorationPhase {
 };
 
 struct ExplorationData {
-  Vector random_direction;
+  Vector direction;
   Point start_point;
-  Point first_wall_point;
+  Point contact_point;
+  bool left_contact_point;
   Point target_point;
   std::size_t last_closest_reading;
-  bool left_wall_point;
 };
 
 class ExplorationBot : public Bot {
@@ -53,7 +50,7 @@ private:
 
   void get_input_and_move();
   void reset();
-  void move(const Vector &dir);
+  Vector move(const Vector &dir);
   void run_exploration();
   void phase1_wall_discovery();
   void phase2_wall_alignment();

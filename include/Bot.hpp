@@ -16,6 +16,8 @@ const double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
 const float DRAWN_BODY_RADIUS = 5.0;
 const float DRAWN_POINT_RADIUS = 3.0;
 
+const double SPEED = 0.1;
+
 struct Reading {
   double angle;
   double distance;
@@ -31,7 +33,6 @@ protected:
   std::optional<std::size_t> closest_wall_reading_index = std::nullopt;
 
   bool draw_as_hud = true;
-  double speed = 0.1;
 
   void reset();
   Point reading_index_to_point(std::size_t index) const;

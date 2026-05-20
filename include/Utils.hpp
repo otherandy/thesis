@@ -19,8 +19,13 @@ inline Point point_at_reading(const Point &origin, const Reading &r) {
 }
 
 inline Vector normalize_vector(const Vector &v) {
-  double length = std::sqrt(v.squared_length());
-  return Vector(v.x() / length, v.y() / length);
+  const double len2 = v.squared_length();
+  if (len2 <= 1e-12) {
+    return Vector(0, 0);
+  }
+
+  const double inv_len = 1.0 / std::sqrt(len2);
+  return Vector(v.x() * inv_len, v.y() * inv_len);
 }
 
 inline void ensure_parent_dir_exists(const std::string &filename) {

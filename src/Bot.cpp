@@ -16,7 +16,7 @@ Point Bot::reading_index_to_point(std::size_t index) const {
 
 // Returns delta applied to position
 Vector Bot::move(const Vector &dir) {
-  Vector delta = normalize_vector(dir) * speed;
+  Vector delta = normalize_vector(dir) * SPEED;
   Point new_position = real_position + delta;
 
   if (!point_in_environment(new_position)) {

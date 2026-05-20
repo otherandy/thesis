@@ -1,12 +1,8 @@
 #include "ExplorationBot.hpp"
 #include "Bot.hpp"
 #include "Utils.hpp"
+#include "cgal_types.hpp"
 #include <CGAL/linear_least_squares_fitting_2.h>
-
-const Vector NORTH(0, -1);
-const Vector SOUTH(0, 1);
-const Vector EAST(1, 0);
-const Vector WEST(-1, 0);
 
 void ExplorationBot::get_input_and_move() {
   if (IsKeyPressed(KEY_L)) {
@@ -33,16 +29,16 @@ void ExplorationBot::get_input_and_move() {
   }
 
   if (IsKeyDown(KEY_UP)) {
-    move(NORTH);
+    move(Vector(0, -1));
   }
   if (IsKeyDown(KEY_DOWN)) {
-    move(SOUTH);
+    move(Vector(0, 1));
   }
   if (IsKeyDown(KEY_LEFT)) {
-    move(WEST);
+    move(Vector(-1, 0));
   }
   if (IsKeyDown(KEY_RIGHT)) {
-    move(EAST);
+    move(Vector(1, 0));
   }
 }
 
@@ -52,7 +48,7 @@ void ExplorationBot::reset() {
   exploration_grid = std::make_shared<OccupationGrid>(START_POSITION);
 
   exploration_data = ExplorationData{};
-  exploration_data.random_direction = get_random_heading();
+  exploration_data.direction = get_random_heading();
 
   current_frontier_region_id = 0;
   is_paused = false;
@@ -65,12 +61,15 @@ void ExplorationBot::reset() {
   Bot::reset();
 }
 
-void ExplorationBot::move(const Vector &dir) {
-  relative_position = relative_position + Bot::move(dir);
+Vector ExplorationBot::move(const Vector &dir) {
+  const Vector delta = Bot::move(dir);
+  relative_position = relative_position + delta;
 
   if (exploration_phase != ExplorationPhase::Idle) {
     Bot::update_visited_positions();
   }
+
+  return delta;
 }
 
 void ExplorationBot::run_exploration() {
@@ -119,7 +118,7 @@ void ExplorationBot::phase1_wall_discovery() {
   }
 
   exploration_grid->mark_cells(relative_position, current_readings);
-  move(exploration_data.random_direction);
+  move(exploration_data.direction);
 }
 
 void ExplorationBot::phase2_wall_alignment() {
@@ -128,8 +127,13 @@ void ExplorationBot::phase2_wall_alignment() {
 
   if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
     exploration_data.last_closest_reading = closest_wall_reading_index.value();
-    exploration_data.first_wall_point = relative_position;
-    exploration_data.left_wall_point = false;
+    exploration_data.contact_point = relative_position;
+    exploration_data.left_contact_point = false;
+
+    const Vector to_wall =
+        Vector(cos(closest_reading.angle), sin(closest_reading.angle));
+    exploration_data.direction = Vector(-to_wall.y(), to_wall.x());
+
     exploration_phase = ExplorationPhase::WallFollowing;
     return;
   }
@@ -142,53 +146,127 @@ void ExplorationBot::phase2_wall_alignment() {
 }
 
 Vector ExplorationBot::compute_wall_following_vector() {
-  std::size_t reference_reading_index;
+  constexpr bool FOLLOW_RIGHT_WALL = true;
 
-  const int difference = closest_wall_reading_index.value() -
-                         exploration_data.last_closest_reading;
+  auto cross_z = [&](const Vector &a, const Vector &b) -> double {
+    return a.x() * b.y() - a.y() * b.x();
+  };
 
-  if (difference % MAX_LIDAR_SAMPLES > MAX_LIDAR_SAMPLES / 2) {
-    reference_reading_index = exploration_data.last_closest_reading;
-  } else {
-    reference_reading_index = closest_wall_reading_index.value();
-    exploration_data.last_closest_reading = closest_wall_reading_index.value();
-  }
+  auto safe_unit = [&](const Vector &v, const Vector &fallback) -> Vector {
+    const double len2 = v.squared_length();
+    if (len2 <= 1e-12) {
+      return fallback;
+    }
+    const double inv_len = 1.0 / std::sqrt(len2);
+    return Vector(v.x() * inv_len, v.y() * inv_len);
+  };
 
-  std::array<Point, WALL_POINT_COUNT> wall_points;
+  auto is_wall_hit = [&](std::size_t idx) {
+    return current_readings[idx].distance < LIDAR_RADIUS;
+  };
 
-  for (int offset = -READING_OFFSET; offset <= READING_OFFSET; ++offset) {
-    const std::size_t idx = relative_index(reference_reading_index, offset);
+  const Vector heading_unit =
+      safe_unit(exploration_data.direction, Vector(1, 0));
 
-    if (current_readings[idx].distance >= LIDAR_RADIUS) {
-      wall_points[offset + READING_OFFSET] =
-          reading_index_to_point(reference_reading_index);
-    } else {
-      wall_points[offset + READING_OFFSET] = reading_index_to_point(idx);
+  std::optional<std::size_t> side_ref = std::nullopt;
+  double best_dist = std::numeric_limits<double>::infinity();
+
+  for (std::size_t i = 0; i < MAX_LIDAR_SAMPLES; ++i) {
+    const Reading &r = current_readings[i];
+    if (r.distance >= LIDAR_RADIUS) {
+      continue;
+    }
+
+    const Vector to_hit(cos(r.angle), sin(r.angle));
+    const double side = cross_z(heading_unit, to_hit);
+
+    const bool on_right = (side < 0.0);
+    const bool on_left = (side > 0.0);
+    const bool keep = FOLLOW_RIGHT_WALL ? on_right : on_left;
+
+    if (!keep) {
+      continue;
+    }
+
+    if (r.distance < best_dist) {
+      best_dist = r.distance;
+      side_ref = i;
     }
   }
 
-  CGAL::Line_2<Kernel> fitted_line;
-  CGAL::linear_least_squares_fitting_2(wall_points.begin(), wall_points.end(),
-                                       fitted_line, CGAL::Dimension_tag<0>());
-
-  const int before_idx = relative_index(reference_reading_index, PREV_INDEX);
-  const int after_idx = relative_index(reference_reading_index, NEXT_INDEX);
-  const Point before_point = reading_index_to_point(before_idx);
-  const Point after_point = reading_index_to_point(after_idx);
-  const Vector direction_hint = after_point - before_point;
-
-  Vector fitted_vector = fitted_line.to_vector();
-  if (fitted_vector * direction_hint < 0) {
-    fitted_vector = -fitted_vector;
+  std::size_t ref;
+  if (side_ref) {
+    ref = *side_ref;
+  } else if (closest_wall_reading_index) {
+    ref = closest_wall_reading_index.value();
+  } else {
+    return exploration_data.direction;
   }
 
-  const Reading &r = current_readings[reference_reading_index];
-  const double distance_error = r.distance - DESIRED_WALL_DISTANCE;
-  const Vector to_wall = Vector(cos(r.angle), sin(r.angle));
+  exploration_data.last_closest_reading = ref;
 
-  const Vector desired_vector =
-      fitted_vector * (1.0 - WALL_DISTANCE_STRENGTH) +
-      to_wall * distance_error * WALL_DISTANCE_STRENGTH;
+  std::vector<Point> prev_points;
+  std::vector<Point> wall_points;
+  wall_points.reserve(64);
+
+  {
+    std::size_t idx = ref;
+    for (std::size_t steps = 0; steps < MAX_LIDAR_SAMPLES; ++steps) {
+      idx = relative_index(idx, PREV_INDEX);
+      if (idx == ref || !is_wall_hit(idx)) {
+        break;
+      }
+      prev_points.push_back(reading_index_to_point(idx));
+    }
+  }
+
+  for (std::size_t i = prev_points.size(); i-- > 0;) {
+    wall_points.push_back(prev_points[i]);
+  }
+  wall_points.push_back(reading_index_to_point(ref));
+
+  {
+    std::size_t idx = ref;
+    for (std::size_t steps = 0; steps < MAX_LIDAR_SAMPLES; ++steps) {
+      idx = relative_index(idx, NEXT_INDEX);
+      if (idx == ref || !is_wall_hit(idx)) {
+        break;
+      }
+      wall_points.push_back(reading_index_to_point(idx));
+    }
+  }
+
+  const Reading &ref_r = current_readings[ref];
+  const Vector to_wall(cos(ref_r.angle), sin(ref_r.angle));
+
+  Vector forward;
+  if (wall_points.size() < 2) {
+    forward = Vector(-to_wall.y(), to_wall.x());
+    if ((forward * heading_unit) < 0) {
+      forward = -forward;
+    }
+  } else {
+    CGAL::Line_2<Kernel> fitted_line;
+    CGAL::linear_least_squares_fitting_2(wall_points.begin(), wall_points.end(),
+                                         fitted_line, CGAL::Dimension_tag<0>());
+
+    forward = fitted_line.to_vector();
+
+    if ((forward * heading_unit) < 0) {
+      forward = -forward;
+    }
+  }
+
+  double distance_error = ref_r.distance - DESIRED_WALL_DISTANCE;
+  const double max_error = DESIRED_WALL_DISTANCE;
+  if (distance_error > max_error)
+    distance_error = max_error;
+  if (distance_error < -max_error)
+    distance_error = -max_error;
+
+  const Vector desired_vector = forward + to_wall * distance_error;
+
+  exploration_data.direction = forward;
 
   return desired_vector;
 }
@@ -197,18 +275,22 @@ void ExplorationBot::phase3_wall_following() {
   Vector desired_vector = compute_wall_following_vector();
 
   exploration_grid->mark_cells(relative_position, current_readings);
-  move(desired_vector);
+  const Vector delta = move(desired_vector);
+  if (delta.squared_length() <= 1e-12) {
+    exploration_data.direction = -exploration_data.direction;
+    return;
+  }
 
   const double distance = std::sqrt(CGAL::squared_distance(
-      relative_position, exploration_data.first_wall_point));
+      relative_position, exploration_data.contact_point));
 
-  if (!exploration_grid->was_frontier_cell_added() && distance < speed * 2 &&
-      exploration_data.left_wall_point) {
+  if (!exploration_grid->was_frontier_cell_added() && distance < SPEED * 2 &&
+      exploration_data.left_contact_point) {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
     exploration_phase = ExplorationPhase::RegionDiscovery;
-  } else if (distance >= speed * 2) {
-    exploration_data.left_wall_point = true;
+  } else if (distance >= SPEED * 2) {
+    exploration_data.left_contact_point = true;
   }
 }
 
@@ -271,12 +353,16 @@ void ExplorationBot::phase5_region_alignment() {
   }
 
   exploration_grid->mark_cells(relative_position, current_readings);
-  move(desired_vector);
+  const Vector delta = move(desired_vector);
+  if (delta.squared_length() <= 1e-12) {
+    exploration_phase = ExplorationPhase::WallAlignment;
+    return;
+  }
 
   const double distance = std::sqrt(
       CGAL::squared_distance(relative_position, exploration_data.target_point));
 
-  if (distance < speed * 2) {
+  if (distance < SPEED * 2) {
     exploration_phase = ExplorationPhase::RegionExploration;
     return;
   }
@@ -323,7 +409,11 @@ void ExplorationBot::phase6_region_exploration() {
 
   desired_vector = closest_unexplored.value() - relative_position;
   exploration_grid->mark_cells(relative_position, current_readings);
-  move(desired_vector);
+  const Vector delta = move(desired_vector);
+  if (delta.squared_length() <= 1e-12) {
+    exploration_phase = ExplorationPhase::WallAlignment;
+    return;
+  }
 }
 
 void ExplorationBot::draw_target_point(DrawData draw_data) const {
@@ -345,7 +435,7 @@ void ExplorationBot::draw_target_point(DrawData draw_data) const {
 ExplorationBot::ExplorationBot(const Point &start_pos)
     : Bot(start_pos),
       exploration_grid(std::make_shared<OccupationGrid>(start_pos)) {
-  exploration_data.random_direction = EAST;
+  exploration_data.direction = Vector(1, 0);
 
   vertex_t root = boost::add_vertex(frontier_region_graph);
   traversal_dfs = std::make_shared<StepDFS>(frontier_region_graph, root);
