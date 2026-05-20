@@ -168,25 +168,84 @@ Cell &OccupationGrid::get_cell_from_position(const Point &position) {
 
 bool OccupationGrid::there_is_obstacle_between(const Point &from,
                                                const Point &to) const {
-  const double distance = std::sqrt(CGAL::squared_distance(from, to));
+  const double dist2 = CGAL::squared_distance(from, to);
 
-  const double sample_step = CELL_SIZE / 2.0;
-  const double step_x = (to.x() - from.x()) / distance * sample_step;
-  const double step_y = (to.y() - from.y()) / distance * sample_step;
+  if (dist2 <= 1e-12) {
+    const Index2D idx = get_cell_index_from(from.x(), from.y());
+    return grid[idx.first][idx.second].state == CellState::Occupied;
+  }
 
-  double curr_x = from.x();
-  double curr_y = from.y();
+  const double gx0 = (from.x() + ENV_WIDTH) * INV_CELL_SIZE;
+  const double gy0 = (from.y() + ENV_HEIGHT) * INV_CELL_SIZE;
+  const double gx1 = (to.x() + ENV_WIDTH) * INV_CELL_SIZE;
+  const double gy1 = (to.y() + ENV_HEIGHT) * INV_CELL_SIZE;
 
-  for (double traveled = 0; traveled <= distance; traveled += sample_step) {
-    const Index2D cell_index = get_cell_index_from(curr_x, curr_y);
-    const Cell &cell = grid[cell_index.first][cell_index.second];
+  const double dx = gx1 - gx0;
+  const double dy = gy1 - gy0;
 
-    if (cell.state == CellState::Occupied) {
+  const Index2D start = get_cell_index_from(from.x(), from.y());
+  const Index2D goal = get_cell_index_from(to.x(), to.y());
+
+  int x = static_cast<int>(start.second);
+  int y = static_cast<int>(start.first);
+  const int end_x = static_cast<int>(goal.second);
+  const int end_y = static_cast<int>(goal.first);
+
+  auto in_bounds = [](int yy, int xx) {
+    return (yy >= 0 && xx >= 0 && yy < static_cast<int>(MAP_HEIGHT) &&
+            xx < static_cast<int>(MAP_WIDTH));
+  };
+
+  auto is_occupied = [&](int yy, int xx) {
+    if (!in_bounds(yy, xx)) {
+      return true;
+    }
+    return grid[yy][xx].state == CellState::Occupied;
+  };
+
+  const int step_x = (dx > 0) ? 1 : (dx < 0) ? -1 : 0;
+  const int step_y = (dy > 0) ? 1 : (dy < 0) ? -1 : 0;
+
+  const double inf = std::numeric_limits<double>::infinity();
+  const double t_delta_x = (step_x != 0) ? (1.0 / std::abs(dx)) : inf;
+  const double t_delta_y = (step_y != 0) ? (1.0 / std::abs(dy)) : inf;
+
+  // tMax = "t" until the first grid boundary crossing on each axis.
+  double t_max_x = inf;
+  if (step_x != 0) {
+    const double next_vert_grid =
+        (step_x > 0) ? (std::floor(gx0) + 1.0) : std::floor(gx0);
+    t_max_x = (next_vert_grid - gx0) / dx; // positive
+  }
+
+  double t_max_y = inf;
+  if (step_y != 0) {
+    const double next_horiz_grid =
+        (step_y > 0) ? (std::floor(gy0) + 1.0) : std::floor(gy0);
+    t_max_y = (next_horiz_grid - gy0) / dy; // positive
+  }
+
+  while (true) {
+    if (is_occupied(y, x)) {
       return true;
     }
 
-    curr_x += step_x;
-    curr_y += step_y;
+    if (x == end_x && y == end_y) {
+      break;
+    }
+
+    if (std::abs(t_max_x - t_max_y) < 1e-12) {
+      x += step_x;
+      y += step_y;
+      t_max_x += t_delta_x;
+      t_max_y += t_delta_y;
+    } else if (t_max_x < t_max_y) {
+      x += step_x;
+      t_max_x += t_delta_x;
+    } else {
+      y += step_y;
+      t_max_y += t_delta_y;
+    }
   }
 
   return false;

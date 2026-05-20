@@ -344,20 +344,16 @@ void ExplorationBot::phase4_region_discovery() {
 void ExplorationBot::phase5_region_alignment() {
   Vector desired_vector;
 
-  if (exploration_grid->there_is_obstacle_between(
-          relative_position, exploration_data.target_point) &&
-      closest_wall_reading_index) {
+  if (closest_wall_reading_index &&
+      exploration_grid->there_is_obstacle_between(
+          relative_position, exploration_data.target_point)) {
     desired_vector = compute_wall_following_vector();
   } else {
     desired_vector = exploration_data.target_point - relative_position;
   }
 
   exploration_grid->mark_cells(relative_position, current_readings);
-  const Vector delta = move(desired_vector);
-  if (delta.squared_length() <= 1e-12) {
-    exploration_phase = ExplorationPhase::WallAlignment;
-    return;
-  }
+  move(desired_vector);
 
   const double distance = std::sqrt(
       CGAL::squared_distance(relative_position, exploration_data.target_point));
@@ -409,11 +405,7 @@ void ExplorationBot::phase6_region_exploration() {
 
   desired_vector = closest_unexplored.value() - relative_position;
   exploration_grid->mark_cells(relative_position, current_readings);
-  const Vector delta = move(desired_vector);
-  if (delta.squared_length() <= 1e-12) {
-    exploration_phase = ExplorationPhase::WallAlignment;
-    return;
-  }
+  move(desired_vector);
 }
 
 void ExplorationBot::draw_target_point(DrawData draw_data) const {
