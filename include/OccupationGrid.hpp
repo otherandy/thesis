@@ -7,7 +7,7 @@
 
 class OccupationGrid {
 private:
-  Point origin;
+  const Point origin = environment_center();
   Grid2D<Cell> grid;
 
   bool frontier_cell_was_added = false;
@@ -19,7 +19,7 @@ private:
   void draw_cell_center(Index2D index, DrawData draw_data) const;
 
 public:
-  OccupationGrid(Point origin);
+  OccupationGrid();
 
   Grid2D<Cell> &get_grid() { return grid; }
 

@@ -4,8 +4,6 @@
 #include "DrawUtils.hpp"
 #include "cgal_types.hpp"
 #include <array>
-#include <string>
-#include <vector>
 
 constexpr std::size_t MAX_LIDAR_SAMPLES = 360;
 
@@ -26,17 +24,13 @@ struct Reading {
 class Bot {
 private:
   Point real_position;
-  std::vector<Point> real_visited_positions;
 
 protected:
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
   std::optional<std::size_t> closest_wall_reading_index = std::nullopt;
 
-  bool draw_as_hud = true;
-
   void reset();
   Point reading_index_to_point(std::size_t index) const;
-  Vector move(const Vector &dir);
 
   Point get_real_position() const { return real_position; }
   void update_visited_positions();
@@ -45,12 +39,11 @@ protected:
   void draw_body(DrawData draw_data) const;
   void draw_lidar(DrawData draw_data) const;
   void draw_readings(DrawData draw_data) const;
-  void draw_path(DrawData draw_data) const;
   void draw_position_text() const;
 
 public:
   Bot(const Point &start_pos);
-  void visited_to_file(const std::string &filename) const;
+  Vector move(const Vector &dir);
 };
 
 #endif

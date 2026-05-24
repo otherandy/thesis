@@ -22,10 +22,10 @@ struct FrontierRegion {
 FrontierRegion *get_frontier_region_by_id(std::vector<FrontierRegion> &regions,
                                           std::size_t id);
 
-void compute_frontier_regions(std::vector<FrontierRegion> &frontier_regions,
-                              Grid2D<Cell> &grid,
+void compute_frontier_regions(Grid2D<Cell> &grid,
                               std::shared_ptr<StepTraversal> traversal_graph,
-                              std::size_t current_parent_region_id);
+                              std::vector<FrontierRegion> &frontier_regions,
+                              std::size_t &current_parent_region_id);
 
 std::size_t
 get_nearest_frontier_region_id(const std::vector<FrontierRegion> &regions,

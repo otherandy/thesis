@@ -58,10 +58,10 @@ FrontierRegion::get_closest_unexplored(const Point &pos) const {
   }
 }
 
-void compute_frontier_regions(std::vector<FrontierRegion> &frontier_regions,
-                              Grid2D<Cell> &grid,
+void compute_frontier_regions(Grid2D<Cell> &grid,
                               std::shared_ptr<StepTraversal> traversal_graph,
-                              std::size_t current_parent_region_id) {
+                              std::vector<FrontierRegion> &frontier_regions,
+                              std::size_t &current_parent_region_id) {
   for (FrontierRegion &region : frontier_regions) {
     if (region.explored) {
       continue;

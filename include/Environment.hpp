@@ -159,10 +159,18 @@ constexpr auto get_bounds(const EnvData *data, std::size_t size) {
 constexpr auto POLYGON_BOUNDS =
     get_bounds(SELECTED_ENV_DATA.outer_data, SELECTED_ENV_DATA.outer_size);
 
-constexpr double ENV_WIDTH =
-    std::get<1>(POLYGON_BOUNDS) - std::get<0>(POLYGON_BOUNDS);
-constexpr double ENV_HEIGHT =
-    std::get<3>(POLYGON_BOUNDS) - std::get<2>(POLYGON_BOUNDS);
+constexpr double ENV_MIN_X = std::get<0>(POLYGON_BOUNDS);
+constexpr double ENV_MAX_X = std::get<1>(POLYGON_BOUNDS);
+constexpr double ENV_MIN_Y = std::get<2>(POLYGON_BOUNDS);
+constexpr double ENV_MAX_Y = std::get<3>(POLYGON_BOUNDS);
+
+constexpr double ENV_WIDTH = ENV_MAX_X - ENV_MIN_X;
+constexpr double ENV_HEIGHT = ENV_MAX_Y - ENV_MIN_Y;
+
+constexpr double ENV_CENTER_X = (ENV_MIN_X + ENV_MAX_X) * 0.5;
+constexpr double ENV_CENTER_Y = (ENV_MIN_Y + ENV_MAX_Y) * 0.5;
+
+inline Point environment_center() { return Point(ENV_CENTER_X, ENV_CENTER_Y); }
 
 inline const PolygonWithHoles &get_environment() {
   static PolygonWithHoles env;

@@ -4,7 +4,6 @@
 
 void Bot::reset() {
   real_position = START_POSITION;
-  real_visited_positions.clear();
   current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
   closest_wall_reading_index = std::nullopt;
 }
@@ -25,10 +24,6 @@ Vector Bot::move(const Vector &dir) {
 
   real_position = new_position;
   return delta;
-}
-
-void Bot::update_visited_positions() {
-  real_visited_positions.push_back(real_position);
 }
 
 void Bot::take_lidar_readings() {
@@ -85,13 +80,8 @@ void Bot::draw_readings(DrawData draw_data) const {
   float pos_x;
   float pos_y;
 
-  if (draw_as_hud) {
-    pos_x = LIDAR_RADIUS * draw_data.scale_factor + WINDOW_PADDING;
-    pos_y = LIDAR_RADIUS * draw_data.scale_factor + WINDOW_PADDING;
-  } else {
-    pos_x = real_position.x() * draw_data.scale_factor + draw_data.offset_x;
-    pos_y = real_position.y() * draw_data.scale_factor + draw_data.offset_y;
-  }
+  pos_x = real_position.x() * draw_data.scale_factor + draw_data.offset_x;
+  pos_y = real_position.y() * draw_data.scale_factor + draw_data.offset_y;
 
   for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i) {
     const Reading &r = current_readings[i];
@@ -108,23 +98,6 @@ void Bot::draw_readings(DrawData draw_data) const {
   }
 }
 
-void Bot::draw_path(DrawData draw_data) const {
-
-  if (real_visited_positions.size() < 2) {
-    return;
-  }
-
-  for (size_t i = 1; i < real_visited_positions.size(); ++i) {
-    const Point &p1 = real_visited_positions[i - 1];
-    const Point &p2 = real_visited_positions[i];
-
-    DrawLine(p1.x() * draw_data.scale_factor + draw_data.offset_x,
-             p1.y() * draw_data.scale_factor + draw_data.offset_y,
-             p2.x() * draw_data.scale_factor + draw_data.offset_x,
-             p2.y() * draw_data.scale_factor + draw_data.offset_y, RED);
-  }
-}
-
 void Bot::draw_position_text() const {
   std::string pos_text = "Pos: (" + std::to_string(real_position.x()) + ", " +
                          std::to_string(real_position.y()) + ")";
@@ -133,22 +106,4 @@ void Bot::draw_position_text() const {
 
 Bot::Bot(const Point &start_pos) : real_position(start_pos) {
   current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
-}
-
-void Bot::visited_to_file(const std::string &filename) const {
-  ensure_parent_dir_exists(filename);
-  std::ofstream f(filename);
-
-  if (!f.is_open()) {
-    std::cerr << "BOT: Failed to open " << filename << " for writing"
-              << std::endl;
-    return;
-  }
-
-  for (const auto &v : real_visited_positions) {
-    f << v.x() << "," << v.y() << "\n";
-  }
-
-  f.close();
-  std::cout << "BOT: Visited positions saved to " << filename << std::endl;
 }

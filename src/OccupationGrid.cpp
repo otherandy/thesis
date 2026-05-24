@@ -102,7 +102,7 @@ void OccupationGrid::draw_cell_center(Index2D index, DrawData draw_data) const {
   DrawCircle(screen_x, screen_y, 2, CellColors.at(cell.state));
 }
 
-OccupationGrid::OccupationGrid(Point origin) : origin(origin) {
+OccupationGrid::OccupationGrid() {
   for (int y = 0; y < MAP_HEIGHT; ++y) {
     for (int x = 0; x < MAP_WIDTH; ++x) {
       const double cell_center_x = (x + 0.5) * CELL_SIZE - ENV_WIDTH;

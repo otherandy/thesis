@@ -23,49 +23,46 @@ enum class ExplorationPhase {
   Completed
 };
 
-struct ExplorationData {
-  Vector direction;
-  Point start_point;
-  Point contact_point;
-  bool left_contact_point;
-  Point target_point;
-  std::size_t last_closest_reading;
-};
-
 class ExplorationBot : public Bot {
 private:
-  Point relative_position = Point(0.0, 0.0);
-  ExplorationPhase exploration_phase = ExplorationPhase::Idle;
-  std::shared_ptr<OccupationGrid> exploration_grid;
+  Vector direction;
+  Point start_point;
 
-  ExplorationData exploration_data;
+  Point contact_point;
+  bool left_contact_point;
 
-  Graph frontier_region_graph;
-  std::shared_ptr<StepDFS> traversal_dfs;
+  Point target_point;
+  std::size_t last_closest_reading;
 
-  std::vector<FrontierRegion> frontier_regions;
-  std::size_t current_frontier_region_id = 0;
+  Point get_relative_position() const;
 
-  bool is_paused = false;
-
-  void get_input_and_move();
-  void reset();
-  Vector move(const Vector &dir);
-  void run_exploration();
-  void phase1_wall_discovery();
-  void phase2_wall_alignment();
-  Vector compute_wall_following_vector();
-  void phase3_wall_following();
-  void phase4_region_discovery();
-  void phase5_region_alignment();
-  void phase6_region_exploration();
   void draw_target_point(DrawData draw_data) const;
 
 public:
   ExplorationBot(const Point &start_pos);
+  void reset();
   void update();
+
+  void phase1_wall_discovery(std::shared_ptr<ExplorationPhase> phase,
+                             std::shared_ptr<OccupationGrid> grid);
+  void phase2_wall_alignment(std::shared_ptr<ExplorationPhase> phase,
+                             std::shared_ptr<OccupationGrid> grid);
+  Vector compute_wall_following_vector();
+  void phase3_wall_following(std::shared_ptr<ExplorationPhase> phase,
+                             std::shared_ptr<OccupationGrid> grid);
+  void phase4_region_discovery(std::shared_ptr<ExplorationPhase> phase,
+                               std::shared_ptr<OccupationGrid> grid,
+                               std::shared_ptr<StepDFS> traversal,
+                               std::vector<FrontierRegion> &frontier_regions,
+                               std::size_t &current_frontier_region_id);
+  void phase5_region_alignment(std::shared_ptr<ExplorationPhase> phase,
+                               std::shared_ptr<OccupationGrid> grid);
+  void phase6_region_exploration(std::shared_ptr<ExplorationPhase> phase,
+                                 std::shared_ptr<OccupationGrid> grid,
+                                 std::vector<FrontierRegion> &frontier_regions,
+                                 std::size_t &current_frontier_region_id);
+
   void draw(DrawData draw_data) const;
-  void grid_to_file(const std::string &filename) const;
 };
 
 #endif

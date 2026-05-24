@@ -1,20 +1,24 @@
+#include "CentralUnit.hpp"
 #include "DrawUtils.hpp"
 #include "ExplorationBot.hpp"
 #include <memory>
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
-const int FRAME_RATE = 60;
-const std::string WINDOW_TITLE = "Exploration Bot Simulation";
-
 int main() {
+  const int WINDOW_WIDTH = 800;
+  const int WINDOW_HEIGHT = 600;
+  const int FRAME_RATE = 60;
+  const std::string WINDOW_TITLE = "Exploration Bot Simulation";
+
   raylib::Window window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
   window.SetTargetFPS(FRAME_RATE);
 
-  auto bot = std::make_unique<ExplorationBot>(START_POSITION);
+  auto central_unit = std::make_unique<CentralUnit>();
+  auto bot = std::make_shared<ExplorationBot>(START_POSITION);
+
+  central_unit->register_bot(bot.get());
 
   while (!window.ShouldClose()) {
-    bot->update();
+    central_unit->update();
 
     window.BeginDrawing();
     window.ClearBackground(RAYWHITE);
@@ -25,13 +29,10 @@ int main() {
     DrawData draw_data{scale_factor, offset_x, offset_y};
 
     draw_environment(draw_data);
-    bot->draw(draw_data);
+    central_unit->draw(draw_data);
 
     window.EndDrawing();
   }
-
-  // bot->visited_to_file("Testing/real_visited_positions.csv");
-  // bot->grid_to_file("Testing/exploration_grid.txt");
 
   return 0;
 }
