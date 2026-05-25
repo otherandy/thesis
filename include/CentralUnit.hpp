@@ -4,6 +4,7 @@
 #include "ExplorationBot.hpp"
 #include "FrontierRegion.hpp"
 #include "OccupationGrid.hpp"
+#include "Timer.hpp"
 #include <memory>
 #include <vector>
 
@@ -22,6 +23,8 @@ private:
   std::vector<FrontierRegion> frontier_regions;
   std::size_t current_frontier_region_id = 0;
 
+  Timer p1, p2, p3, p4, p5, p6;
+
   void run_exploration();
 
 public:
@@ -31,6 +34,7 @@ public:
   void update();
   void draw(DrawData draw_data);
   void reset();
+  void report_time();
 };
 
 #endif

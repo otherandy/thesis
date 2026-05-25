@@ -314,8 +314,6 @@ void ExplorationBot::phase6_region_exploration(
   auto closest_unexplored = current_region->get_closest_unexplored(rp);
 
   if (!closest_unexplored) {
-    std::cout << "EXPLORATION: No unexplored cells found in region "
-              << current_frontier_region_id << ". Moving to next region.\n";
     current_region->explored = true;
     *phase = ExplorationPhase::RegionDiscovery;
     return;

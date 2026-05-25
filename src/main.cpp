@@ -1,5 +1,4 @@
 #include "CentralUnit.hpp"
-#include "DrawUtils.hpp"
 #include "ExplorationBot.hpp"
 #include <memory>
 
@@ -33,6 +32,8 @@ int main() {
 
     window.EndDrawing();
   }
+
+  central_unit->report_time();
 
   return 0;
 }
