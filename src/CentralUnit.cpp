@@ -139,7 +139,7 @@ void CentralUnit::reset() {
 
   frontier_region_graph = std::make_shared<Graph>();
   const vertex_t root = boost::add_vertex(*frontier_region_graph);
-  traversal_algorithm = std::make_shared<StepDFS>(*frontier_region_graph, root);
+  traversal_algorithm = std::make_shared<StepBFS>(*frontier_region_graph, root);
 
   frontier_regions.clear();
   current_frontier_region_id = 0;

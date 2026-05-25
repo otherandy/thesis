@@ -3,7 +3,11 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/depth_first_search.hpp>
+#include <optional>
+#include <queue>
 #include <stack>
+#include <tuple>
+#include <vector>
 
 using Graph =
     boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>;
@@ -16,7 +20,7 @@ protected:
   Graph &g;
 
 public:
-  StepTraversal(Graph &g_) : g(g_) {}
+  StepTraversal(Graph &g_, vertex_t start) : g(g_) {}
   virtual ~StepTraversal() = default;
   virtual std::optional<vertex_t> next() = 0;
 
@@ -43,6 +47,32 @@ class StepDFS : public StepTraversal {
 
 public:
   StepDFS(Graph &g_, vertex_t start);
+
+  std::optional<vertex_t> next() override;
+
+  void post_update() override {
+    const size_t n = boost::num_vertices(g);
+    color.resize(n, 0);
+    out_it.resize(n);
+    out_end.resize(n);
+
+    auto idx = boost::get(boost::vertex_index, g);
+    auto [vi, vi_end] = boost::vertices(g);
+    for (; vi != vi_end; ++vi) {
+      const vertex_t v = *vi;
+      std::tie(out_it[idx[v]], out_end[idx[v]]) = boost::out_edges(v, g);
+    }
+  }
+};
+
+class StepBFS : public StepTraversal {
+  std::vector<char> color; // 0=white, 1=discovered, 3=active, 2=finished
+  std::queue<vertex_t> q;
+  std::vector<typename boost::graph_traits<Graph>::out_edge_iterator> out_it;
+  std::vector<typename boost::graph_traits<Graph>::out_edge_iterator> out_end;
+
+public:
+  StepBFS(Graph &g_, vertex_t start);
 
   std::optional<vertex_t> next() override;
 

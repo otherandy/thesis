@@ -214,7 +214,8 @@ void ExplorationBot::phase3_wall_following(
 
 void ExplorationBot::phase4_region_discovery(
     std::shared_ptr<ExplorationPhase> phase,
-    std::shared_ptr<OccupationGrid> grid, std::shared_ptr<StepDFS> traversal,
+    std::shared_ptr<OccupationGrid> grid,
+    std::shared_ptr<StepTraversal> traversal,
     std::vector<FrontierRegion> &frontier_regions,
     std::size_t &current_frontier_region_id) {
 

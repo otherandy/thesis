@@ -3,6 +3,7 @@
 
 #include "ExplorationBot.hpp"
 #include "FrontierRegion.hpp"
+#include "Graph.hpp"
 #include "OccupationGrid.hpp"
 #include "Timer.hpp"
 #include <memory>
@@ -18,7 +19,7 @@ private:
   std::shared_ptr<OccupationGrid> occupation_grid;
 
   std::shared_ptr<Graph> frontier_region_graph;
-  std::shared_ptr<StepDFS> traversal_algorithm;
+  std::shared_ptr<StepTraversal> traversal_algorithm;
 
   std::vector<FrontierRegion> frontier_regions;
   std::size_t current_frontier_region_id = 0;
