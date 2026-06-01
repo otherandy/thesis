@@ -12,9 +12,13 @@ int main() {
   window.SetTargetFPS(FRAME_RATE);
 
   auto central_unit = std::make_unique<CentralUnit>();
-  auto bot = std::make_shared<ExplorationBot>(START_POSITION);
+  auto bot1 =
+      std::make_shared<ExplorationBot>(START_POSITION, Vector(1, 0), true);
+  auto bot2 =
+      std::make_shared<ExplorationBot>(START_POSITION, Vector(1, 0), false);
 
-  central_unit->register_bot(bot.get());
+  central_unit->register_bot(bot1.get());
+  central_unit->register_bot(bot2.get());
 
   while (!window.ShouldClose()) {
     central_unit->update();

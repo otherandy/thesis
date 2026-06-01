@@ -47,7 +47,10 @@ void ExplorationBot::phase2_wall_alignment(
 
     const Vector to_wall =
         Vector(cos(closest_reading.angle), sin(closest_reading.angle));
-    direction = Vector(-to_wall.y(), to_wall.x());
+
+    const Vector tangent_right(-to_wall.y(), to_wall.x()); // +90° (CCW)
+    const Vector tangent_left(to_wall.y(), -to_wall.x());  // -90° (CW)
+    direction = clockwise_following ? tangent_right : tangent_left;
 
     *phase = ExplorationPhase::WallFollowing;
     return;
@@ -61,8 +64,6 @@ void ExplorationBot::phase2_wall_alignment(
 }
 
 Vector ExplorationBot::compute_wall_following_vector() {
-  constexpr bool FOLLOW_RIGHT_WALL = true;
-
   auto cross_z = [&](const Vector &a, const Vector &b) -> double {
     return a.x() * b.y() - a.y() * b.x();
   };
@@ -96,7 +97,7 @@ Vector ExplorationBot::compute_wall_following_vector() {
 
     const bool on_right = (side < 0.0);
     const bool on_left = (side > 0.0);
-    const bool keep = FOLLOW_RIGHT_WALL ? on_right : on_left;
+    const bool keep = clockwise_following ? on_right : on_left;
 
     if (!keep) {
       continue;
@@ -170,17 +171,18 @@ Vector ExplorationBot::compute_wall_following_vector() {
       forward = -forward;
     }
   }
+  direction = forward;
 
   double distance_error = ref_r.distance - DESIRED_WALL_DISTANCE;
   const double max_error = DESIRED_WALL_DISTANCE;
-  if (distance_error > max_error)
+  if (distance_error > max_error) {
     distance_error = max_error;
-  if (distance_error < -max_error)
+  }
+  if (distance_error < -max_error) {
     distance_error = -max_error;
+  }
 
   const Vector desired_vector = forward + to_wall * distance_error;
-
-  direction = forward;
 
   return desired_vector;
 }
@@ -355,8 +357,10 @@ void ExplorationBot::draw_target_point(DrawData draw_data) const {
       DRAWN_POINT_RADIUS, ORANGE);
 }
 
-ExplorationBot::ExplorationBot(const Point &start_pos) : Bot(start_pos) {
-  direction = Vector(1, 0);
+ExplorationBot::ExplorationBot(const Point &start_pos, const Vector &start_dir,
+                               bool clockwise)
+    : Bot(start_pos), clockwise_following(clockwise) {
+  direction = start_dir;
 }
 
 void ExplorationBot::update() { take_lidar_readings(); }
@@ -365,5 +369,5 @@ void ExplorationBot::draw(DrawData draw_data) const {
   // draw_readings(draw_data);
   draw_body(draw_data);
   draw_lidar(draw_data);
-  draw_position_text();
+  // draw_position_text();
 }

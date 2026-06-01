@@ -32,6 +32,8 @@ private:
   Point contact_point;
   bool left_contact_point;
 
+  bool clockwise_following;
+
   Point target_point;
   std::size_t last_closest_reading;
 
@@ -40,7 +42,8 @@ private:
   void draw_target_point(DrawData draw_data) const;
 
 public:
-  ExplorationBot(const Point &start_pos);
+  ExplorationBot(const Point &start_pos, const Vector &start_dir,
+                 bool clockwise);
   void reset();
   void update();
 
