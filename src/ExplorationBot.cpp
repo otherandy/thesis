@@ -68,20 +68,14 @@ Vector ExplorationBot::compute_wall_following_vector() {
     return a.x() * b.y() - a.y() * b.x();
   };
 
-  auto safe_unit = [&](const Vector &v, const Vector &fallback) -> Vector {
-    const double len2 = v.squared_length();
-    if (len2 <= 1e-12) {
-      return fallback;
-    }
-    const double inv_len = 1.0 / std::sqrt(len2);
-    return Vector(v.x() * inv_len, v.y() * inv_len);
-  };
-
   auto is_wall_hit = [&](std::size_t idx) {
     return current_readings[idx].distance < LIDAR_RADIUS;
   };
 
-  const Vector heading_unit = safe_unit(direction, Vector(1, 0));
+  Vector heading_unit = normalize_vector(direction);
+  if (heading_unit.squared_length() <= 1e-12) {
+    heading_unit = Vector(1, 0);
+  }
 
   std::optional<std::size_t> side_ref = std::nullopt;
   double best_dist = std::numeric_limits<double>::infinity();
@@ -120,71 +114,60 @@ Vector ExplorationBot::compute_wall_following_vector() {
 
   last_closest_reading = ref;
 
-  std::vector<Point> prev_points;
   std::vector<Point> wall_points;
   wall_points.reserve(64);
 
+  // prev
   {
     std::size_t idx = ref;
     for (std::size_t steps = 0; steps < MAX_LIDAR_SAMPLES; ++steps) {
       idx = relative_index(idx, PREV_INDEX);
-      if (idx == ref || !is_wall_hit(idx)) {
+      if (idx == ref || current_readings[idx].distance >= LIDAR_RADIUS) {
         break;
       }
-      prev_points.push_back(reading_index_to_point(idx));
+      wall_points.push_back(reading_index_to_point(idx));
     }
+    std::reverse(wall_points.begin(), wall_points.end());
   }
 
-  for (std::size_t i = prev_points.size(); i-- > 0;) {
-    wall_points.push_back(prev_points[i]);
-  }
   wall_points.push_back(reading_index_to_point(ref));
 
+  // next
   {
     std::size_t idx = ref;
     for (std::size_t steps = 0; steps < MAX_LIDAR_SAMPLES; ++steps) {
       idx = relative_index(idx, NEXT_INDEX);
-      if (idx == ref || !is_wall_hit(idx)) {
+      if (idx == ref || current_readings[idx].distance >= LIDAR_RADIUS) {
         break;
       }
       wall_points.push_back(reading_index_to_point(idx));
     }
   }
 
-  const Reading &ref_r = current_readings[ref];
+  const auto &ref_r = current_readings[ref];
   const Vector to_wall(cos(ref_r.angle), sin(ref_r.angle));
 
   Vector forward;
   if (wall_points.size() < 2) {
     forward = Vector(-to_wall.y(), to_wall.x());
-    if ((forward * heading_unit) < 0) {
-      forward = -forward;
-    }
   } else {
     CGAL::Line_2<Kernel> fitted_line;
     CGAL::linear_least_squares_fitting_2(wall_points.begin(), wall_points.end(),
                                          fitted_line, CGAL::Dimension_tag<0>());
-
     forward = fitted_line.to_vector();
-
-    if ((forward * heading_unit) < 0) {
-      forward = -forward;
-    }
   }
+
+  if ((forward * heading_unit) < 0) {
+    forward = -forward;
+  }
+
   direction = forward;
 
   double distance_error = ref_r.distance - DESIRED_WALL_DISTANCE;
-  const double max_error = DESIRED_WALL_DISTANCE;
-  if (distance_error > max_error) {
-    distance_error = max_error;
-  }
-  if (distance_error < -max_error) {
-    distance_error = -max_error;
-  }
+  distance_error =
+      std::clamp(distance_error, -DESIRED_WALL_DISTANCE, DESIRED_WALL_DISTANCE);
 
-  const Vector desired_vector = forward + to_wall * distance_error;
-
-  return desired_vector;
+  return forward + to_wall * distance_error;
 }
 
 void ExplorationBot::phase3_wall_following(
