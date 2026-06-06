@@ -204,8 +204,8 @@ void ExplorationBot::phase4_region_discovery(
     std::vector<FrontierRegion> &frontier_regions,
     std::size_t &current_frontier_region_id) {
 
-  compute_frontier_regions(grid->get_grid(), traversal, frontier_regions,
-                           current_frontier_region_id);
+  grid->compute_frontier_regions(traversal, frontier_regions,
+                                 current_frontier_region_id);
 
   if (grid->get_frontier_cell_count() <= 2) {
     std::cout

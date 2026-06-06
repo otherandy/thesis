@@ -4,6 +4,8 @@
 #include "Bot.hpp"
 #include "Cell.hpp"
 #include "DrawUtils.hpp"
+#include "FrontierRegion.hpp"
+#include "Graph.hpp"
 
 class OccupationGrid {
 private:
@@ -31,6 +33,10 @@ public:
   Cell &get_cell_from_position(const Point &position);
 
   bool there_is_obstacle_between(const Point &from, const Point &to) const;
+
+  void compute_frontier_regions(std::shared_ptr<StepTraversal> traversal_graph,
+                                std::vector<FrontierRegion> &frontier_regions,
+                                std::size_t &current_parent_region_id);
 
   void draw(DrawData draw_data) const;
   void draw_frontier_count() const;
