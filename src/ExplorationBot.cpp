@@ -1,4 +1,6 @@
 #include "ExplorationBot.hpp"
+#include "Graph.hpp"
+#include "OccupationGrid.hpp"
 #include "Utils.hpp"
 #include "cgal_types.hpp"
 #include <CGAL/linear_least_squares_fitting_2.h>
@@ -16,12 +18,11 @@ void ExplorationBot::reset() {
 }
 
 void ExplorationBot::phase1_wall_discovery(
-    std::shared_ptr<ExplorationPhase> phase,
     std::shared_ptr<OccupationGrid> grid) {
 
   for (const auto &r : current_readings) {
     if (r.distance < LIDAR_RADIUS) {
-      *phase = ExplorationPhase::WallAlignment;
+      phase = ExplorationPhase::WallAlignment;
       return;
     }
   }
@@ -32,7 +33,6 @@ void ExplorationBot::phase1_wall_discovery(
 }
 
 void ExplorationBot::phase2_wall_alignment(
-    std::shared_ptr<ExplorationPhase> phase,
     std::shared_ptr<OccupationGrid> grid) {
 
   const Reading &closest_reading =
@@ -52,7 +52,7 @@ void ExplorationBot::phase2_wall_alignment(
     const Vector tangent_left(to_wall.y(), -to_wall.x());  // -90° (CW)
     direction = clockwise_following ? tangent_right : tangent_left;
 
-    *phase = ExplorationPhase::WallFollowing;
+    phase = ExplorationPhase::WallFollowing;
     return;
   }
 
@@ -171,7 +171,6 @@ Vector ExplorationBot::compute_wall_following_vector() {
 }
 
 void ExplorationBot::phase3_wall_following(
-    std::shared_ptr<ExplorationPhase> phase,
     std::shared_ptr<OccupationGrid> grid) {
 
   const Point rp = get_relative_position();
@@ -181,7 +180,7 @@ void ExplorationBot::phase3_wall_following(
       left_contact_point) {
     std::cout << "EXPLORATION: Completed wall following loop.\n";
 
-    *phase = ExplorationPhase::RegionDiscovery;
+    phase = ExplorationPhase::RegionDiscovery;
   } else if (distance >= SPEED * 2) {
     left_contact_point = true;
   }
@@ -198,7 +197,6 @@ void ExplorationBot::phase3_wall_following(
 }
 
 void ExplorationBot::phase4_region_discovery(
-    std::shared_ptr<ExplorationPhase> phase,
     std::shared_ptr<OccupationGrid> grid,
     std::shared_ptr<StepTraversal> traversal,
     std::size_t &current_frontier_region_id) {
@@ -208,7 +206,7 @@ void ExplorationBot::phase4_region_discovery(
   if (grid->get_frontier_cell_count() <= 2) {
     std::cout
         << "EXPLORATION: No frontier cells found. Exploration completed.\n";
-    *phase = ExplorationPhase::Completed;
+    phase = ExplorationPhase::Completed;
     return;
   }
 
@@ -219,7 +217,7 @@ void ExplorationBot::phase4_region_discovery(
     if (!next_region) {
       std::cout
           << "EXPLORATION: No frontier regions found. Exploration completed.\n";
-      *phase = ExplorationPhase::Completed;
+      phase = ExplorationPhase::Completed;
       return;
     }
 
@@ -241,18 +239,17 @@ void ExplorationBot::phase4_region_discovery(
 
   std::cout << "EXPLORATION: Targeting frontier region "
             << current_frontier_region_id << ".\n";
-  *phase = ExplorationPhase::RegionAlignment;
+  phase = ExplorationPhase::RegionAlignment;
 }
 
 void ExplorationBot::phase5_region_alignment(
-    std::shared_ptr<ExplorationPhase> phase,
     std::shared_ptr<OccupationGrid> grid) {
 
   const Point rp = get_relative_position();
   const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
 
   if (distance < SPEED * 2) {
-    *phase = ExplorationPhase::RegionExploration;
+    phase = ExplorationPhase::RegionExploration;
     return;
   }
 
@@ -270,12 +267,11 @@ void ExplorationBot::phase5_region_alignment(
 }
 
 void ExplorationBot::phase6_region_exploration(
-    std::shared_ptr<ExplorationPhase> phase,
     std::shared_ptr<OccupationGrid> grid,
     std::size_t &current_frontier_region_id) {
 
   if (current_frontier_region_id == 0) {
-    *phase = ExplorationPhase::RegionDiscovery;
+    phase = ExplorationPhase::RegionDiscovery;
     return;
   }
 
@@ -283,7 +279,7 @@ void ExplorationBot::phase6_region_exploration(
       grid->get_frontier_region_by_id(current_frontier_region_id);
 
   if (current_region->explored) {
-    *phase = ExplorationPhase::RegionDiscovery;
+    phase = ExplorationPhase::RegionDiscovery;
     return;
   }
 
@@ -293,7 +289,7 @@ void ExplorationBot::phase6_region_exploration(
 
   if (!closest_unexplored) {
     current_region->explored = true;
-    *phase = ExplorationPhase::RegionDiscovery;
+    phase = ExplorationPhase::RegionDiscovery;
     return;
   }
 
@@ -305,7 +301,7 @@ void ExplorationBot::phase6_region_exploration(
     auto obstacle_cell = grid->get_cell_from_position(closest_wall_point);
 
     if (obstacle_cell.state == CellState::Unknown) {
-      *phase = ExplorationPhase::WallAlignment;
+      phase = ExplorationPhase::WallAlignment;
       return;
     }
   }
@@ -339,6 +335,37 @@ ExplorationBot::ExplorationBot(const Point &start_pos, const Vector &start_dir,
 }
 
 void ExplorationBot::update() { take_lidar_readings(); }
+
+void ExplorationBot::change_phase(ExplorationPhase new_phase) {
+  phase = new_phase;
+}
+
+ExplorationPhase
+ExplorationBot::explore(std::shared_ptr<OccupationGrid> grid,
+                        std::shared_ptr<StepTraversal> traversal,
+                        std::size_t &current_frontier_region_id) {
+  switch (phase) {
+  case ExplorationPhase::WallAlignment:
+    phase2_wall_alignment(grid);
+    break;
+  case ExplorationPhase::WallFollowing:
+    phase3_wall_following(grid);
+    break;
+  case ExplorationPhase::RegionDiscovery:
+    phase4_region_discovery(grid, traversal, current_frontier_region_id);
+    break;
+  case ExplorationPhase::RegionAlignment:
+    phase5_region_alignment(grid);
+    break;
+  case ExplorationPhase::RegionExploration:
+    phase6_region_exploration(grid, current_frontier_region_id);
+    break;
+  default:
+    phase1_wall_discovery(grid);
+  }
+
+  return phase;
+}
 
 void ExplorationBot::draw(DrawData draw_data) const {
   // draw_readings(draw_data);

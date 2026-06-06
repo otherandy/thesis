@@ -20,13 +20,13 @@ void CentralUnit::get_input_and_move() {
     return;
   }
 
-  if (*exploration_phase != ExplorationPhase::Idle) {
+  if (phase != CentralPhase::Idle) {
     return;
   }
 
   if (IsKeyPressed(KEY_SPACE)) {
     // start_point = relative_position;
-    *exploration_phase = ExplorationPhase::WallDiscovery;
+    phase = CentralPhase::Start;
   }
 
   if (IsKeyDown(KEY_UP)) {
@@ -44,60 +44,22 @@ void CentralUnit::get_input_and_move() {
 }
 
 void CentralUnit::run_exploration() {
-  if (*exploration_phase == ExplorationPhase::Idle ||
-      *exploration_phase == ExplorationPhase::Completed || is_paused) {
+  if (phase == CentralPhase::Idle || is_paused) {
     return;
   }
 
-  if (*exploration_phase == ExplorationPhase::WallDiscovery) {
-    p1.start();
+  if (phase == CentralPhase::Start) {
     for (ExplorationBot *bot : bots) {
-      bot->phase1_wall_discovery(exploration_phase, occupation_grid);
+      bot->change_phase(ExplorationPhase::WallDiscovery);
     }
-    return;
+    phase = CentralPhase::Explore;
   }
 
-  if (*exploration_phase == ExplorationPhase::WallAlignment) {
-    p2.start();
+  if (phase == CentralPhase::Explore) {
     for (ExplorationBot *bot : bots) {
-      bot->phase2_wall_alignment(exploration_phase, occupation_grid);
+      bot->explore(occupation_grid, traversal_algorithm,
+                   current_frontier_region_id);
     }
-    return;
-  }
-
-  if (*exploration_phase == ExplorationPhase::WallFollowing) {
-    p3.start();
-    for (ExplorationBot *bot : bots) {
-      bot->phase3_wall_following(exploration_phase, occupation_grid);
-    }
-    return;
-  }
-
-  if (*exploration_phase == ExplorationPhase::RegionDiscovery) {
-    p4.start();
-    for (ExplorationBot *bot : bots) {
-      bot->phase4_region_discovery(exploration_phase, occupation_grid,
-                                   traversal_algorithm,
-                                   current_frontier_region_id);
-    }
-    return;
-  }
-
-  if (*exploration_phase == ExplorationPhase::RegionAlignment) {
-    p5.start();
-    for (ExplorationBot *bot : bots) {
-      bot->phase5_region_alignment(exploration_phase, occupation_grid);
-    }
-    return;
-  }
-
-  if (*exploration_phase == ExplorationPhase::RegionExploration) {
-    p6.start();
-    for (ExplorationBot *bot : bots) {
-      bot->phase6_region_exploration(exploration_phase, occupation_grid,
-                                     current_frontier_region_id);
-    }
-    return;
   }
 }
 
@@ -131,9 +93,8 @@ void CentralUnit::draw(DrawData draw_data) {
 
 void CentralUnit::reset() {
   is_paused = false;
+  phase = CentralPhase::Idle;
 
-  exploration_phase =
-      std::make_shared<ExplorationPhase>(ExplorationPhase::Idle);
   occupation_grid = std::make_shared<OccupationGrid>();
 
   frontier_region_graph = std::make_shared<Graph>();

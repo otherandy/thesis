@@ -1,5 +1,4 @@
 #include "FrontierRegion.hpp"
-#include <vector>
 
 Point FrontierRegion::get_closest_point(const Point &pos) const {
   Point closest_point;

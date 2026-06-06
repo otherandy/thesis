@@ -8,13 +8,18 @@
 #include <memory>
 #include <vector>
 
+enum class CentralPhase {
+  Idle,
+  Start,
+  Explore,
+};
+
 class CentralUnit {
 private:
-  bool is_paused = false;
-
   std::vector<ExplorationBot *> bots;
 
-  std::shared_ptr<ExplorationPhase> exploration_phase;
+  bool is_paused = false;
+  CentralPhase phase = CentralPhase::Idle;
   std::shared_ptr<OccupationGrid> occupation_grid;
 
   std::shared_ptr<Graph> frontier_region_graph;
