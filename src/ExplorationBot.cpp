@@ -201,11 +201,9 @@ void ExplorationBot::phase4_region_discovery(
     std::shared_ptr<ExplorationPhase> phase,
     std::shared_ptr<OccupationGrid> grid,
     std::shared_ptr<StepTraversal> traversal,
-    std::vector<FrontierRegion> &frontier_regions,
     std::size_t &current_frontier_region_id) {
 
-  grid->compute_frontier_regions(traversal, frontier_regions,
-                                 current_frontier_region_id);
+  grid->compute_frontier_regions(traversal, current_frontier_region_id);
 
   if (grid->get_frontier_cell_count() <= 2) {
     std::cout
@@ -230,12 +228,7 @@ void ExplorationBot::phase4_region_discovery(
       break;
     }
 
-    if (*next_region > frontier_regions.size()) {
-      continue;
-    }
-
-    auto target_region =
-        get_frontier_region_by_id(frontier_regions, *next_region);
+    auto target_region = grid->get_frontier_region_by_id(*next_region);
 
     if (target_region->explored) {
       continue;
@@ -279,7 +272,6 @@ void ExplorationBot::phase5_region_alignment(
 void ExplorationBot::phase6_region_exploration(
     std::shared_ptr<ExplorationPhase> phase,
     std::shared_ptr<OccupationGrid> grid,
-    std::vector<FrontierRegion> &frontier_regions,
     std::size_t &current_frontier_region_id) {
 
   if (current_frontier_region_id == 0) {
@@ -288,7 +280,7 @@ void ExplorationBot::phase6_region_exploration(
   }
 
   auto current_region =
-      get_frontier_region_by_id(frontier_regions, current_frontier_region_id);
+      grid->get_frontier_region_by_id(current_frontier_region_id);
 
   if (current_region->explored) {
     *phase = ExplorationPhase::RegionDiscovery;

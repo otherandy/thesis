@@ -1,19 +1,5 @@
 #include "FrontierRegion.hpp"
-#include <algorithm>
 #include <vector>
-
-FrontierRegion *get_frontier_region_by_id(std::vector<FrontierRegion> &regions,
-                                          std::size_t id) {
-  auto it =
-      std::find_if(regions.begin(), regions.end(),
-                   [id](FrontierRegion &region) { return region.id == id; });
-
-  if (it != regions.end()) {
-    return &(*it);
-  } else {
-    return nullptr;
-  }
-}
 
 Point FrontierRegion::get_closest_point(const Point &pos) const {
   Point closest_point;
@@ -54,27 +40,4 @@ FrontierRegion::get_closest_unexplored(const Point &pos) const {
   } else {
     return std::nullopt;
   }
-}
-
-std::size_t
-get_nearest_frontier_region_id(const std::vector<FrontierRegion> &regions,
-                               const Point &position) {
-  std::size_t nearest_region_id = 0;
-  double nearest_distance = std::numeric_limits<double>::max();
-
-  for (const FrontierRegion &region : regions) {
-    if (region.explored) {
-      continue;
-    }
-
-    const double distance =
-        CGAL::squared_distance(position, region.get_closest_point(position));
-
-    if (distance < nearest_distance) {
-      nearest_distance = distance;
-      nearest_region_id = region.id;
-    }
-  }
-
-  return nearest_region_id;
 }

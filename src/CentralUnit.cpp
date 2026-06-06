@@ -77,7 +77,7 @@ void CentralUnit::run_exploration() {
     p4.start();
     for (ExplorationBot *bot : bots) {
       bot->phase4_region_discovery(exploration_phase, occupation_grid,
-                                   traversal_algorithm, frontier_regions,
+                                   traversal_algorithm,
                                    current_frontier_region_id);
     }
     return;
@@ -95,7 +95,6 @@ void CentralUnit::run_exploration() {
     p6.start();
     for (ExplorationBot *bot : bots) {
       bot->phase6_region_exploration(exploration_phase, occupation_grid,
-                                     frontier_regions,
                                      current_frontier_region_id);
     }
     return;
@@ -141,7 +140,6 @@ void CentralUnit::reset() {
   const vertex_t root = boost::add_vertex(*frontier_region_graph);
   traversal_algorithm = std::make_shared<StepBFS>(*frontier_region_graph, root);
 
-  frontier_regions.clear();
   current_frontier_region_id = 0;
 
   for (ExplorationBot *bot : bots) {

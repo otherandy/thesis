@@ -251,9 +251,20 @@ bool OccupationGrid::there_is_obstacle_between(const Point &from,
   return false;
 }
 
+FrontierRegion *OccupationGrid::get_frontier_region_by_id(std::size_t id) {
+  auto it =
+      std::find_if(frontier_regions.begin(), frontier_regions.end(),
+                   [id](FrontierRegion &region) { return region.id == id; });
+
+  if (it != frontier_regions.end()) {
+    return &(*it);
+  } else {
+    return nullptr;
+  }
+}
+
 void OccupationGrid::compute_frontier_regions(
     std::shared_ptr<StepTraversal> traversal_graph,
-    std::vector<FrontierRegion> &frontier_regions,
     std::size_t &current_parent_region_id) {
 
   for (FrontierRegion &region : frontier_regions) {
@@ -334,8 +345,7 @@ void OccupationGrid::compute_frontier_regions(
       }
 
       if (found_id.has_value()) {
-        auto region =
-            get_frontier_region_by_id(frontier_regions, found_id.value());
+        auto region = get_frontier_region_by_id(found_id.value());
         for (Cell *region_cell : region_cells) {
           region_cell->frontier_id = found_id;
           region->cells.push_back(region_cell);
@@ -354,6 +364,28 @@ void OccupationGrid::compute_frontier_regions(
   }
 
   traversal_graph->post_update();
+}
+
+std::size_t
+OccupationGrid::get_nearest_frontier_region_id(const Point &position) const {
+  std::size_t nearest_region_id = 0;
+  double nearest_distance = std::numeric_limits<double>::max();
+
+  for (const FrontierRegion &region : frontier_regions) {
+    if (region.explored) {
+      continue;
+    }
+
+    const double distance =
+        CGAL::squared_distance(position, region.get_closest_point(position));
+
+    if (distance < nearest_distance) {
+      nearest_distance = distance;
+      nearest_region_id = region.id;
+    }
+  }
+
+  return nearest_region_id;
 }
 
 void OccupationGrid::draw(DrawData draw_data) const {
