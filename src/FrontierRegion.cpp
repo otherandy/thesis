@@ -1,5 +1,14 @@
 #include "FrontierRegion.hpp"
 
+const bool FrontierRegion::explored() const {
+  for (const Cell *cell : cells) {
+    if (cell->state == CellState::Frontier) {
+      return false;
+    }
+  }
+  return true;
+}
+
 Point FrontierRegion::get_closest_point(const Point &pos) const {
   Point closest_point;
   double closest_distance = std::numeric_limits<double>::max();

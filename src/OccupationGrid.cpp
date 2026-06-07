@@ -136,7 +136,8 @@ void OccupationGrid::mark_cells(
   }
 }
 
-Cell &OccupationGrid::get_cell_from_position(const Point &position) {
+const Cell &
+OccupationGrid::get_cell_from_position(const Point &position) const {
   const double rel_x = position.x() - origin.x();
   const double rel_y = position.y() - origin.y();
 
@@ -242,12 +243,25 @@ FrontierRegion *OccupationGrid::get_frontier_region_by_id(std::size_t id) {
   }
 }
 
+const FrontierRegion *
+OccupationGrid::get_frontier_region_by_id(std::size_t id) const {
+  auto it = std::find_if(
+      frontier_regions.begin(), frontier_regions.end(),
+      [id](const FrontierRegion &region) { return region.id == id; });
+
+  if (it != frontier_regions.end()) {
+    return &(*it);
+  } else {
+    return nullptr;
+  }
+}
+
 void OccupationGrid::compute_frontier_regions(
     std::shared_ptr<StepTraversal> traversal_graph,
     std::size_t &current_parent_region_id) {
 
   for (FrontierRegion &region : frontier_regions) {
-    if (region.explored) {
+    if (region.explored()) {
       continue;
     }
 
@@ -268,10 +282,6 @@ void OccupationGrid::compute_frontier_regions(
         cell->frontier_id = std::nullopt;
       }
       region.cells.clear();
-    }
-
-    if (region.cells.empty()) {
-      region.explored = true;
     }
   }
 
@@ -351,7 +361,7 @@ OccupationGrid::get_nearest_frontier_region_id(const Point &position) const {
   double nearest_distance = std::numeric_limits<double>::max();
 
   for (const FrontierRegion &region : frontier_regions) {
-    if (region.explored) {
+    if (region.explored()) {
       continue;
     }
 

@@ -158,15 +158,16 @@ Vector ExplorationBot::compute_wall_following_vector() {
 }
 
 void ExplorationBot::phase3_wall_following(
-    std::shared_ptr<OccupationGrid> grid) {
+    std::shared_ptr<const OccupationGrid> grid) {
 
   const Point rp = get_relative_position();
   const double distance = std::sqrt(CGAL::squared_distance(rp, contact_point));
 
-  if (!grid->was_frontier_cell_added() && distance < SPEED * 2 &&
-      left_contact_point) {
-    phase = ExplorationPhase::RegionDiscovery;
-    return;
+  if (left_contact_point) {
+    if (!grid->was_frontier_cell_added() && distance < SPEED * 2) {
+      phase = ExplorationPhase::RegionDiscovery;
+      return;
+    }
   } else if (distance >= SPEED * 2) {
     left_contact_point = true;
   }
@@ -205,9 +206,9 @@ void ExplorationBot::phase4_region_discovery(
       break;
     }
 
-    auto target_region = grid->get_frontier_region_by_id(*next_region);
+    const auto target_region = grid->get_frontier_region_by_id(*next_region);
 
-    if (target_region->explored) {
+    if (target_region->explored()) {
       continue;
     }
 
@@ -220,7 +221,7 @@ void ExplorationBot::phase4_region_discovery(
 }
 
 void ExplorationBot::phase5_region_alignment(
-    std::shared_ptr<OccupationGrid> grid) {
+    std::shared_ptr<const OccupationGrid> grid) {
 
   const Point rp = get_relative_position();
   const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
@@ -243,7 +244,7 @@ void ExplorationBot::phase5_region_alignment(
 }
 
 void ExplorationBot::phase6_region_exploration(
-    std::shared_ptr<OccupationGrid> grid,
+    std::shared_ptr<const OccupationGrid> grid,
     std::size_t &current_frontier_region_id) {
 
   if (current_frontier_region_id == 0) {
@@ -254,7 +255,7 @@ void ExplorationBot::phase6_region_exploration(
   auto current_region =
       grid->get_frontier_region_by_id(current_frontier_region_id);
 
-  if (current_region->explored) {
+  if (current_region->explored()) {
     phase = ExplorationPhase::RegionDiscovery;
     return;
   }
@@ -264,7 +265,6 @@ void ExplorationBot::phase6_region_exploration(
   auto closest_unexplored = current_region->get_closest_unexplored(rp);
 
   if (!closest_unexplored) {
-    current_region->explored = true;
     phase = ExplorationPhase::RegionDiscovery;
     return;
   }

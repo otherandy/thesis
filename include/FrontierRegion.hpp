@@ -12,8 +12,8 @@ const std::array<Color, 9> FrontierColors = {
 struct FrontierRegion {
   std::size_t id;
   std::vector<Cell *> cells;
-  bool explored = false;
 
+  const bool explored() const;
   Point get_closest_point(const Point &pos) const;
   std::optional<Point> get_closest_unexplored(const Point &pos) const;
 };

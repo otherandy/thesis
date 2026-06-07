@@ -30,9 +30,7 @@ public:
 
   void mark_cells(const Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings);
-  Cell &get_cell_from_position(const Point &position);
-
-  FrontierRegion *get_frontier_region_by_id(std::size_t id);
+  const Cell &get_cell_from_position(const Point &position) const;
 
   bool there_is_obstacle_between(const Point &from, const Point &to) const;
 
@@ -40,6 +38,9 @@ public:
                                 std::size_t &current_parent_region_id);
 
   std::size_t get_nearest_frontier_region_id(const Point &position) const;
+
+  FrontierRegion *get_frontier_region_by_id(std::size_t id);
+  const FrontierRegion *get_frontier_region_by_id(std::size_t id) const;
 
   void draw(const DrawData &draw_data) const;
   void draw_frontier_count() const;

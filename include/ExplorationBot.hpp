@@ -56,12 +56,12 @@ public:
   void phase1_wall_discovery();
   void phase2_wall_alignment();
   Vector compute_wall_following_vector();
-  void phase3_wall_following(std::shared_ptr<OccupationGrid> grid);
+  void phase3_wall_following(std::shared_ptr<const OccupationGrid> grid);
   void phase4_region_discovery(std::shared_ptr<OccupationGrid> grid,
                                std::shared_ptr<StepTraversal> traversal,
                                std::size_t &current_frontier_region_id);
-  void phase5_region_alignment(std::shared_ptr<OccupationGrid> grid);
-  void phase6_region_exploration(std::shared_ptr<OccupationGrid> grid,
+  void phase5_region_alignment(std::shared_ptr<const OccupationGrid> grid);
+  void phase6_region_exploration(std::shared_ptr<const OccupationGrid> grid,
                                  std::size_t &current_frontier_region_id);
 
   void draw(const DrawData &draw_data) const;
