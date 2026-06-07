@@ -17,9 +17,7 @@ void ExplorationBot::reset() {
   Bot::reset();
 }
 
-void ExplorationBot::phase1_wall_discovery(
-    std::shared_ptr<OccupationGrid> grid) {
-
+void ExplorationBot::phase1_wall_discovery() {
   for (const auto &r : current_readings) {
     if (r.distance < LIDAR_RADIUS) {
       phase = ExplorationPhase::WallAlignment;
@@ -27,23 +25,17 @@ void ExplorationBot::phase1_wall_discovery(
     }
   }
 
-  const Point rp = get_relative_position();
-  grid->mark_cells(rp, current_readings);
   move(direction);
 }
 
-void ExplorationBot::phase2_wall_alignment(
-    std::shared_ptr<OccupationGrid> grid) {
-
+void ExplorationBot::phase2_wall_alignment() {
   const Reading &closest_reading =
       current_readings[closest_wall_reading_index.value()];
-
-  const Point rp = get_relative_position();
 
   if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
     left_contact_point = false;
     last_closest_reading = closest_wall_reading_index.value();
-    contact_point = rp;
+    contact_point = get_relative_position();
 
     const Vector to_wall =
         Vector(cos(closest_reading.angle), sin(closest_reading.angle));
@@ -59,7 +51,6 @@ void ExplorationBot::phase2_wall_alignment(
   const Vector to_wall =
       Vector(cos(closest_reading.angle), sin(closest_reading.angle));
 
-  grid->mark_cells(rp, current_readings);
   move(to_wall);
 }
 
@@ -186,8 +177,6 @@ void ExplorationBot::phase3_wall_following(
 
   Vector desired_vector = compute_wall_following_vector();
 
-  grid->mark_cells(rp, current_readings);
-
   const Vector delta = move(desired_vector);
   if (delta.squared_length() <= 1e-12) {
     direction = -direction;
@@ -254,7 +243,6 @@ void ExplorationBot::phase5_region_alignment(
     desired_vector = target_point - rp;
   }
 
-  grid->mark_cells(rp, current_readings);
   move(desired_vector);
 }
 
@@ -299,7 +287,6 @@ void ExplorationBot::phase6_region_exploration(
   }
 
   desired_vector = closest_unexplored.value() - rp;
-  grid->mark_cells(rp, current_readings);
   move(desired_vector);
 }
 
@@ -327,7 +314,10 @@ ExplorationBot::ExplorationBot(const size_t id, const Point &start_pos,
   direction = start_dir;
 }
 
-void ExplorationBot::update() { take_lidar_readings(); }
+void ExplorationBot::update_grid(std::shared_ptr<OccupationGrid> grid) {
+  const Point rp = get_relative_position();
+  grid->mark_cells(rp, current_readings);
+}
 
 void ExplorationBot::change_phase(ExplorationPhase new_phase) {
   phase = new_phase;
@@ -339,10 +329,10 @@ ExplorationBot::explore(std::shared_ptr<OccupationGrid> grid,
                         std::size_t &current_frontier_region_id) {
   switch (phase) {
   case ExplorationPhase::WallDiscovery:
-    phase1_wall_discovery(grid);
+    phase1_wall_discovery();
     break;
   case ExplorationPhase::WallAlignment:
-    phase2_wall_alignment(grid);
+    phase2_wall_alignment();
     break;
   case ExplorationPhase::WallFollowing:
     phase3_wall_following(grid);

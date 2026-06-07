@@ -35,7 +35,6 @@ protected:
   Point get_real_position() const { return real_position; }
   void update_visited_positions();
 
-  void take_lidar_readings();
   void draw_body(const DrawData &draw_data) const;
   void draw_lidar(const DrawData &draw_data) const;
   void draw_readings(const DrawData &draw_data) const;
@@ -43,6 +42,7 @@ protected:
 
 public:
   Bot(const Point &start_pos);
+  void take_lidar_readings();
   Vector move(const Vector &dir);
 };
 

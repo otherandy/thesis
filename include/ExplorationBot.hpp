@@ -47,14 +47,14 @@ public:
   ExplorationBot(const size_t id, const Point &start_pos,
                  const Vector &start_dir, bool clockwise);
   void reset();
-  void update();
+  void update_grid(std::shared_ptr<OccupationGrid> grid);
   ExplorationPhase explore(std::shared_ptr<OccupationGrid> grid,
                            std::shared_ptr<StepTraversal> traversal,
                            std::size_t &current_frontier_region_id);
   void change_phase(ExplorationPhase new_phase);
 
-  void phase1_wall_discovery(std::shared_ptr<OccupationGrid> grid);
-  void phase2_wall_alignment(std::shared_ptr<OccupationGrid> grid);
+  void phase1_wall_discovery();
+  void phase2_wall_alignment();
   Vector compute_wall_following_vector();
   void phase3_wall_following(std::shared_ptr<OccupationGrid> grid);
   void phase4_region_discovery(std::shared_ptr<OccupationGrid> grid,

@@ -74,12 +74,16 @@ void CentralUnit::update() {
   std::vector<std::future<void>> update_jobs;
 
   for (ExplorationBot *bot : bots) {
-    update_jobs.emplace_back(
-        std::async(std::launch::async, [bot]() { bot->update(); }));
+    update_jobs.emplace_back(std::async(
+        std::launch::async, [bot]() { bot->take_lidar_readings(); }));
   }
 
   for (auto &job : update_jobs) {
     job.get();
+  }
+
+  for (ExplorationBot *bot : bots) {
+    bot->update_grid(occupation_grid);
   }
 
   run_exploration();
