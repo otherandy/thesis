@@ -40,8 +40,8 @@ void ExplorationBot::phase2_wall_alignment() {
     const Vector to_wall =
         Vector(cos(closest_reading.angle), sin(closest_reading.angle));
 
-    const Vector tangent_right(-to_wall.y(), to_wall.x()); // +90° (CCW)
-    const Vector tangent_left(to_wall.y(), -to_wall.x());  // -90° (CW)
+    const Vector tangent_right(-to_wall.y(), to_wall.x());
+    const Vector tangent_left(to_wall.y(), -to_wall.x());
     direction = clockwise_following ? tangent_right : tangent_left;
 
     phase = ExplorationPhase::WallFollowing;
@@ -57,10 +57,6 @@ void ExplorationBot::phase2_wall_alignment() {
 Vector ExplorationBot::compute_wall_following_vector() {
   auto cross_z = [&](const Vector &a, const Vector &b) -> double {
     return a.x() * b.y() - a.y() * b.x();
-  };
-
-  auto is_wall_hit = [&](std::size_t idx) {
-    return current_readings[idx].distance < LIDAR_RADIUS;
   };
 
   Vector heading_unit = normalize_vector(direction);
@@ -357,5 +353,4 @@ void ExplorationBot::draw(const DrawData &draw_data) const {
   // draw_readings(draw_data);
   draw_body(draw_data);
   draw_lidar(draw_data);
-  // draw_position_text();
 }
