@@ -13,56 +13,53 @@ const double DESIRED_WALL_DISTANCE = SPEED * 2;
 const double WALL_DISTANCE_STRENGTH = 0.9;
 
 enum class ExplorationPhase {
-  Idle,
   WallDiscovery,
   WallAlignment,
   WallFollowing,
   RegionDiscovery,
   RegionAlignment,
   RegionExploration,
-  Completed
+  Complete
 };
 
 class ExplorationBot : public Bot {
 private:
-  const size_t id;
-  ExplorationPhase phase;
-
   Vector direction;
   Point start_point;
 
   Point contact_point;
-  bool left_contact_point;
 
   bool clockwise_following;
 
-  Point target_point;
   std::size_t last_closest_reading;
-
-  Point get_relative_position() const;
 
   void draw_target_point(const DrawData &draw_data) const;
 
 public:
-  ExplorationBot(const size_t id, const Point &start_pos,
-                 const Vector &start_dir, bool clockwise);
+  ExplorationBot(const Point &start_pos, const Vector &start_dir,
+                 bool clockwise);
+
+  Point get_relative_position() const;
+  Point target_point;
+  bool left_contact_point = false;
+
   void reset();
   void update_grid(std::shared_ptr<OccupationGrid> grid);
-  ExplorationPhase explore(std::shared_ptr<OccupationGrid> grid,
-                           std::shared_ptr<StepTraversal> traversal,
-                           std::size_t &current_frontier_region_id);
-  void change_phase(ExplorationPhase new_phase);
 
-  void phase1_wall_discovery();
-  void phase2_wall_alignment();
+  ExplorationPhase explore(ExplorationPhase phase,
+                           std::shared_ptr<const OccupationGrid> grid,
+                           std::size_t &current_frontier_region_id);
+
+  ExplorationPhase phase1_wall_discovery();
+  ExplorationPhase phase2_wall_alignment();
   Vector compute_wall_following_vector();
-  void phase3_wall_following(std::shared_ptr<const OccupationGrid> grid);
-  void phase4_region_discovery(std::shared_ptr<OccupationGrid> grid,
-                               std::shared_ptr<StepTraversal> traversal,
-                               std::size_t &current_frontier_region_id);
-  void phase5_region_alignment(std::shared_ptr<const OccupationGrid> grid);
-  void phase6_region_exploration(std::shared_ptr<const OccupationGrid> grid,
-                                 std::size_t &current_frontier_region_id);
+  ExplorationPhase
+  phase3_wall_following(std::shared_ptr<const OccupationGrid> grid);
+  ExplorationPhase
+  phase5_region_alignment(std::shared_ptr<const OccupationGrid> grid);
+  ExplorationPhase
+  phase6_region_exploration(std::shared_ptr<const OccupationGrid> grid,
+                            std::size_t &current_frontier_region_id);
 
   void draw(const DrawData &draw_data) const;
 };
