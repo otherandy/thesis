@@ -19,6 +19,7 @@ private:
   CentralPhase phase = CentralPhase::Idle;
   std::vector<ExplorationBot *> bots;
   std::vector<ExplorationPhase> bot_phases;
+  std::vector<Cell *> bot_region_anchor;
 
   bool is_paused = false;
   std::shared_ptr<OccupationGrid> occupation_grid;

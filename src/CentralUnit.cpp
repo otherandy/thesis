@@ -29,6 +29,7 @@ void CentralUnit::get_input_and_move() {
   if (IsKeyPressed(KEY_SPACE)) {
     // start_point = relative_position;
     bot_phases.resize(bots.size(), ExplorationPhase::WallDiscovery);
+    bot_region_anchor.resize(bots.size(), nullptr);
     phase = CentralPhase::Explore;
   }
 
@@ -86,8 +87,11 @@ void CentralUnit::assign_frontier_regions() {
         ExplorationBot *bot = bots[i];
         Point rp = bot->get_relative_position();
         bot->target_point = target_region->get_closest_point(rp);
+
         bot_phases[i] = ExplorationPhase::RegionAlignment;
+        bot_region_anchor[i] = target_region->cells.front();
       }
+
       break;
     }
   }
@@ -110,11 +114,11 @@ void CentralUnit::run_exploration() {
     for (std::size_t i = 0; i < bots.size(); ++i) {
       ExplorationPhase bp = bot_phases[i];
       ExplorationBot *bot = bots[i];
+      auto anchor_cell = bot_region_anchor[i];
 
       auto f = [&bot_phases = bot_phases, i, bot, phase = bp,
-                grid = occupation_grid,
-                &region = current_frontier_region_id]() {
-        bot_phases[i] = bot->explore(phase, grid, region);
+                grid = occupation_grid, anchor_cell]() {
+        bot_phases[i] = bot->explore(phase, grid, anchor_cell);
       };
 
       jobs.emplace_back(std::async(std::launch::async, f));

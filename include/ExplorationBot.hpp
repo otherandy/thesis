@@ -2,7 +2,6 @@
 #define EXPLORATION_BOT_HPP
 
 #include "Bot.hpp"
-#include "Graph.hpp"
 #include "OccupationGrid.hpp"
 #include "cgal_types.hpp"
 
@@ -48,7 +47,7 @@ public:
 
   ExplorationPhase explore(ExplorationPhase phase,
                            std::shared_ptr<const OccupationGrid> grid,
-                           std::size_t &current_frontier_region_id);
+                           const Cell *anchor_cell);
 
   ExplorationPhase phase1_wall_discovery();
   ExplorationPhase phase2_wall_alignment();
@@ -59,7 +58,7 @@ public:
   phase5_region_alignment(std::shared_ptr<const OccupationGrid> grid);
   ExplorationPhase
   phase6_region_exploration(std::shared_ptr<const OccupationGrid> grid,
-                            std::size_t &current_frontier_region_id);
+                            const Cell *anchor_cell);
 
   void draw(const DrawData &draw_data) const;
 };

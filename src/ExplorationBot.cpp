@@ -1,5 +1,4 @@
 #include "ExplorationBot.hpp"
-#include "Graph.hpp"
 #include "OccupationGrid.hpp"
 #include "Utils.hpp"
 #include "cgal_types.hpp"
@@ -204,15 +203,20 @@ ExplorationPhase ExplorationBot::phase5_region_alignment(
 }
 
 ExplorationPhase ExplorationBot::phase6_region_exploration(
-    std::shared_ptr<const OccupationGrid> grid,
-    std::size_t &current_frontier_region_id) {
+    std::shared_ptr<const OccupationGrid> grid, const Cell *anchor_cell) {
 
-  if (current_frontier_region_id == 0) {
+  if (anchor_cell == nullptr) {
+    return ExplorationPhase::RegionDiscovery;
+  }
+
+  auto frontier_id = anchor_cell->frontier_id;
+
+  if (!frontier_id) {
     return ExplorationPhase::RegionDiscovery;
   }
 
   auto current_region =
-      grid->get_frontier_region_by_id(current_frontier_region_id);
+      grid->get_frontier_region_by_id(frontier_id.value());
 
   if (current_region->explored()) {
     return ExplorationPhase::RegionDiscovery;
@@ -275,7 +279,7 @@ void ExplorationBot::update_grid(std::shared_ptr<OccupationGrid> grid) {
 ExplorationPhase
 ExplorationBot::explore(ExplorationPhase phase,
                         std::shared_ptr<const OccupationGrid> grid,
-                        std::size_t &current_frontier_region_id) {
+                        const Cell *anchor_cell) {
 
   if (phase == ExplorationPhase::Complete) {
     return phase;
@@ -303,7 +307,7 @@ ExplorationBot::explore(ExplorationPhase phase,
   }
 
   if (phase == ExplorationPhase::RegionExploration) {
-    return phase6_region_exploration(grid, current_frontier_region_id);
+    return phase6_region_exploration(grid, anchor_cell);
   }
 
   return ExplorationPhase::Complete;
