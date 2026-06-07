@@ -337,6 +337,9 @@ ExplorationBot::explore(std::shared_ptr<OccupationGrid> grid,
                         std::shared_ptr<StepTraversal> traversal,
                         std::size_t &current_frontier_region_id) {
   switch (phase) {
+  case ExplorationPhase::WallDiscovery:
+    phase1_wall_discovery(grid);
+    break;
   case ExplorationPhase::WallAlignment:
     phase2_wall_alignment(grid);
     break;
@@ -353,7 +356,7 @@ ExplorationBot::explore(std::shared_ptr<OccupationGrid> grid,
     phase6_region_exploration(grid, current_frontier_region_id);
     break;
   default:
-    phase1_wall_discovery(grid);
+    break;
   }
 
   return phase;
