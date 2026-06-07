@@ -178,9 +178,8 @@ void ExplorationBot::phase3_wall_following(
 
   if (!grid->was_frontier_cell_added() && distance < SPEED * 2 &&
       left_contact_point) {
-    std::cout << "EXPLORATION: Completed wall following loop.\n";
-
     phase = ExplorationPhase::RegionDiscovery;
+    return;
   } else if (distance >= SPEED * 2) {
     left_contact_point = true;
   }
@@ -192,7 +191,6 @@ void ExplorationBot::phase3_wall_following(
   const Vector delta = move(desired_vector);
   if (delta.squared_length() <= 1e-12) {
     direction = -direction;
-    return;
   }
 }
 
@@ -204,8 +202,6 @@ void ExplorationBot::phase4_region_discovery(
   grid->compute_frontier_regions(traversal, current_frontier_region_id);
 
   if (grid->get_frontier_cell_count() <= 2) {
-    std::cout
-        << "EXPLORATION: No frontier cells found. Exploration completed.\n";
     phase = ExplorationPhase::Completed;
     return;
   }
@@ -215,8 +211,6 @@ void ExplorationBot::phase4_region_discovery(
   while (true) {
     const std::optional<vertex_t> next_region = traversal->next();
     if (!next_region) {
-      std::cout
-          << "EXPLORATION: No frontier regions found. Exploration completed.\n";
       phase = ExplorationPhase::Completed;
       return;
     }
@@ -237,8 +231,6 @@ void ExplorationBot::phase4_region_discovery(
     break;
   }
 
-  std::cout << "EXPLORATION: Targeting frontier region "
-            << current_frontier_region_id << ".\n";
   phase = ExplorationPhase::RegionAlignment;
 }
 
