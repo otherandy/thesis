@@ -41,7 +41,7 @@ private:
 
   Point get_relative_position() const;
 
-  void draw_target_point(DrawData draw_data) const;
+  void draw_target_point(const DrawData &draw_data) const;
 
 public:
   ExplorationBot(const size_t id, const Point &start_pos,
@@ -64,7 +64,7 @@ public:
   void phase6_region_exploration(std::shared_ptr<OccupationGrid> grid,
                                  std::size_t &current_frontier_region_id);
 
-  void draw(DrawData draw_data) const;
+  void draw(const DrawData &draw_data) const;
 };
 
 #endif

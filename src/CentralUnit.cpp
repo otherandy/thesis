@@ -85,7 +85,7 @@ void CentralUnit::update() {
   run_exploration();
 }
 
-void CentralUnit::draw(DrawData draw_data) {
+void CentralUnit::draw(const DrawData &draw_data) {
   occupation_grid->draw(draw_data);
 
   auto draw_bot = [&](ExplorationBot *bot) { bot->draw(draw_data); };

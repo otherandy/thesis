@@ -36,9 +36,9 @@ protected:
   void update_visited_positions();
 
   void take_lidar_readings();
-  void draw_body(DrawData draw_data) const;
-  void draw_lidar(DrawData draw_data) const;
-  void draw_readings(DrawData draw_data) const;
+  void draw_body(const DrawData &draw_data) const;
+  void draw_lidar(const DrawData &draw_data) const;
+  void draw_readings(const DrawData &draw_data) const;
   void draw_position_text() const;
 
 public:

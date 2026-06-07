@@ -28,7 +28,7 @@ inline std::pair<float, float> calculate_offset(const raylib::Window &window,
                         (window.GetHeight() - draw_height) * 0.5f);
 }
 
-inline void draw_environment(DrawData draw_data) {
+inline void draw_environment(const DrawData &draw_data) {
   auto draw_polygon_edges = [&](const Polygon &poly) {
     for (std::size_t i = 0; i < poly.size(); ++i) {
       Point p1 = poly[i];

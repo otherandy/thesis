@@ -18,9 +18,7 @@ private:
   std::size_t number_of_frontier_cells = 0;
 
   bool mark_cell(Index2D index, CellState new_state);
-
-  void draw_cell(Index2D index, DrawData draw_data) const;
-  void draw_cell_center(Index2D index, DrawData draw_data) const;
+  void draw_cell(Index2D index, const DrawData &draw_data) const;
 
 public:
   OccupationGrid();
@@ -43,7 +41,7 @@ public:
 
   std::size_t get_nearest_frontier_region_id(const Point &position) const;
 
-  void draw(DrawData draw_data) const;
+  void draw(const DrawData &draw_data) const;
   void draw_frontier_count() const;
   void save_to_file(const std::string &filename) const;
 };

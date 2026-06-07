@@ -63,20 +63,20 @@ void Bot::take_lidar_readings() {
   }
 }
 
-void Bot::draw_body(DrawData draw_data) const {
+void Bot::draw_body(const DrawData &draw_data) const {
   DrawCircle(real_position.x() * draw_data.scale_factor + draw_data.offset_x,
              real_position.y() * draw_data.scale_factor + draw_data.offset_y,
              DRAWN_BODY_RADIUS, RED);
 }
 
-void Bot::draw_lidar(DrawData draw_data) const {
+void Bot::draw_lidar(const DrawData &draw_data) const {
   DrawCircleLines(
       real_position.x() * draw_data.scale_factor + draw_data.offset_x,
       real_position.y() * draw_data.scale_factor + draw_data.offset_y,
       LIDAR_RADIUS * draw_data.scale_factor, BLUE);
 }
 
-void Bot::draw_readings(DrawData draw_data) const {
+void Bot::draw_readings(const DrawData &draw_data) const {
   float pos_x;
   float pos_y;
 

@@ -303,7 +303,7 @@ void ExplorationBot::phase6_region_exploration(
   move(desired_vector);
 }
 
-void ExplorationBot::draw_target_point(DrawData draw_data) const {
+void ExplorationBot::draw_target_point(const DrawData &draw_data) const {
   if (target_point == Point(0, 0)) {
     return;
   }
@@ -363,7 +363,7 @@ ExplorationBot::explore(std::shared_ptr<OccupationGrid> grid,
   return phase;
 }
 
-void ExplorationBot::draw(DrawData draw_data) const {
+void ExplorationBot::draw(const DrawData &draw_data) const {
   // draw_readings(draw_data);
   draw_body(draw_data);
   draw_lidar(draw_data);

@@ -7,12 +7,6 @@
 
 enum class CellState { Unknown, Free, Occupied, Visited, Frontier };
 
-const std::map<CellState, Color> CellColors = {{CellState::Unknown, GRAY},
-                                               {CellState::Free, YELLOW},
-                                               {CellState::Occupied, BLACK},
-                                               {CellState::Visited, RED},
-                                               {CellState::Frontier, BLUE}};
-
 struct Cell {
   Point center;
   CellState state;

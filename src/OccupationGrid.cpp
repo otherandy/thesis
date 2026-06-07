@@ -40,42 +40,34 @@ bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
   return true;
 }
 
-void OccupationGrid::draw_cell(Index2D cell_index, DrawData draw_data) const {
-  const Cell cell = grid[cell_index.first][cell_index.second];
-
-  if (cell.state == CellState::Unknown) {
-    return;
-  }
-
-  const double relative_x = (cell_index.second * CELL_SIZE) - ENV_WIDTH;
-  const double relative_y = (cell_index.first * CELL_SIZE) - ENV_HEIGHT;
-
-  const float screen_x =
-      (origin.x() + relative_x) * draw_data.scale_factor + draw_data.offset_x;
-  const float screen_y =
-      (origin.y() + relative_y) * draw_data.scale_factor + draw_data.offset_y;
-  const float cell_size_scaled = CELL_SIZE * draw_data.scale_factor;
-
-  if (cell.state == CellState::Frontier) {
-    const int frontier_id = cell.frontier_id.value();
-    const int color_idx = frontier_id % FrontierColors.size();
-    const Color color = FrontierColors[color_idx];
-
-    DrawRectangleLines(screen_x, screen_y, cell_size_scaled, cell_size_scaled,
-                       color);
-    return;
-  }
-
-  Color color = CellColors.at(cell.state);
-
-  DrawRectangleLines(screen_x, screen_y, cell_size_scaled, cell_size_scaled,
-                     color);
-}
-
-void OccupationGrid::draw_cell_center(Index2D index, DrawData draw_data) const {
+void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
   const Cell &cell = grid[index.first][index.second];
 
   if (cell.state == CellState::Unknown) {
+    return;
+  }
+
+  Color color;
+
+  switch (cell.state) {
+  case CellState::Free:
+    color = raylib::YELLOW;
+    break;
+  case CellState::Occupied:
+    color = raylib::BLACK;
+    break;
+  case CellState::Visited:
+    color = raylib::RED;
+    break;
+  case CellState::Frontier:
+    color = raylib::BLUE;
+    if (cell.frontier_id) {
+      const int frontier_id = cell.frontier_id.value();
+      const int color_idx = frontier_id % FrontierColors.size();
+      color = FrontierColors[color_idx];
+    }
+    break;
+  default:
     return;
   }
 
@@ -86,20 +78,7 @@ void OccupationGrid::draw_cell_center(Index2D index, DrawData draw_data) const {
       (cell.center.y() + origin.y()) * draw_data.scale_factor +
       draw_data.offset_y;
 
-  if (cell.state == CellState::Frontier) {
-    Color color = CellColors.at(CellState::Frontier);
-
-    if (cell.frontier_id) {
-      const int frontier_id = cell.frontier_id.value();
-      const int color_idx = frontier_id % FrontierColors.size();
-      color = FrontierColors[color_idx];
-    }
-
-    DrawCircle(screen_x, screen_y, 2, color);
-    return;
-  }
-
-  DrawCircle(screen_x, screen_y, 2, CellColors.at(cell.state));
+  DrawRectangle(screen_x, screen_y, 2, 2, color);
 }
 
 OccupationGrid::OccupationGrid() {
@@ -388,10 +367,10 @@ OccupationGrid::get_nearest_frontier_region_id(const Point &position) const {
   return nearest_region_id;
 }
 
-void OccupationGrid::draw(DrawData draw_data) const {
+void OccupationGrid::draw(const DrawData &draw_data) const {
   for (int y = 0; y < MAP_HEIGHT; ++y) {
     for (int x = 0; x < MAP_WIDTH; ++x) {
-      draw_cell_center({y, x}, draw_data);
+      draw_cell({y, x}, draw_data);
     }
   }
 }

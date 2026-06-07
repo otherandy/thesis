@@ -36,7 +36,7 @@ public:
   void register_bot(ExplorationBot *bot);
   void get_input_and_move();
   void update();
-  void draw(DrawData draw_data);
+  void draw(const DrawData &draw_data);
   void reset();
   void report_time();
 };
