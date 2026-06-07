@@ -25,6 +25,7 @@ enum class ExplorationPhase {
 
 class ExplorationBot : public Bot {
 private:
+  const size_t id;
   ExplorationPhase phase;
 
   Vector direction;
@@ -43,8 +44,8 @@ private:
   void draw_target_point(DrawData draw_data) const;
 
 public:
-  ExplorationBot(const Point &start_pos, const Vector &start_dir,
-                 bool clockwise);
+  ExplorationBot(const size_t id, const Point &start_pos,
+                 const Vector &start_dir, bool clockwise);
   void reset();
   void update();
   ExplorationPhase explore(std::shared_ptr<OccupationGrid> grid,
