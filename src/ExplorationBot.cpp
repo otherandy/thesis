@@ -320,9 +320,10 @@ void ExplorationBot::draw_target_point(DrawData draw_data) const {
       DRAWN_POINT_RADIUS, ORANGE);
 }
 
-ExplorationBot::ExplorationBot(const Point &start_pos, const Vector &start_dir,
-                               bool clockwise)
-    : Bot(start_pos), clockwise_following(clockwise) {
+ExplorationBot::ExplorationBot(const size_t id, const Point &start_pos,
+                               const Vector &start_dir, bool clockwise)
+    : Bot(start_pos), id(id), clockwise_following(clockwise) {
+
   direction = start_dir;
 }
 

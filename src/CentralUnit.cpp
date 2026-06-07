@@ -3,6 +3,7 @@
 #include "Graph.hpp"
 #include "OccupationGrid.hpp"
 #include <algorithm>
+#include <future>
 #include <memory>
 
 CentralUnit::CentralUnit() { reset(); }
@@ -70,8 +71,15 @@ void CentralUnit::update() {
     return;
   }
 
+  std::vector<std::future<void>> update_jobs;
+
   for (ExplorationBot *bot : bots) {
-    bot->update();
+    update_jobs.emplace_back(
+        std::async(std::launch::async, [bot]() { bot->update(); }));
+  }
+
+  for (auto &job : update_jobs) {
+    job.get();
   }
 
   run_exploration();
