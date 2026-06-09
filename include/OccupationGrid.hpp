@@ -33,8 +33,6 @@ public:
   void mark_cells(const Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings);
 
-  bool there_is_obstacle_between(const Point &from, const Point &to) const;
-
   FrontierRegion *get_frontier_region_by_id(std::size_t id);
   const FrontierRegion *get_frontier_region_by_id(std::size_t id) const;
 

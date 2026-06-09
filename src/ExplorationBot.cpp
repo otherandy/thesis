@@ -54,7 +54,8 @@ void ExplorationBot::phase2_wall_alignment() {
   move(to_wall);
 }
 
-Vector ExplorationBot::compute_wall_following_vector() {
+Vector ExplorationBot::compute_wall_following_vector(
+    const Vector &preferred_direction) {
   auto cross_z = [&](const Vector &a, const Vector &b) -> double {
     return a.x() * b.y() - a.y() * b.x();
   };
@@ -142,6 +143,15 @@ Vector ExplorationBot::compute_wall_following_vector() {
     forward = fitted_line.to_vector();
   }
 
+  Vector desired_unit = normalize_vector(preferred_direction);
+  if (desired_unit.squared_length() <= 1e-12) {
+    desired_unit = heading_unit;
+  }
+
+  if ((forward * desired_unit) < 0) {
+    forward = -forward;
+  }
+
   if ((forward * heading_unit) < 0) {
     forward = -forward;
   }
@@ -178,6 +188,26 @@ void ExplorationBot::phase3_wall_following(
   }
 }
 
+bool ExplorationBot::path_blocked_to(const Point &target) const {
+  Point rp = get_relative_position();
+  Vector to_target = target - rp;
+
+  double target_dist = std::sqrt(to_target.squared_length());
+
+  double target_angle = std::atan2(to_target.y(), to_target.x());
+  if (target_angle < 0) {
+    target_angle += 2.0 * M_PI;
+  }
+
+  const double angle_step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
+  std::size_t idx =
+      static_cast<std::size_t>(std::lround(target_angle / angle_step)) %
+      MAX_LIDAR_SAMPLES;
+
+  constexpr double eps = 2.0 * LIDAR_RESOLUTION;
+  return current_readings[idx].distance + eps < target_dist;
+}
+
 void ExplorationBot::phase5_region_alignment(
     std::shared_ptr<const OccupationGrid> grid) {
   if (target_region == nullptr) {
@@ -197,9 +227,8 @@ void ExplorationBot::phase5_region_alignment(
 
   Vector desired_vector = target_point - rp;
 
-  if (closest_wall_reading_index &&
-      grid->there_is_obstacle_between(rp, target_point)) {
-    desired_vector = compute_wall_following_vector();
+  if (path_blocked_to(target_point)) {
+    desired_vector = compute_wall_following_vector(desired_vector);
   }
 
   move(desired_vector);

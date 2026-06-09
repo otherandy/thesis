@@ -8,8 +8,8 @@
 constexpr std::size_t MAX_LIDAR_SAMPLES = 360;
 
 const Point START_POSITION(9.0, 9.0);
-const double LIDAR_RADIUS = 1.5;
-const double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
+constexpr double LIDAR_RADIUS = 1.5;
+constexpr double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
 
 const float DRAWN_BODY_RADIUS = 5.0;
 const float DRAWN_POINT_RADIUS = 3.0;

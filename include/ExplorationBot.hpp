@@ -30,6 +30,8 @@ private:
   Point start_point;
   Point contact_point;
 
+  bool path_blocked_to(const Point &target) const;
+
 public:
   ExplorationBot(const Point &start_pos, const Vector &start_dir,
                  bool clockwise);
@@ -46,7 +48,8 @@ public:
 
   void phase1_wall_discovery();
   void phase2_wall_alignment();
-  Vector compute_wall_following_vector();
+  Vector compute_wall_following_vector(
+      const Vector &preferred_direction = Vector(0, 0));
 
   void phase3_wall_following(std::shared_ptr<const OccupationGrid> grid);
   void phase5_region_alignment(std::shared_ptr<const OccupationGrid> grid);
