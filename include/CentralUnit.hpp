@@ -18,22 +18,19 @@ class CentralUnit {
 private:
   CentralPhase phase = CentralPhase::Idle;
   std::vector<ExplorationBot *> bots;
-  std::vector<ExplorationPhase> bot_phases;
-  std::vector<Cell *> bot_region_anchor;
 
   bool is_paused = false;
   std::shared_ptr<OccupationGrid> occupation_grid;
 
   std::shared_ptr<Graph> frontier_region_graph;
   std::shared_ptr<StepTraversal> traversal_algorithm;
-
   std::size_t current_frontier_region_id = 1;
 
   Timer p1, p2, p3, p4, p5, p6;
 
   void assign_frontier_regions();
   void run_exploration();
-  void check_collisions();
+  void check_collisions_during_wall();
 
 public:
   CentralUnit();

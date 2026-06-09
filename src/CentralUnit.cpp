@@ -1,6 +1,6 @@
 #include "CentralUnit.hpp"
 #include "ExplorationBot.hpp"
-#include "Graph.hpp"
+#include "FrontierRegion.hpp"
 #include "OccupationGrid.hpp"
 #include <CGAL/number_utils.h>
 #include <algorithm>
@@ -27,9 +27,10 @@ void CentralUnit::get_input_and_move() {
   }
 
   if (IsKeyPressed(KEY_SPACE)) {
-    // start_point = relative_position;
-    bot_phases.resize(bots.size(), ExplorationPhase::WallDiscovery);
-    bot_region_anchor.resize(bots.size(), nullptr);
+    for (ExplorationBot *bot : bots) {
+      bot->reset();
+    }
+
     phase = CentralPhase::Explore;
   }
 
@@ -48,51 +49,50 @@ void CentralUnit::get_input_and_move() {
 }
 
 void CentralUnit::assign_frontier_regions() {
-  std::vector<std::size_t> phase4_bots;
+  bool ran_compute = false;
+  FrontierRegion *target_region = nullptr;
 
-  for (std::size_t i = 0; i < bots.size(); ++i) {
-    ExplorationPhase bp = bot_phases[i];
-    ExplorationBot *bot = bots[i];
+  for (ExplorationBot *bot : bots) {
+    if (bot->phase == ExplorationPhase::RegionDiscovery) {
 
-    if (bp == ExplorationPhase::RegionDiscovery) {
-      phase4_bots.push_back(i);
-    }
-  }
+      if (!ran_compute) {
+        occupation_grid->compute_frontier_regions(traversal_algorithm,
+                                                  current_frontier_region_id);
 
-  if (phase4_bots.size() > 0) {
-    occupation_grid->compute_frontier_regions(traversal_algorithm,
-                                              current_frontier_region_id);
+        while (true) {
+          const std::optional<vertex_t> next_region =
+              traversal_algorithm->next();
 
-    while (true) {
-      const std::optional<vertex_t> next_region = traversal_algorithm->next();
-      if (!next_region) {
-        phase = CentralPhase::Complete;
-        return;
+          if (!next_region) {
+            phase = CentralPhase::Complete;
+            return;
+          }
+
+          if (*next_region == 0) {
+            continue;
+          }
+
+          target_region =
+              occupation_grid->get_frontier_region_by_id(*next_region);
+
+          if (!target_region) {
+            continue;
+          }
+
+          if (target_region->explored()) {
+            continue;
+          }
+
+          current_frontier_region_id = *next_region;
+
+          break;
+        }
+
+        ran_compute = true;
       }
 
-      const auto target_region =
-          occupation_grid->get_frontier_region_by_id(*next_region);
-
-      if (!target_region) {
-        continue;
-      }
-
-      if (target_region->explored()) {
-        continue;
-      }
-
-      current_frontier_region_id = *next_region;
-
-      for (std::size_t i : phase4_bots) {
-        ExplorationBot *bot = bots[i];
-        Point rp = bot->get_relative_position();
-        bot->target_point = target_region->get_closest_point(rp);
-
-        bot_phases[i] = ExplorationPhase::RegionAlignment;
-        bot_region_anchor[i] = target_region->cells.front();
-      }
-
-      break;
+      bot->phase = ExplorationPhase::RegionAlignment;
+      bot->target_region = target_region;
     }
   }
 }
@@ -107,19 +107,13 @@ void CentralUnit::run_exploration() {
   }
 
   if (phase == CentralPhase::Explore) {
-    std::vector<std::future<void>> jobs;
-
+    check_collisions_during_wall();
     assign_frontier_regions();
 
-    for (std::size_t i = 0; i < bots.size(); ++i) {
-      ExplorationPhase bp = bot_phases[i];
-      ExplorationBot *bot = bots[i];
-      auto anchor_cell = bot_region_anchor[i];
+    std::vector<std::future<void>> jobs;
 
-      auto f = [&bot_phases = bot_phases, i, bot, phase = bp,
-                grid = occupation_grid, anchor_cell]() {
-        bot_phases[i] = bot->explore(phase, grid, anchor_cell);
-      };
+    for (ExplorationBot *bot : bots) {
+      auto f = [bot, grid = occupation_grid]() { bot->explore(grid); };
 
       jobs.emplace_back(std::async(std::launch::async, f));
     }
@@ -130,22 +124,31 @@ void CentralUnit::run_exploration() {
   }
 }
 
-void CentralUnit::check_collisions() {
-  for (std::size_t i = 0; i < bots.size(); ++i) {
-    ExplorationBot *bot1 = bots[i];
+void CentralUnit::check_collisions_during_wall() {
+  for (ExplorationBot *bot1 : bots) {
+    if (bot1->phase != ExplorationPhase::WallFollowing) {
+      continue;
+    }
+
     Point pos1 = bot1->get_relative_position();
 
-    for (std::size_t j = i + 1; j < bots.size(); ++j) {
-      ExplorationBot *bot2 = bots[j];
+    for (ExplorationBot *bot2 : bots) {
+      if (bot1 == bot2) {
+        continue;
+      }
+
+      if (bot2->phase != ExplorationPhase::WallFollowing) {
+        continue;
+      }
+
       Point pos2 = bot2->get_relative_position();
 
       const double distance = CGAL::sqrt(CGAL::squared_distance(pos1, pos2));
 
-      if (distance < SPEED * 2) {
-        if (bot1->left_contact_point && bot2->left_contact_point) {
-          bot_phases[i] = ExplorationPhase::RegionDiscovery;
-          bot_phases[j] = ExplorationPhase::RegionDiscovery;
-        }
+      if (distance < SPEED * 3 && bot1->left_contact_point &&
+          bot2->left_contact_point) {
+        bot1->phase = ExplorationPhase::RegionDiscovery;
+        bot2->phase = ExplorationPhase::RegionDiscovery;
       }
     }
   }
@@ -172,8 +175,6 @@ void CentralUnit::update() {
   for (ExplorationBot *bot : bots) {
     bot->update_grid(occupation_grid);
   }
-
-  check_collisions();
 
   run_exploration();
 }
@@ -225,16 +226,7 @@ void CentralUnit::report_time() {
   const double p6t = p6.get_time();
   const double total_time = p1t + p2t + p3t + p4t + p5t + p6t;
 
-  std::cout << "Phase 1 (Wall Discovery): " << p1t << "s\n";
-  std::cout << "Phase 2 (Wall Alignment): " << p2t << "s\n";
-  std::cout << "Phase 3 (Wall Following): " << p3t << "s\n";
-
   std::cout << "Physical Time: " << p1t + p2t + p3t << "s\n";
-
-  std::cout << "Phase 4 (Region Discovery): " << p4t << "s\n";
-  std::cout << "Phase 5 (Region Alignment): " << p5t << "s\n";
-  std::cout << "Phase 6 (Region Exploration): " << p6t << "s\n";
-
   std::cout << "Virtual Time: " << p4t + p5t + p6t << "s\n";
 
   std::cout << "Total Exploration Time: " << total_time << "s\n";

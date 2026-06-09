@@ -2,6 +2,7 @@
 #include "FrontierRegion.hpp"
 #include "Utils.hpp"
 #include <limits>
+#include <queue>
 
 bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
   Cell &cell = grid[index.first][index.second];
@@ -370,7 +371,7 @@ OccupationGrid::get_nearest_frontier_region_id(const Point &position) const {
 
     if (distance < nearest_distance) {
       nearest_distance = distance;
-      nearest_region_id = region.id;
+      nearest_region_id = region.id.value_or(0);
     }
   }
 

@@ -2,6 +2,7 @@
 #define EXPLORATION_BOT_HPP
 
 #include "Bot.hpp"
+#include "FrontierRegion.hpp"
 #include "OccupationGrid.hpp"
 #include "cgal_types.hpp"
 
@@ -23,42 +24,33 @@ enum class ExplorationPhase {
 
 class ExplorationBot : public Bot {
 private:
-  Vector direction;
-  Point start_point;
-
-  Point contact_point;
-
   bool clockwise_following;
 
-  std::size_t last_closest_reading;
-
-  void draw_target_point(const DrawData &draw_data) const;
+  Vector direction;
+  Point start_point;
+  Point contact_point;
 
 public:
   ExplorationBot(const Point &start_pos, const Vector &start_dir,
                  bool clockwise);
 
-  Point get_relative_position() const;
-  Point target_point;
-  bool left_contact_point = false;
+  ExplorationPhase phase = ExplorationPhase::WallDiscovery;
+  const FrontierRegion *target_region = nullptr;
+  bool left_contact_point;
 
+  Point get_relative_position() const;
   void reset();
   void update_grid(std::shared_ptr<OccupationGrid> grid);
 
-  ExplorationPhase explore(ExplorationPhase phase,
-                           std::shared_ptr<const OccupationGrid> grid,
-                           const Cell *anchor_cell);
+  void explore(std::shared_ptr<const OccupationGrid> grid);
 
-  ExplorationPhase phase1_wall_discovery();
-  ExplorationPhase phase2_wall_alignment();
+  void phase1_wall_discovery();
+  void phase2_wall_alignment();
   Vector compute_wall_following_vector();
-  ExplorationPhase
-  phase3_wall_following(std::shared_ptr<const OccupationGrid> grid);
-  ExplorationPhase
-  phase5_region_alignment(std::shared_ptr<const OccupationGrid> grid);
-  ExplorationPhase
-  phase6_region_exploration(std::shared_ptr<const OccupationGrid> grid,
-                            const Cell *anchor_cell);
+
+  void phase3_wall_following(std::shared_ptr<const OccupationGrid> grid);
+  void phase5_region_alignment(std::shared_ptr<const OccupationGrid> grid);
+  void phase6_region_exploration(std::shared_ptr<const OccupationGrid> grid);
 
   void draw(const DrawData &draw_data) const;
 };
