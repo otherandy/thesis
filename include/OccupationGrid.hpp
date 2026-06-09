@@ -12,9 +12,6 @@ private:
   const Point origin = environment_center();
   Grid2D<Cell> grid;
 
-  bool frontier_cell_was_added = false;
-  std::size_t number_of_frontier_cells = 0;
-
   bool mark_cell(Index2D index, CellState new_state);
   void draw_cell(Index2D index, const DrawData &draw_data) const;
 
@@ -24,10 +21,6 @@ public:
   OccupationGrid();
 
   Grid2D<Cell> &get_grid() { return grid; }
-
-  bool was_frontier_cell_added() const { return frontier_cell_was_added; }
-  int get_frontier_cell_count() const { return number_of_frontier_cells; }
-
   const Cell &get_cell_from_position(const Point &position) const;
 
   void mark_cells(const Point &relative_position,
@@ -38,8 +31,6 @@ public:
 
   void compute_frontier_regions(std::shared_ptr<StepTraversal> traversal_graph,
                                 std::size_t &current_parent_region_id);
-
-  std::size_t get_nearest_frontier_region_id(const Point &position) const;
 
   void draw(const DrawData &draw_data) const;
   void save_to_file(const std::string &filename) const;

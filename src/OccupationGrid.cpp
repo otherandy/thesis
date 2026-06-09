@@ -1,7 +1,6 @@
 #include "OccupationGrid.hpp"
 #include "FrontierRegion.hpp"
 #include "Utils.hpp"
-#include <limits>
 #include <queue>
 
 bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
@@ -21,20 +20,6 @@ bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
   // Don't mark known cells as Frontier
   if (cell.state == CellState::Free && new_state == CellState::Frontier) {
     return false;
-  }
-
-  // Indicate that a frontier cell was added this update
-  if (new_state == CellState::Frontier) {
-    frontier_cell_was_added = true;
-  }
-
-  // Update frontier cell count
-  if (cell.state != CellState::Frontier && new_state == CellState::Frontier) {
-    number_of_frontier_cells++;
-  }
-
-  if (cell.state == CellState::Frontier && new_state != CellState::Frontier) {
-    number_of_frontier_cells--;
   }
 
   cell.state = new_state;
@@ -104,7 +89,6 @@ void OccupationGrid::mark_cells(
 
   mark_cell(relative_cell_index, CellState::Visited);
 
-  frontier_cell_was_added = false;
   std::vector<int> frontier_cells_to_update;
 
   for (const Reading &r : readings) {
@@ -269,28 +253,6 @@ void OccupationGrid::compute_frontier_regions(
   }
 
   traversal_graph->post_update();
-}
-
-std::size_t
-OccupationGrid::get_nearest_frontier_region_id(const Point &position) const {
-  std::size_t nearest_region_id = 0;
-  double nearest_distance = std::numeric_limits<double>::max();
-
-  for (const FrontierRegion &region : frontier_regions) {
-    if (region.explored()) {
-      continue;
-    }
-
-    const double distance =
-        CGAL::squared_distance(position, region.get_closest_point(position));
-
-    if (distance < nearest_distance) {
-      nearest_distance = distance;
-      nearest_region_id = region.id.value_or(0);
-    }
-  }
-
-  return nearest_region_id;
 }
 
 void OccupationGrid::draw(const DrawData &draw_data) const {
