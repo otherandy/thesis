@@ -6,11 +6,17 @@
 #include "DrawUtils.hpp"
 #include "FrontierRegion.hpp"
 #include "Graph.hpp"
+#include "Grid.hpp"
 
 class OccupationGrid {
 private:
   const Point origin = environment_center();
   Grid2D<Cell> grid;
+
+  std::size_t grid_min_y = MAP_HEIGHT;
+  std::size_t grid_max_y = 0;
+  std::size_t grid_min_x = MAP_WIDTH;
+  std::size_t grid_max_x = 0;
 
   bool mark_cell(Index2D index, CellState new_state);
   void draw_cell(Index2D index, const DrawData &draw_data) const;

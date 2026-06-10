@@ -1,9 +1,23 @@
 #include "OccupationGrid.hpp"
 #include "FrontierRegion.hpp"
+#include "Grid.hpp"
 #include "Utils.hpp"
 #include <queue>
 
 bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
+  if (index.first < grid_min_y) {
+    grid_min_y = index.first;
+  }
+  if (index.first > grid_max_y) {
+    grid_max_y = index.first + INV_CELL_SIZE;
+  }
+  if (index.second < grid_min_x) {
+    grid_min_x = index.second;
+  }
+  if (index.second > grid_max_x) {
+    grid_max_x = index.second + INV_CELL_SIZE;
+  }
+
   Cell &cell = grid[index.first][index.second];
 
   // Always overwrite cells to Visited
@@ -48,8 +62,8 @@ void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
   case CellState::Frontier:
     color = raylib::BLUE;
     if (cell.frontier_id) {
-      const int frontier_id = cell.frontier_id.value();
-      const int color_idx = frontier_id % FrontierColors.size();
+      const std::size_t frontier_id = cell.frontier_id.value();
+      const std::size_t color_idx = frontier_id % FrontierColors.size();
       color = FrontierColors[color_idx];
     }
     break;
@@ -68,8 +82,8 @@ void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
 }
 
 OccupationGrid::OccupationGrid() {
-  for (int y = 0; y < MAP_HEIGHT; ++y) {
-    for (int x = 0; x < MAP_WIDTH; ++x) {
+  for (std::size_t y = 0; y < MAP_HEIGHT; ++y) {
+    for (std::size_t x = 0; x < MAP_WIDTH; ++x) {
       const double cell_center_x = (x + 0.5) * CELL_SIZE - ENV_WIDTH;
       const double cell_center_y = (y + 0.5) * CELL_SIZE - ENV_HEIGHT;
 
@@ -89,7 +103,7 @@ void OccupationGrid::mark_cells(
 
   mark_cell(relative_cell_index, CellState::Visited);
 
-  std::vector<int> frontier_cells_to_update;
+  std::vector<std::size_t> frontier_cells_to_update;
 
   for (const Reading &r : readings) {
     const double hit_x_rel = rel_pos_x + r.distance * cos(r.angle);
@@ -104,7 +118,7 @@ void OccupationGrid::mark_cells(
     double curr_x = rel_pos_x;
     double curr_y = rel_pos_y;
 
-    for (int i = 0; i < steps_count; ++i) {
+    for (std::size_t i = 0; i < steps_count; ++i) {
       const Index2D cell = get_cell_index_from(curr_x, curr_y);
 
       mark_cell(cell, CellState::Free);
@@ -187,8 +201,8 @@ void OccupationGrid::compute_frontier_regions(
 
   std::unordered_set<Cell *> visited;
 
-  for (int y = 0; y < MAP_HEIGHT; ++y) {
-    for (int x = 0; x < MAP_WIDTH; ++x) {
+  for (std::size_t y = 0; y < MAP_HEIGHT; ++y) {
+    for (std::size_t x = 0; x < MAP_WIDTH; ++x) {
       Cell &cell = grid[y][x];
 
       if (visited.count(&cell)) {
@@ -256,8 +270,8 @@ void OccupationGrid::compute_frontier_regions(
 }
 
 void OccupationGrid::draw(const DrawData &draw_data) const {
-  for (int y = 0; y < MAP_HEIGHT; ++y) {
-    for (int x = 0; x < MAP_WIDTH; ++x) {
+  for (std::size_t y = grid_min_y; y < grid_max_y; ++y) {
+    for (std::size_t x = grid_min_x; x < grid_max_x; ++x) {
       draw_cell({y, x}, draw_data);
     }
   }
@@ -273,8 +287,8 @@ void OccupationGrid::save_to_file(const std::string &filename) const {
     return;
   }
 
-  for (int y = 0; y < MAP_HEIGHT; ++y) {
-    for (int x = 0; x < MAP_WIDTH; ++x) {
+  for (std::size_t y = 0; y < MAP_HEIGHT; ++y) {
+    for (std::size_t x = 0; x < MAP_WIDTH; ++x) {
       f << static_cast<int>(grid[y][x].state) << " ";
     }
     f << "\n";
