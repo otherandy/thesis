@@ -8,7 +8,7 @@
 enum class CellState { Unknown, Free, Occupied, Visited, Frontier };
 
 struct Cell {
-  Point center;
+  Robot::Point center;
   CellState state;
   std::optional<std::size_t> frontier_id;
 

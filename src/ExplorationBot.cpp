@@ -4,10 +4,10 @@
 #include "cgal_types.hpp"
 #include <CGAL/linear_least_squares_fitting_2.h>
 
-Point ExplorationBot::get_relative_position() const {
-  const Point rp = get_real_position();
-  const Point c = environment_center();
-  return Point(rp.x() - c.x(), rp.y() - c.y());
+Robot::Point ExplorationBot::get_relative_position() const {
+  const Robot::Point rp = get_real_position();
+  const Robot::Point c = environment_center();
+  return Robot::Point(rp.x() - c.x(), rp.y() - c.y());
 }
 
 void ExplorationBot::reset() {
@@ -19,7 +19,7 @@ void ExplorationBot::reset() {
 }
 
 void ExplorationBot::phase1_wall_discovery() {
-  for (const auto &r : current_readings) {
+  for (const Reading &r : current_readings) {
     if (r.distance < LIDAR_RADIUS) {
       phase = ExplorationPhase::WallAlignment;
       return;
@@ -34,11 +34,11 @@ void ExplorationBot::phase2_wall_alignment() {
       current_readings[closest_wall_reading_index.value()];
 
   if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
-    const Vector to_wall =
-        Vector(cos(closest_reading.angle), sin(closest_reading.angle));
+    const Robot::Vector to_wall =
+        Robot::Vector(cos(closest_reading.angle), sin(closest_reading.angle));
 
-    const Vector tangent_right(-to_wall.y(), to_wall.x());
-    const Vector tangent_left(to_wall.y(), -to_wall.x());
+    const Robot::Vector tangent_right(-to_wall.y(), to_wall.x());
+    const Robot::Vector tangent_left(to_wall.y(), -to_wall.x());
     direction = clockwise_following ? tangent_right : tangent_left;
 
     left_contact_point = false;
@@ -48,21 +48,19 @@ void ExplorationBot::phase2_wall_alignment() {
     return;
   }
 
-  const Vector to_wall =
-      Vector(cos(closest_reading.angle), sin(closest_reading.angle));
-
-  move(to_wall);
+  move(Robot::Vector(cos(closest_reading.angle), sin(closest_reading.angle)));
 }
 
-Vector ExplorationBot::compute_wall_following_vector(
-    const Vector &preferred_direction) {
-  auto cross_z = [&](const Vector &a, const Vector &b) -> double {
+Robot::Vector ExplorationBot::compute_wall_following_vector(
+    const Robot::Vector &preferred_direction) {
+
+  auto cross_z = [&](const Robot::Vector &a, const Robot::Vector &b) -> double {
     return a.x() * b.y() - a.y() * b.x();
   };
 
-  Vector heading_unit = normalize_vector(direction);
+  Robot::Vector heading_unit = normalize_vector(direction);
   if (heading_unit.squared_length() <= 1e-12) {
-    heading_unit = Vector(1, 0);
+    heading_unit = Robot::Vector(1, 0);
   }
 
   std::optional<std::size_t> side_ref = std::nullopt;
@@ -74,7 +72,7 @@ Vector ExplorationBot::compute_wall_following_vector(
       continue;
     }
 
-    const Vector to_hit(cos(r.angle), sin(r.angle));
+    const Robot::Vector to_hit(cos(r.angle), sin(r.angle));
     const double side = cross_z(heading_unit, to_hit);
 
     const bool on_right = (side < 0.0);
@@ -100,7 +98,7 @@ Vector ExplorationBot::compute_wall_following_vector(
     return direction;
   }
 
-  std::vector<Point> wall_points;
+  std::vector<Robot::Point> wall_points;
   wall_points.reserve(64);
 
   // prev
@@ -130,20 +128,20 @@ Vector ExplorationBot::compute_wall_following_vector(
     }
   }
 
-  const auto &ref_r = current_readings[ref];
-  const Vector to_wall(cos(ref_r.angle), sin(ref_r.angle));
+  const Reading &ref_r = current_readings[ref];
+  const Robot::Vector to_wall(cos(ref_r.angle), sin(ref_r.angle));
 
-  Vector forward;
+  Robot::Vector forward;
   if (wall_points.size() < 2) {
-    forward = Vector(-to_wall.y(), to_wall.x());
+    forward = Robot::Vector(-to_wall.y(), to_wall.x());
   } else {
-    CGAL::Line_2<Kernel> fitted_line;
+    CGAL::Line_2<Robot::Kernel> fitted_line;
     CGAL::linear_least_squares_fitting_2(wall_points.begin(), wall_points.end(),
                                          fitted_line, CGAL::Dimension_tag<0>());
     forward = fitted_line.to_vector();
   }
 
-  Vector desired_unit = normalize_vector(preferred_direction);
+  Robot::Vector desired_unit = normalize_vector(preferred_direction);
   if (desired_unit.squared_length() <= 1e-12) {
     desired_unit = heading_unit;
   }
@@ -168,7 +166,7 @@ Vector ExplorationBot::compute_wall_following_vector(
 void ExplorationBot::phase3_wall_following(
     std::shared_ptr<const OccupationGrid> grid) {
 
-  const Point rp = get_relative_position();
+  const Robot::Point rp = get_relative_position();
   const double distance = std::sqrt(CGAL::squared_distance(rp, contact_point));
 
   if (left_contact_point && distance < SPEED * 2) {
@@ -180,19 +178,19 @@ void ExplorationBot::phase3_wall_following(
     left_contact_point = true;
   }
 
-  Vector desired_vector = compute_wall_following_vector();
+  Robot::Vector desired_vector = compute_wall_following_vector();
 
-  const Vector delta = move(desired_vector);
+  const Robot::Vector delta = move(desired_vector);
   if (delta.squared_length() <= 1e-12) {
     direction = -direction;
   }
 }
 
-bool ExplorationBot::path_blocked_to(const Point &target) const {
-  Point rp = get_relative_position();
-  Vector to_target = target - rp;
+bool ExplorationBot::path_blocked_to(const Robot::Point &target) const {
+  const Robot::Point rp = get_relative_position();
+  const Robot::Vector to_target = target - rp;
 
-  double target_dist = std::sqrt(to_target.squared_length());
+  const double target_dist = std::sqrt(to_target.squared_length());
 
   double target_angle = std::atan2(to_target.y(), to_target.x());
   if (target_angle < 0) {
@@ -214,8 +212,8 @@ void ExplorationBot::phase5_region_alignment(
     return;
   }
 
-  const Point rp = get_relative_position();
-  const Point target_point =
+  const Robot::Point rp = get_relative_position();
+  const Robot::Point target_point =
       target_region->get_closest_point(get_relative_position());
 
   const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
@@ -225,7 +223,7 @@ void ExplorationBot::phase5_region_alignment(
     return;
   }
 
-  Vector desired_vector = target_point - rp;
+  Robot::Vector desired_vector = target_point - rp;
 
   if (path_blocked_to(target_point)) {
     desired_vector = compute_wall_following_vector(desired_vector);
@@ -247,7 +245,7 @@ void ExplorationBot::phase6_region_exploration(
     return;
   }
 
-  const Point rp = get_relative_position();
+  const Robot::Point rp = get_relative_position();
 
   auto target_point = target_region->get_closest_unexplored(rp);
 
@@ -255,10 +253,10 @@ void ExplorationBot::phase6_region_exploration(
     phase = ExplorationPhase::RegionDiscovery;
   }
 
-  Vector desired_vector;
+  Robot::Vector desired_vector;
 
   if (closest_wall_reading_index) {
-    Point closest_wall_point =
+    Robot::Point closest_wall_point =
         reading_index_to_point(closest_wall_reading_index.value());
     auto obstacle_cell = grid->get_cell_from_position(closest_wall_point);
 
@@ -272,15 +270,15 @@ void ExplorationBot::phase6_region_exploration(
   move(desired_vector);
 }
 
-ExplorationBot::ExplorationBot(const Point &start_pos, const Vector &start_dir,
-                               bool clockwise)
+ExplorationBot::ExplorationBot(const Robot::Point &start_pos,
+                               const Robot::Vector &start_dir, bool clockwise)
     : Bot(start_pos), clockwise_following(clockwise) {
 
   direction = start_dir;
 }
 
 void ExplorationBot::update_grid(std::shared_ptr<OccupationGrid> grid) {
-  const Point rp = get_relative_position();
+  const Robot::Point rp = get_relative_position();
   grid->mark_cells(rp, current_readings);
 }
 

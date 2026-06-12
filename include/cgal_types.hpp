@@ -5,11 +5,14 @@
 #include <CGAL/Polygon_with_holes_2.h>
 #include <CGAL/Simple_cartesian.h>
 
+namespace Robot {
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point = Kernel::Point_2;
 using Vector = Kernel::Vector_2;
 using Direction = Kernel::Direction_2;
 using Polygon = CGAL::Polygon_2<Kernel>;
 using PolygonWithHoles = CGAL::Polygon_with_holes_2<Kernel>;
+using Rectangle = CGAL::Iso_rectangle_2<Kernel>;
+} // namespace Robot
 
 #endif

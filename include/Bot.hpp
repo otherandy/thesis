@@ -7,7 +7,7 @@
 
 constexpr std::size_t MAX_LIDAR_SAMPLES = 360;
 
-const Point START_POSITION(9.0, 9.0);
+const Robot::Point START_POSITION(9.0, 9.0);
 constexpr double LIDAR_RADIUS = 1.5;
 constexpr double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
 
@@ -23,16 +23,16 @@ struct Reading {
 
 class Bot {
 private:
-  Point real_position;
+  Robot::Point real_position;
 
 protected:
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
   std::optional<std::size_t> closest_wall_reading_index = std::nullopt;
 
   void reset();
-  Point reading_index_to_point(std::size_t index) const;
+  Robot::Point reading_index_to_point(std::size_t index) const;
 
-  Point get_real_position() const { return real_position; }
+  Robot::Point get_real_position() const { return real_position; }
   void update_visited_positions();
 
   void draw_body(const DrawData &draw_data) const;
@@ -41,9 +41,9 @@ protected:
   void draw_position_text() const;
 
 public:
-  Bot(const Point &start_pos);
+  Bot(const Robot::Point &start_pos);
   void take_lidar_readings();
-  Vector move(const Vector &dir);
+  Robot::Vector move(const Robot::Vector &dir);
 };
 
 #endif

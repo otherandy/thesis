@@ -15,8 +15,9 @@ struct FrontierRegion {
   std::vector<Cell *> cells;
 
   const bool explored() const;
-  Point get_closest_point(const Point &pos) const;
-  std::optional<Point> get_closest_unexplored(const Point &pos) const;
+  Robot::Point get_closest_point(const Robot::Point &pos) const;
+  std::optional<Robot::Point>
+  get_closest_unexplored(const Robot::Point &pos) const;
 };
 
 #endif

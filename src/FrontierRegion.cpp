@@ -9,8 +9,8 @@ const bool FrontierRegion::explored() const {
   return true;
 }
 
-Point FrontierRegion::get_closest_point(const Point &pos) const {
-  Point closest_point;
+Robot::Point FrontierRegion::get_closest_point(const Robot::Point &pos) const {
+  Robot::Point closest_point;
   double closest_distance = std::numeric_limits<double>::max();
 
   for (const Cell *cell : cells) {
@@ -24,9 +24,9 @@ Point FrontierRegion::get_closest_point(const Point &pos) const {
   return closest_point;
 }
 
-std::optional<Point>
-FrontierRegion::get_closest_unexplored(const Point &pos) const {
-  Point closest_point;
+std::optional<Robot::Point>
+FrontierRegion::get_closest_unexplored(const Robot::Point &pos) const {
+  Robot::Point closest_point;
   double closest_distance = std::numeric_limits<double>::max();
   bool found_unexplored = false;
 

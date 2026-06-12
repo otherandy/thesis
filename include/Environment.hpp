@@ -170,31 +170,33 @@ constexpr double ENV_HEIGHT = ENV_MAX_Y - ENV_MIN_Y;
 constexpr double ENV_CENTER_X = (ENV_MIN_X + ENV_MAX_X) * 0.5;
 constexpr double ENV_CENTER_Y = (ENV_MIN_Y + ENV_MAX_Y) * 0.5;
 
-inline Point environment_center() { return Point(ENV_CENTER_X, ENV_CENTER_Y); }
+inline Robot::Point environment_center() {
+  return Robot::Point(ENV_CENTER_X, ENV_CENTER_Y);
+}
 
-inline const PolygonWithHoles &get_environment() {
-  static PolygonWithHoles env;
+inline const Robot::PolygonWithHoles &get_environment() {
+  static Robot::PolygonWithHoles env;
   static bool initialized = false;
   if (!initialized) {
-    Polygon outer;
+    Robot::Polygon outer;
     for (std::size_t i = 0; i < SELECTED_ENV_DATA.outer_size; ++i) {
-      outer.push_back(Point(SELECTED_ENV_DATA.outer_data[i].first,
-                            SELECTED_ENV_DATA.outer_data[i].second));
+      outer.push_back(Robot::Point(SELECTED_ENV_DATA.outer_data[i].first,
+                                   SELECTED_ENV_DATA.outer_data[i].second));
     }
 
     if (outer.is_clockwise_oriented()) {
       outer.reverse_orientation();
     }
 
-    std::vector<Polygon> holes;
+    std::vector<Robot::Polygon> holes;
     for (std::size_t hole_idx = 0; hole_idx < SELECTED_ENV_DATA.hole_count;
          ++hole_idx) {
-      Polygon hole;
+      Robot::Polygon hole;
       for (std::size_t i = 0; i < SELECTED_ENV_DATA.hole_size_list[hole_idx];
            ++i) {
         hole.push_back(
-            Point(SELECTED_ENV_DATA.hole_data_list[hole_idx][i].first,
-                  SELECTED_ENV_DATA.hole_data_list[hole_idx][i].second));
+            Robot::Point(SELECTED_ENV_DATA.hole_data_list[hole_idx][i].first,
+                         SELECTED_ENV_DATA.hole_data_list[hole_idx][i].second));
       }
 
       if (hole.is_counterclockwise_oriented()) {
@@ -204,16 +206,16 @@ inline const PolygonWithHoles &get_environment() {
       holes.push_back(hole);
     }
 
-    env = PolygonWithHoles(outer, holes.begin(), holes.end());
+    env = Robot::PolygonWithHoles(outer, holes.begin(), holes.end());
     initialized = true;
   }
 
   return env;
 }
 
-inline const PolygonWithHoles &ENVIRONMENT = get_environment();
+inline const Robot::PolygonWithHoles &ENVIRONMENT = get_environment();
 
-inline bool point_in_environment(const Point &p) {
+inline bool point_in_environment(const Robot::Point &p) {
   if (ENVIRONMENT.outer_boundary().bounded_side(p) != CGAL::ON_BOUNDED_SIDE) {
     return false;
   }

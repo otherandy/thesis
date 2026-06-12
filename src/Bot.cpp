@@ -8,18 +8,18 @@ void Bot::reset() {
   closest_wall_reading_index = std::nullopt;
 }
 
-Point Bot::reading_index_to_point(std::size_t index) const {
+Robot::Point Bot::reading_index_to_point(std::size_t index) const {
   const Reading &r = current_readings[index];
   return point_at_reading(real_position, r);
 }
 
 // Returns delta applied to position
-Vector Bot::move(const Vector &dir) {
-  Vector delta = normalize_vector(dir) * SPEED;
-  Point new_position = real_position + delta;
+Robot::Vector Bot::move(const Robot::Vector &dir) {
+  const Robot::Vector delta = normalize_vector(dir) * SPEED;
+  const Robot::Point new_position = real_position + delta;
 
   if (!point_in_environment(new_position)) {
-    return Vector(0, 0);
+    return Robot::Vector(0, 0);
   }
 
   real_position = new_position;
@@ -45,7 +45,7 @@ void Bot::take_lidar_readings() {
       double sample_x = real_position.x() + mid_dist * cos(angle);
       double sample_y = real_position.y() + mid_dist * sin(angle);
 
-      if (point_in_environment(Point(sample_x, sample_y))) {
+      if (point_in_environment(Robot::Point(sample_x, sample_y))) {
         min_dist = mid_dist;
       } else {
         max_dist = mid_dist;
@@ -77,11 +77,8 @@ void Bot::draw_lidar(const DrawData &draw_data) const {
 }
 
 void Bot::draw_readings(const DrawData &draw_data) const {
-  float pos_x;
-  float pos_y;
-
-  pos_x = real_position.x() * draw_data.scale_factor + draw_data.offset_x;
-  pos_y = real_position.y() * draw_data.scale_factor + draw_data.offset_y;
+  float pos_x = real_position.x() * draw_data.scale_factor + draw_data.offset_x;
+  float pos_y = real_position.y() * draw_data.scale_factor + draw_data.offset_y;
 
   for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i) {
     const Reading &r = current_readings[i];
@@ -104,6 +101,6 @@ void Bot::draw_position_text() const {
   DrawText(pos_text.c_str(), 10, GetScreenHeight() - 30, 20, BLACK);
 }
 
-Bot::Bot(const Point &start_pos) : real_position(start_pos) {
+Bot::Bot(const Robot::Point &start_pos) : real_position(start_pos) {
   current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
 }

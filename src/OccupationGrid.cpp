@@ -87,15 +87,16 @@ OccupationGrid::OccupationGrid() {
       const double cell_center_x = (x + 0.5) * CELL_SIZE - ENV_WIDTH;
       const double cell_center_y = (y + 0.5) * CELL_SIZE - ENV_HEIGHT;
 
-      grid[y][x] = {Point(cell_center_x, cell_center_y), CellState::Unknown,
-                    std::nullopt};
+      grid[y][x] = {Robot::Point(cell_center_x, cell_center_y),
+                    CellState::Unknown, std::nullopt};
     }
   }
 }
 
 void OccupationGrid::mark_cells(
-    const Point &relative_position,
+    const Robot::Point &relative_position,
     const std::array<Reading, MAX_LIDAR_SAMPLES> &readings) {
+
   const double rel_pos_x = relative_position.x();
   const double rel_pos_y = relative_position.y();
 
@@ -136,7 +137,8 @@ void OccupationGrid::mark_cells(
 }
 
 const Cell &
-OccupationGrid::get_cell_from_position(const Point &position) const {
+OccupationGrid::get_cell_from_position(const Robot::Point &position) const {
+
   const double rel_x = position.x() - origin.x();
   const double rel_y = position.y() - origin.y();
 
@@ -159,6 +161,7 @@ FrontierRegion *OccupationGrid::get_frontier_region_by_id(std::size_t id) {
 
 const FrontierRegion *
 OccupationGrid::get_frontier_region_by_id(std::size_t id) const {
+
   auto it = std::find_if(
       frontier_regions.begin(), frontier_regions.end(),
       [id](const FrontierRegion &region) { return region.id == id; });

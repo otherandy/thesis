@@ -9,23 +9,25 @@ inline std::size_t relative_index(std::size_t index, int offset) {
   return (index + offset + MAX_LIDAR_SAMPLES) % MAX_LIDAR_SAMPLES;
 }
 
-inline double compute_angle_to_point(const Point &from, const Point &to) {
+inline double compute_angle_to_point(const Robot::Point &from,
+                                     const Robot::Point &to) {
   return atan2(to.y() - from.y(), to.x() - from.x());
 }
 
-inline Point point_at_reading(const Point &origin, const Reading &r) {
-  return Point(origin.x() + r.distance * cos(r.angle),
-               origin.y() + r.distance * sin(r.angle));
+inline Robot::Point point_at_reading(const Robot::Point &origin,
+                                     const Reading &r) {
+  return Robot::Point(origin.x() + r.distance * cos(r.angle),
+                      origin.y() + r.distance * sin(r.angle));
 }
 
-inline Vector normalize_vector(const Vector &v) {
+inline Robot::Vector normalize_vector(const Robot::Vector &v) {
   const double len2 = v.squared_length();
   if (len2 <= 1e-12) {
-    return Vector(0, 0);
+    return Robot::Vector(0, 0);
   }
 
   const double inv_len = 1.0 / std::sqrt(len2);
-  return Vector(v.x() * inv_len, v.y() * inv_len);
+  return Robot::Vector(v.x() * inv_len, v.y() * inv_len);
 }
 
 inline void ensure_parent_dir_exists(const std::string &filename) {
@@ -48,9 +50,9 @@ inline void ensure_parent_dir_exists(const std::string &filename) {
   }
 }
 
-inline Vector get_random_heading() {
+inline Robot::Vector get_random_heading() {
   double heading = (static_cast<double>(rand()) / RAND_MAX) * 2.0 * M_PI;
-  return Vector(cos(heading), sin(heading));
+  return Robot::Vector(cos(heading), sin(heading));
 }
 
 #endif

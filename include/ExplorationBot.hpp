@@ -26,21 +26,21 @@ class ExplorationBot : public Bot {
 private:
   bool clockwise_following;
 
-  Vector direction;
-  Point start_point;
-  Point contact_point;
+  Robot::Vector direction;
+  Robot::Point start_point;
+  Robot::Point contact_point;
 
-  bool path_blocked_to(const Point &target) const;
+  bool path_blocked_to(const Robot::Point &target) const;
 
 public:
-  ExplorationBot(const Point &start_pos, const Vector &start_dir,
+  ExplorationBot(const Robot::Point &start_pos, const Robot::Vector &start_dir,
                  bool clockwise);
 
   ExplorationPhase phase = ExplorationPhase::WallDiscovery;
   const FrontierRegion *target_region = nullptr;
   bool left_contact_point;
 
-  Point get_relative_position() const;
+  Robot::Point get_relative_position() const;
   void reset();
   void update_grid(std::shared_ptr<OccupationGrid> grid);
 
@@ -48,8 +48,8 @@ public:
 
   void phase1_wall_discovery();
   void phase2_wall_alignment();
-  Vector compute_wall_following_vector(
-      const Vector &preferred_direction = Vector(0, 0));
+  Robot::Vector compute_wall_following_vector(
+      const Robot::Vector &preferred_direction = Robot::Vector(0, 0));
 
   void phase3_wall_following(std::shared_ptr<const OccupationGrid> grid);
   void phase5_region_alignment(std::shared_ptr<const OccupationGrid> grid);

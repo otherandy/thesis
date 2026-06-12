@@ -35,16 +35,16 @@ void CentralUnit::get_input_and_move() {
   }
 
   if (IsKeyDown(KEY_UP)) {
-    bots.front()->move(Vector(0, -1));
+    bots.front()->move(Robot::Vector(0, -1));
   }
   if (IsKeyDown(KEY_DOWN)) {
-    bots.front()->move(Vector(0, 1));
+    bots.front()->move(Robot::Vector(0, 1));
   }
   if (IsKeyDown(KEY_LEFT)) {
-    bots.front()->move(Vector(-1, 0));
+    bots.front()->move(Robot::Vector(-1, 0));
   }
   if (IsKeyDown(KEY_RIGHT)) {
-    bots.front()->move(Vector(1, 0));
+    bots.front()->move(Robot::Vector(1, 0));
   }
 }
 
@@ -130,7 +130,7 @@ void CentralUnit::check_collisions_during_wall() {
       continue;
     }
 
-    Point pos1 = bot1->get_relative_position();
+    Robot::Point pos1 = bot1->get_relative_position();
 
     for (ExplorationBot *bot2 : bots) {
       if (bot1 == bot2) {
@@ -141,7 +141,7 @@ void CentralUnit::check_collisions_during_wall() {
         continue;
       }
 
-      Point pos2 = bot2->get_relative_position();
+      Robot::Point pos2 = bot2->get_relative_position();
 
       const double distance = CGAL::sqrt(CGAL::squared_distance(pos1, pos2));
 

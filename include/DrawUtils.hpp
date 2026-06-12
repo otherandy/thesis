@@ -29,10 +29,10 @@ inline std::pair<float, float> calculate_offset(const raylib::Window &window,
 }
 
 inline void draw_environment(const DrawData &draw_data) {
-  auto draw_polygon_edges = [&](const Polygon &poly) {
+  auto draw_polygon_edges = [&](const Robot::Polygon &poly) {
     for (std::size_t i = 0; i < poly.size(); ++i) {
-      Point p1 = poly[i];
-      Point p2 = poly[(i + 1) % poly.size()];
+      Robot::Point p1 = poly[i];
+      Robot::Point p2 = poly[(i + 1) % poly.size()];
       DrawLine(p1.x() * draw_data.scale_factor + draw_data.offset_x,
                p1.y() * draw_data.scale_factor + draw_data.offset_y,
                p2.x() * draw_data.scale_factor + draw_data.offset_x,

@@ -10,7 +10,7 @@
 
 class OccupationGrid {
 private:
-  const Point origin = environment_center();
+  const Robot::Point origin = environment_center();
   Grid2D<Cell> grid;
 
   std::size_t grid_min_y = MAP_HEIGHT;
@@ -27,9 +27,9 @@ public:
   OccupationGrid();
 
   Grid2D<Cell> &get_grid() { return grid; }
-  const Cell &get_cell_from_position(const Point &position) const;
+  const Cell &get_cell_from_position(const Robot::Point &position) const;
 
-  void mark_cells(const Point &relative_position,
+  void mark_cells(const Robot::Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings);
 
   FrontierRegion *get_frontier_region_by_id(std::size_t id);
