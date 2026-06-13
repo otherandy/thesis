@@ -30,6 +30,12 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
 
+# Enable raylib customized build and disable modules we don't need
+set(CUSTOMIZE_BUILD ON CACHE BOOL "Customize raylib build" FORCE)
+
+set(SUPPORT_MODULE_RMODELS    OFF CACHE BOOL "Disable rmodels"    FORCE)
+set(SUPPORT_MODULE_RAUDIO     OFF CACHE BOOL "Disable raudio"     FORCE)
+
 FetchContent_Declare(
   raylib
   GIT_REPOSITORY https://github.com/raysan5/raylib.git
