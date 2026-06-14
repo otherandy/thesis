@@ -11,7 +11,7 @@
 class OccupationGrid {
 private:
   const Robot::Point origin = environment_center();
-  Grid2D<Cell> grid;
+  Grid2D<std::shared_ptr<Cell>> grid;
 
   std::size_t grid_min_y = MAP_HEIGHT;
   std::size_t grid_max_y = 0;
@@ -26,8 +26,7 @@ public:
 
   OccupationGrid();
 
-  Grid2D<Cell> &get_grid() { return grid; }
-  const Cell &get_cell_from_position(const Robot::Point &position) const;
+  const Cell *get_cell_from_position(const Robot::Point &position) const;
 
   void mark_cells(const Robot::Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings);

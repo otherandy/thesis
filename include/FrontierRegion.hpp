@@ -12,10 +12,10 @@ const std::array<Color, 9> FrontierColors = {
 struct FrontierRegion {
   std::optional<std::size_t> id = std::nullopt;
   std::optional<std::size_t> parent_id = std::nullopt;
-  std::vector<Cell *> cells;
+  std::vector<std::shared_ptr<Cell>> cells;
 
   const bool explored() const;
-  Robot::Point get_closest_point(const Robot::Point &pos) const;
+
   std::optional<Robot::Point>
   get_closest_unexplored(const Robot::Point &pos) const;
 };

@@ -8,11 +8,10 @@
 enum class CellState { Unknown, Free, Occupied, Visited, Frontier };
 
 struct Cell {
-  Robot::Point center;
   CellState state;
+  Robot::Point center;
   std::optional<std::size_t> frontier_id;
 
-  std::pair<double, double> get_position() const;
   std::array<Index2D, 8> get_neighbors();
 };
 

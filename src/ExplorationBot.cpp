@@ -213,19 +213,24 @@ void ExplorationBot::phase5_region_alignment(
   }
 
   const Robot::Point rp = get_relative_position();
-  const Robot::Point target_point =
-      target_region->get_closest_point(get_relative_position());
+  const auto target_point =
+      target_region->get_closest_unexplored(get_relative_position());
 
-  const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
+  if (!target_point.has_value()) {
+    phase = ExplorationPhase::RegionDiscovery;
+    return;
+  }
+
+  const double distance = std::sqrt(CGAL::squared_distance(rp, *target_point));
 
   if (distance < SPEED * 2) {
     phase = ExplorationPhase::RegionExploration;
     return;
   }
 
-  Robot::Vector desired_vector = target_point - rp;
+  Robot::Vector desired_vector = *target_point - rp;
 
-  if (path_blocked_to(target_point)) {
+  if (path_blocked_to(*target_point)) {
     desired_vector = compute_wall_following_vector(desired_vector);
   }
 
@@ -260,7 +265,7 @@ void ExplorationBot::phase6_region_exploration(
         reading_index_to_point(closest_wall_reading_index.value());
     auto obstacle_cell = grid->get_cell_from_position(closest_wall_point);
 
-    if (obstacle_cell.state == CellState::Unknown) {
+    if (obstacle_cell->state == CellState::Unknown) {
       phase = ExplorationPhase::WallAlignment;
       return;
     }
