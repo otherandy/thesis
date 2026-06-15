@@ -139,17 +139,6 @@ void OccupationGrid::mark_cells(
   }
 }
 
-const Cell *
-OccupationGrid::get_cell_from_position(const Robot::Point &position) const {
-
-  const double rel_x = position.x() - origin.x();
-  const double rel_y = position.y() - origin.y();
-
-  const Index2D cell_index = get_cell_index_from(rel_x, rel_y);
-
-  return grid[cell_index.first][cell_index.second].get();
-}
-
 FrontierRegion *OccupationGrid::get_frontier_region_by_id(std::size_t id) {
   auto it =
       std::find_if(frontier_regions.begin(), frontier_regions.end(),

@@ -113,7 +113,7 @@ void CentralUnit::run_exploration() {
     std::vector<std::future<void>> jobs;
 
     for (ExplorationBot *bot : bots) {
-      auto f = [bot, grid = occupation_grid]() { bot->explore(grid); };
+      auto f = [bot, grid = occupation_grid]() { bot->explore(grid.get()); };
 
       jobs.emplace_back(std::async(std::launch::async, f));
     }
@@ -130,7 +130,7 @@ void CentralUnit::check_collisions_during_wall() {
       continue;
     }
 
-    Robot::Point pos1 = bot1->get_relative_position();
+    Robot::Point pos1 = bot1->get_relative_position(occupation_grid.get());
 
     for (ExplorationBot *bot2 : bots) {
       if (bot1 == bot2) {
@@ -141,7 +141,7 @@ void CentralUnit::check_collisions_during_wall() {
         continue;
       }
 
-      Robot::Point pos2 = bot2->get_relative_position();
+      Robot::Point pos2 = bot2->get_relative_position(occupation_grid.get());
 
       const double distance = CGAL::sqrt(CGAL::squared_distance(pos1, pos2));
 

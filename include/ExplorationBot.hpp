@@ -30,7 +30,8 @@ private:
   Robot::Point start_point;
   Robot::Point contact_point;
 
-  bool path_blocked_to(const Robot::Point &target) const;
+  bool path_blocked_to(const Robot::Point &target,
+                       const OccupationGrid *grid) const;
 
 public:
   ExplorationBot(const Robot::Point &start_pos, const Robot::Vector &start_dir,
@@ -40,20 +41,21 @@ public:
   const FrontierRegion *target_region = nullptr;
   bool left_contact_point;
 
-  Robot::Point get_relative_position() const;
+  Robot::Point get_relative_position(const OccupationGrid *grid) const;
+
   void reset();
   void update_grid(std::shared_ptr<OccupationGrid> grid);
 
-  void explore(std::shared_ptr<const OccupationGrid> grid);
+  void explore(const OccupationGrid *grid);
 
   void phase1_wall_discovery();
-  void phase2_wall_alignment();
+  void phase2_wall_alignment(const OccupationGrid *grid);
   Robot::Vector compute_wall_following_vector(
       const Robot::Vector &preferred_direction = Robot::Vector(0, 0));
 
-  void phase3_wall_following(std::shared_ptr<const OccupationGrid> grid);
-  void phase5_region_alignment(std::shared_ptr<const OccupationGrid> grid);
-  void phase6_region_exploration(std::shared_ptr<const OccupationGrid> grid);
+  void phase3_wall_following(const OccupationGrid *grid);
+  void phase5_region_alignment(const OccupationGrid *grid);
+  void phase6_region_exploration(const OccupationGrid *grid);
 
   void draw(const DrawData &draw_data) const;
 };
