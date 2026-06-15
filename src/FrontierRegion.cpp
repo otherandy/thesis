@@ -1,16 +1,5 @@
 #include "FrontierRegion.hpp"
 
-const bool
-FrontierRegion::explored(const Grid2D<std::unique_ptr<Cell>> &grid) const {
-  for (const Index2D idx : cells) {
-    const Cell *cell = grid[idx.first][idx.second].get();
-    if (cell->state == CellState::Frontier) {
-      return false;
-    }
-  }
-  return true;
-}
-
 std::optional<Robot::Point> FrontierRegion::get_closest_unexplored(
     const Grid2D<std::unique_ptr<Cell>> &grid, const Robot::Point &pos) const {
 

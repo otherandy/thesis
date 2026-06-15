@@ -16,8 +16,6 @@ struct FrontierRegion {
   Index2D min;
   Index2D max;
 
-  const bool explored(const Grid2D<std::unique_ptr<Cell>> &grid) const;
-
   std::optional<Robot::Point>
   get_closest_unexplored(const Grid2D<std::unique_ptr<Cell>> &grid,
                          const Robot::Point &pos) const;

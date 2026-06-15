@@ -2,7 +2,6 @@
 #define EXPLORATION_BOT_HPP
 
 #include "Bot.hpp"
-#include "Graph.hpp"
 #include "OccupationGrid.hpp"
 #include "cgal_types.hpp"
 
@@ -50,7 +49,7 @@ public:
   void reset();
   void update_grid(OccupationGrid *grid);
 
-  void explore(const OccupationGrid *grid, DynamicScheduler *sched);
+  void explore(const OccupationGrid *grid);
 
   void phase1_wall_discovery();
   void phase2_wall_alignment(const OccupationGrid *grid);
@@ -60,8 +59,7 @@ public:
 
   void phase3_wall_following(const OccupationGrid *grid);
   void phase5_region_alignment(const OccupationGrid *grid);
-  void phase6_region_exploration(const OccupationGrid *grid,
-                                 DynamicScheduler *sched);
+  void phase6_region_exploration(const OccupationGrid *grid);
 
   void draw(const DrawData &draw_data) const;
 };

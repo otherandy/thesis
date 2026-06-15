@@ -31,7 +31,6 @@ public:
   vertex_t add_vertex(std::shared_ptr<FrontierRegion> region);
   void add_edge(vertex_t u, vertex_t v);
 
-  // begin or resume a search from a vertex (pushes it as a root for DFS/BFS)
   void start_from(vertex_t root, bool use_bfs = false);
 
   // Request next up to `k` nodes to process. Strategy: "dfs" or "bfs".
@@ -39,10 +38,8 @@ public:
   std::vector<vertex_t> next_nodes(std::size_t k = 1,
                                    const std::string &strategy = "dfs");
 
-  // Alternative: worker can claim a node and later call done(v) to mark finish.
   void done(vertex_t v);
 
-  // Inspect vertex data (thread-safe snapshot)
   VertexData get_vertex_data(vertex_t v);
 
   std::vector<vertex_t> all_vertices();

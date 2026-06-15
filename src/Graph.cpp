@@ -42,11 +42,8 @@ DynamicScheduler::next_nodes(std::size_t k, const std::string &strategy) {
     if (!vopt)
       break;
     vertex_t v = *vopt;
-    // Mark vertex as being processed by caller (we keep it Gray until caller
-    // reports done)
     out.push_back(v);
 
-    // Pre-fill neighbors as new frontier (for dynamic work distribution)
     for (auto ei = boost::adjacent_vertices(v, g_); ei.first != ei.second;
          ++ei.first) {
       vertex_t n = *ei.first;
@@ -59,12 +56,6 @@ DynamicScheduler::next_nodes(std::size_t k, const std::string &strategy) {
           dfs_stack_.push(n);
       }
     }
-
-    // Immediately mark v finished (this design assumes tasks are quick;
-    // otherwise provide a separate done(v) call so workers mark finish when
-    // truly done)
-    g_[v].finish_time = ++time_;
-    g_[v].color = VertexData::Color::Black;
   }
   return out;
 }
@@ -94,10 +85,8 @@ std::optional<vertex_t> DynamicScheduler::pop_dfs() {
     vertex_t v = dfs_stack_.top();
     dfs_stack_.pop();
     if (g_[v].color == VertexData::Color::Gray) {
-      // we return it for processing
       return v;
     }
-    // skip if already Black
   }
   return std::nullopt;
 }

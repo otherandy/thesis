@@ -198,19 +198,6 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
            outer.max.second >= inner.max.second;
   };
 
-  for (auto v : sched->all_vertices()) {
-    auto vd = sched->get_vertex_data(v);
-    auto existing = vd.region;
-
-    for (auto it = regions.begin(); it != regions.end();) {
-      if ((*it)->cells == existing->cells) {
-        it = regions.erase(it);
-      } else {
-        it++;
-      }
-    }
-  }
-
   for (auto child : regions) {
     vertex_t id = sched->add_vertex(child);
     vertex_t parent_id = 0;

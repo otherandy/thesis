@@ -53,50 +53,46 @@ void CentralUnit::get_input_and_move() {
 }
 
 void CentralUnit::assign_frontier_regions() {
-  bool ran_compute = false;
-  bool ran_schedule = false;
-
-  vertex_t v;
-  VertexData vd;
-  FrontierRegion *r;
-
   for (ExplorationBot *bot : bots) {
-    if (bot->phase != ExplorationPhase::RegionDiscovery) {
-      continue;
-    }
-
-    if (!ran_compute) {
+    if (bot->phase == ExplorationPhase::RegionDiscovery) {
       occupation_grid->compute_frontier_regions(frontier_sched.get());
-      ran_compute = true;
-    }
-
-    if (!ran_schedule) {
       frontier_sched->start_from(root);
-      auto vlist = frontier_sched->next_nodes(1, "dfs");
+    schedule:
+      auto vlist = frontier_sched->next_nodes();
 
       if (vlist.empty()) {
         continue;
       }
 
-      v = vlist.front();
-      vd = frontier_sched->get_vertex_data(v);
-      r = vd.region.get();
+      auto v = vlist.front();
 
-      if (r->explored(*occupation_grid->get_data())) {
+      if (v == 0) {
         frontier_sched->done(v);
-        continue;
+        goto schedule;
       }
 
       root = v;
-      ran_schedule = false;
+
+      bot->phase = ExplorationPhase::RegionExploration;
+      bot->target_vertex = v;
     }
 
-    bot->phase = ExplorationPhase::RegionAlignment;
-    bot->target_vertex = v;
+    if (bot->phase == ExplorationPhase::RegionExploration) {
+      auto vd = frontier_sched->get_vertex_data(bot->target_vertex);
+      auto *r = vd.region.get();
+      const auto grid = occupation_grid->get_data();
 
-    const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
-    const auto tp = r->get_closest_unexplored(*occupation_grid->get_data(), rp);
-    bot->target_point = tp.value();
+      const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
+      const auto tp = r->get_closest_unexplored(*grid, rp);
+
+      if (!tp.has_value()) {
+        frontier_sched->done(bot->target_vertex);
+        bot->phase = ExplorationPhase::RegionDiscovery;
+        continue;
+      }
+
+      bot->target_point = tp.value();
+    }
   }
 }
 
@@ -116,8 +112,7 @@ void CentralUnit::run_exploration() {
     std::vector<std::future<void>> jobs;
 
     for (ExplorationBot *bot : bots) {
-      auto f = [bot, grid = occupation_grid.get(),
-                sched = frontier_sched.get()]() { bot->explore(grid, sched); };
+      auto f = [bot, grid = occupation_grid.get()]() { bot->explore(grid); };
 
       jobs.emplace_back(std::async(std::launch::async, f));
     }
