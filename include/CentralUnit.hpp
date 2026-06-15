@@ -20,11 +20,10 @@ private:
   std::vector<ExplorationBot *> bots;
 
   bool is_paused = false;
-  std::shared_ptr<OccupationGrid> occupation_grid;
+  std::unique_ptr<OccupationGrid> occupation_grid;
+  std::unique_ptr<DynamicScheduler> frontier_sched;
 
-  std::shared_ptr<Graph> frontier_region_graph;
-  std::shared_ptr<StepTraversal> traversal_algorithm;
-  std::size_t current_frontier_region_id = 1;
+  vertex_t root;
 
   Timer p1, p2, p3, p4, p5, p6;
 

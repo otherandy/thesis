@@ -1,9 +1,11 @@
 #include "CentralUnit.hpp"
 #include "ExplorationBot.hpp"
 #include "FrontierRegion.hpp"
+#include "Graph.hpp"
 #include "OccupationGrid.hpp"
 #include <CGAL/number_utils.h>
 #include <algorithm>
+#include <boost/graph/depth_first_search.hpp>
 #include <future>
 #include <memory>
 
@@ -50,50 +52,34 @@ void CentralUnit::get_input_and_move() {
 
 void CentralUnit::assign_frontier_regions() {
   bool ran_compute = false;
-  FrontierRegion *target_region = nullptr;
 
   for (ExplorationBot *bot : bots) {
-    if (bot->phase == ExplorationPhase::RegionDiscovery) {
-
-      if (!ran_compute) {
-        occupation_grid->compute_frontier_regions(traversal_algorithm,
-                                                  current_frontier_region_id);
-
-        while (true) {
-          const std::optional<vertex_t> next_region =
-              traversal_algorithm->next();
-
-          if (!next_region) {
-            phase = CentralPhase::Complete;
-            return;
-          }
-
-          if (*next_region == 0) {
-            continue;
-          }
-
-          target_region =
-              occupation_grid->get_frontier_region_by_id(*next_region);
-
-          if (!target_region) {
-            continue;
-          }
-
-          if (target_region->explored()) {
-            continue;
-          }
-
-          current_frontier_region_id = *next_region;
-
-          break;
-        }
-
-        ran_compute = true;
-      }
-
-      bot->phase = ExplorationPhase::RegionAlignment;
-      bot->target_region = target_region;
+    if (bot->phase != ExplorationPhase::RegionDiscovery) {
+      continue;
     }
+
+    if (!ran_compute) {
+      occupation_grid->compute_frontier_regions(frontier_sched.get());
+      ran_compute = true;
+    }
+
+    frontier_sched->start_from(root, true);
+    auto vlist = frontier_sched->next_nodes(1, "dfs");
+
+    if (vlist.empty()) {
+      continue;
+    }
+
+    auto v = vlist.front();
+    auto vd = frontier_sched->get_vertex_data(v);
+
+    if (vd.region.explored()) {
+      frontier_sched->done(v);
+      continue;
+    }
+
+    bot->phase = ExplorationPhase::RegionAlignment;
+    bot->target_region = &vd.region;
   }
 }
 
@@ -113,7 +99,7 @@ void CentralUnit::run_exploration() {
     std::vector<std::future<void>> jobs;
 
     for (ExplorationBot *bot : bots) {
-      auto f = [bot, grid = occupation_grid]() { bot->explore(grid.get()); };
+      auto f = [bot, grid = occupation_grid.get()]() { bot->explore(grid); };
 
       jobs.emplace_back(std::async(std::launch::async, f));
     }
@@ -173,7 +159,7 @@ void CentralUnit::update() {
   }
 
   for (ExplorationBot *bot : bots) {
-    bot->update_grid(occupation_grid);
+    bot->update_grid(occupation_grid.get());
   }
 
   run_exploration();
@@ -197,13 +183,11 @@ void CentralUnit::reset() {
   is_paused = false;
   phase = CentralPhase::Idle;
 
-  occupation_grid = std::make_shared<OccupationGrid>();
+  occupation_grid = std::make_unique<OccupationGrid>();
+  frontier_sched = std::make_unique<DynamicScheduler>();
 
-  frontier_region_graph = std::make_shared<Graph>();
-  const vertex_t root = boost::add_vertex(*frontier_region_graph);
-  traversal_algorithm = std::make_shared<StepBFS>(*frontier_region_graph, root);
-
-  current_frontier_region_id = 0;
+  FrontierRegion outer_wall;
+  root = frontier_sched->add_node(outer_wall);
 
   for (ExplorationBot *bot : bots) {
     bot->reset();

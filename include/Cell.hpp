@@ -10,7 +10,6 @@ enum class CellState { Unknown, Free, Occupied, Visited, Frontier };
 struct Cell {
   CellState state;
   Robot::Point center;
-  std::optional<std::size_t> frontier_id;
 
   std::array<Index2D, 8> get_neighbors();
 };

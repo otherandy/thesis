@@ -1,94 +1,62 @@
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
+#include "FrontierRegion.hpp"
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/depth_first_search.hpp>
-#include <optional>
-#include <queue>
 #include <stack>
-#include <tuple>
-#include <vector>
+#include <queue>
 
-using Graph =
-    boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>;
+struct VertexData {
+  std::size_t id;
+  FrontierRegion region;
+
+  enum class Color { White, Gray, Black } color = Color::White;
+  std::size_t discover_time = 0;
+  std::size_t finish_time = 0;
+};
+
+using Graph = boost::adjacency_list<boost::vecS,        // OutEdgeList
+                                    boost::vecS,        // VertexList
+                                    boost::undirectedS, // UndirectedGraph
+                                    VertexData>;
 
 using vertex_t = boost::graph_traits<Graph>::vertex_descriptor;
 using edge_t = boost::graph_traits<Graph>::edge_descriptor;
 
-class StepTraversal {
-protected:
-  Graph &g;
-
+class DynamicScheduler {
 public:
-  StepTraversal(Graph &g_, vertex_t start) : g(g_) {}
-  virtual ~StepTraversal() = default;
-  virtual std::optional<vertex_t> next() = 0;
+  DynamicScheduler() : time_(0) {}
 
-  vertex_t add_vertex() { return boost::add_vertex(g); }
+  vertex_t add_node(FrontierRegion &region);
+  void add_edge(vertex_t u, vertex_t v);
 
-  edge_t add_edge(vertex_t u, vertex_t v) {
-    return boost::add_edge(u, v, g).first;
-  }
+  // begin or resume a search from a vertex (pushes it as a root for DFS/BFS)
+  void start_from(vertex_t root, bool use_bfs = false);
 
-  vertex_t add_vertex_and_edge(vertex_t u) {
-    vertex_t v = add_vertex();
-    add_edge(u, v);
-    return v;
-  }
+  // Request next up to `k` nodes to process. Strategy: "dfs" or "bfs".
+  // Returns descriptors in visit order and marks them Gray/Black accordingly.
+  std::vector<vertex_t> next_nodes(std::size_t k = 1,
+                                   const std::string &strategy = "dfs");
 
-  virtual void post_update() {}
-};
+  // Alternative: worker can claim a node and later call done(v) to mark finish.
+  void done(vertex_t v);
 
-class StepDFS : public StepTraversal {
-  std::vector<char> color; // white=0, gray=1, black=2
-  std::stack<vertex_t> st;
-  std::vector<typename boost::graph_traits<Graph>::out_edge_iterator> out_it;
-  std::vector<typename boost::graph_traits<Graph>::out_edge_iterator> out_end;
+  // Inspect vertex data (thread-safe snapshot)
+  VertexData get_vertex_data(vertex_t v);
 
-public:
-  StepDFS(Graph &g_, vertex_t start);
+  Graph &graph() { return g_; }
 
-  std::optional<vertex_t> next() override;
+private:
+  std::optional<vertex_t> pop_dfs();
+  std::optional<vertex_t> pop_bfs();
 
-  void post_update() override {
-    const size_t n = boost::num_vertices(g);
-    color.resize(n, 0);
-    out_it.resize(n);
-    out_end.resize(n);
-
-    auto idx = boost::get(boost::vertex_index, g);
-    auto [vi, vi_end] = boost::vertices(g);
-    for (; vi != vi_end; ++vi) {
-      const vertex_t v = *vi;
-      std::tie(out_it[idx[v]], out_end[idx[v]]) = boost::out_edges(v, g);
-    }
-  }
-};
-
-class StepBFS : public StepTraversal {
-  std::vector<char> color; // 0=white, 1=discovered, 3=active, 2=finished
-  std::queue<vertex_t> q;
-  std::vector<typename boost::graph_traits<Graph>::out_edge_iterator> out_it;
-  std::vector<typename boost::graph_traits<Graph>::out_edge_iterator> out_end;
-
-public:
-  StepBFS(Graph &g_, vertex_t start);
-
-  std::optional<vertex_t> next() override;
-
-  void post_update() override {
-    const size_t n = boost::num_vertices(g);
-    color.resize(n, 0);
-    out_it.resize(n);
-    out_end.resize(n);
-
-    auto idx = boost::get(boost::vertex_index, g);
-    auto [vi, vi_end] = boost::vertices(g);
-    for (; vi != vi_end; ++vi) {
-      const vertex_t v = *vi;
-      std::tie(out_it[idx[v]], out_end[idx[v]]) = boost::out_edges(v, g);
-    }
-  }
+  Graph g_;
+  std::mutex mutex_;
+  std::stack<vertex_t> dfs_stack_;
+  std::queue<vertex_t> bfs_queue_;
+  std::size_t time_;
+  std::size_t next_id_ = 0;
 };
 
 #endif

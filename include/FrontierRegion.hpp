@@ -10,8 +10,6 @@ const std::array<Color, 9> FrontierColors = {
 };
 
 struct FrontierRegion {
-  std::optional<std::size_t> id = std::nullopt;
-  std::optional<std::size_t> parent_id = std::nullopt;
   std::vector<std::shared_ptr<Cell>> cells;
 
   const bool explored() const;

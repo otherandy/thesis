@@ -4,7 +4,6 @@
 #include "Bot.hpp"
 #include "Cell.hpp"
 #include "DrawUtils.hpp"
-#include "FrontierRegion.hpp"
 #include "Graph.hpp"
 #include "Grid.hpp"
 
@@ -22,8 +21,6 @@ private:
   void draw_cell(Index2D index, const DrawData &draw_data) const;
 
 public:
-  std::vector<FrontierRegion> frontier_regions;
-
   OccupationGrid();
 
   const auto get_data() const { return grid; };
@@ -32,11 +29,7 @@ public:
   void mark_cells(const Robot::Point &relative_position,
                   const std::array<Reading, MAX_LIDAR_SAMPLES> &readings);
 
-  FrontierRegion *get_frontier_region_by_id(std::size_t id);
-  const FrontierRegion *get_frontier_region_by_id(std::size_t id) const;
-
-  void compute_frontier_regions(std::shared_ptr<StepTraversal> traversal_graph,
-                                std::size_t &current_parent_region_id);
+  void compute_frontier_regions(DynamicScheduler *sched);
 
   void draw(const DrawData &draw_data) const;
   void save_to_file(const std::string &filename) const;

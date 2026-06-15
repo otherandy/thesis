@@ -291,8 +291,8 @@ ExplorationBot::ExplorationBot(const Robot::Point &start_pos,
   direction = start_dir;
 }
 
-void ExplorationBot::update_grid(std::shared_ptr<OccupationGrid> grid) {
-  const Robot::Point rp = get_relative_position(grid.get());
+void ExplorationBot::update_grid(OccupationGrid *grid) {
+  const Robot::Point rp = get_relative_position(grid);
   grid->mark_cells(rp, current_readings);
 }
 

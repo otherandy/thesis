@@ -44,7 +44,7 @@ public:
   Robot::Point get_relative_position(const OccupationGrid *grid) const;
 
   void reset();
-  void update_grid(std::shared_ptr<OccupationGrid> grid);
+  void update_grid(OccupationGrid *grid);
 
   void explore(const OccupationGrid *grid);
 
