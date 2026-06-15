@@ -3,14 +3,16 @@
 
 #include "Grid.hpp"
 #include "cgal_types.hpp"
+#include <optional>
 #include <raylib-cpp.hpp>
 
 enum class CellState { Unknown, Free, Occupied, Visited, Frontier };
 
 struct Cell {
   Index2D index;
-  CellState state;
   Robot::Point center;
+  CellState state = CellState::Unknown;
+  std::optional<std::size_t> frontier_id = std::nullopt;
 
   std::array<Index2D, 8> get_neighbors();
 };
