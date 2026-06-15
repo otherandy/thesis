@@ -84,8 +84,9 @@ OccupationGrid::OccupationGrid() {
       const double cell_center_x = (x + 0.5) * CELL_SIZE - ENV_WIDTH;
       const double cell_center_y = (y + 0.5) * CELL_SIZE - ENV_HEIGHT;
 
-      grid[y][x] = std::make_shared<Cell>(
-          CellState::Unknown, Robot::Point(cell_center_x, cell_center_y));
+      grid[y][x] =
+          std::make_shared<Cell>(std::make_pair(y, x), CellState::Unknown,
+                                 Robot::Point(cell_center_x, cell_center_y));
     }
   }
 }
@@ -150,6 +151,9 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
       }
 
       FrontierRegion new_region;
+      Index2D idx = std::make_pair(y, x);
+      new_region.min = idx;
+      new_region.max = idx;
 
       std::queue<std::shared_ptr<Cell>> to_visit;
       to_visit.push(cell);
@@ -160,6 +164,14 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
         to_visit.pop();
 
         new_region.cells.push_back(current_cell);
+
+        if (current_cell->index < new_region.min) {
+          new_region.min = current_cell->index;
+        }
+
+        if (current_cell->index > new_region.max) {
+          new_region.max = current_cell->index;
+        }
 
         auto neighbors = current_cell->get_neighbors();
 

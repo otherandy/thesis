@@ -11,6 +11,8 @@ const std::array<Color, 9> FrontierColors = {
 
 struct FrontierRegion {
   std::vector<std::shared_ptr<Cell>> cells;
+  Index2D min;
+  Index2D max;
 
   const bool explored() const;
 

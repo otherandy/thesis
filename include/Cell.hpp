@@ -8,6 +8,7 @@
 enum class CellState { Unknown, Free, Occupied, Visited, Frontier };
 
 struct Cell {
+  Index2D index;
   CellState state;
   Robot::Point center;
 
