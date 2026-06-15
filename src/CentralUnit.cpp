@@ -2,12 +2,14 @@
 #include "ExplorationBot.hpp"
 #include "FrontierRegion.hpp"
 #include "Graph.hpp"
+#include "Grid.hpp"
 #include "OccupationGrid.hpp"
 #include <CGAL/number_utils.h>
 #include <algorithm>
 #include <boost/graph/depth_first_search.hpp>
 #include <future>
 #include <memory>
+#include <utility>
 
 CentralUnit::CentralUnit() { reset(); }
 
@@ -52,6 +54,11 @@ void CentralUnit::get_input_and_move() {
 
 void CentralUnit::assign_frontier_regions() {
   bool ran_compute = false;
+  bool ran_schedule = false;
+
+  vertex_t v;
+  VertexData vd;
+  FrontierRegion *r;
 
   for (ExplorationBot *bot : bots) {
     if (bot->phase != ExplorationPhase::RegionDiscovery) {
@@ -63,23 +70,33 @@ void CentralUnit::assign_frontier_regions() {
       ran_compute = true;
     }
 
-    frontier_sched->start_from(root, true);
-    auto vlist = frontier_sched->next_nodes(1, "dfs");
+    if (!ran_schedule) {
+      frontier_sched->start_from(root);
+      auto vlist = frontier_sched->next_nodes(1, "dfs");
 
-    if (vlist.empty()) {
-      continue;
-    }
+      if (vlist.empty()) {
+        continue;
+      }
 
-    auto v = vlist.front();
-    auto vd = frontier_sched->get_vertex_data(v);
+      v = vlist.front();
+      vd = frontier_sched->get_vertex_data(v);
+      r = vd.region.get();
 
-    if (vd.region.explored()) {
-      frontier_sched->done(v);
-      continue;
+      if (r->explored(*occupation_grid->get_data())) {
+        frontier_sched->done(v);
+        continue;
+      }
+
+      root = v;
+      ran_schedule = false;
     }
 
     bot->phase = ExplorationPhase::RegionAlignment;
-    bot->target_region = &vd.region;
+    bot->target_vertex = v;
+
+    const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
+    const auto tp = r->get_closest_unexplored(*occupation_grid->get_data(), rp);
+    bot->target_point = tp.value();
   }
 }
 
@@ -99,7 +116,8 @@ void CentralUnit::run_exploration() {
     std::vector<std::future<void>> jobs;
 
     for (ExplorationBot *bot : bots) {
-      auto f = [bot, grid = occupation_grid.get()]() { bot->explore(grid); };
+      auto f = [bot, grid = occupation_grid.get(),
+                sched = frontier_sched.get()]() { bot->explore(grid, sched); };
 
       jobs.emplace_back(std::async(std::launch::async, f));
     }
@@ -186,8 +204,10 @@ void CentralUnit::reset() {
   occupation_grid = std::make_unique<OccupationGrid>();
   frontier_sched = std::make_unique<DynamicScheduler>();
 
-  FrontierRegion outer_wall;
-  root = frontier_sched->add_node(outer_wall);
+  auto outer_wall = std::make_shared<FrontierRegion>();
+  outer_wall->min = std::make_pair(0, 0);
+  outer_wall->max = std::make_pair(MAP_HEIGHT, MAP_WIDTH);
+  root = frontier_sched->add_vertex(outer_wall);
 
   for (ExplorationBot *bot : bots) {
     bot->reset();

@@ -4,12 +4,12 @@
 #include "FrontierRegion.hpp"
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/depth_first_search.hpp>
-#include <stack>
 #include <queue>
+#include <stack>
 
 struct VertexData {
   std::size_t id;
-  FrontierRegion region;
+  std::shared_ptr<FrontierRegion> region;
 
   enum class Color { White, Gray, Black } color = Color::White;
   std::size_t discover_time = 0;
@@ -28,7 +28,7 @@ class DynamicScheduler {
 public:
   DynamicScheduler() : time_(0) {}
 
-  vertex_t add_node(FrontierRegion &region);
+  vertex_t add_vertex(std::shared_ptr<FrontierRegion> region);
   void add_edge(vertex_t u, vertex_t v);
 
   // begin or resume a search from a vertex (pushes it as a root for DFS/BFS)
@@ -44,6 +44,8 @@ public:
 
   // Inspect vertex data (thread-safe snapshot)
   VertexData get_vertex_data(vertex_t v);
+
+  std::vector<vertex_t> all_vertices();
 
   Graph &graph() { return g_; }
 

@@ -2,7 +2,7 @@
 #define EXPLORATION_BOT_HPP
 
 #include "Bot.hpp"
-#include "FrontierRegion.hpp"
+#include "Graph.hpp"
 #include "OccupationGrid.hpp"
 #include "cgal_types.hpp"
 
@@ -33,29 +33,36 @@ private:
   bool path_blocked_to(const Robot::Point &target,
                        const OccupationGrid *grid) const;
 
+  Robot::Point reading_index_to_point(std::size_t index,
+                                      const OccupationGrid *grid) const;
+
 public:
   ExplorationBot(const Robot::Point &start_pos, const Robot::Vector &start_dir,
                  bool clockwise);
 
   ExplorationPhase phase = ExplorationPhase::WallDiscovery;
-  const FrontierRegion *target_region = nullptr;
+
   bool left_contact_point;
+  vertex_t target_vertex;
+  Robot::Point target_point;
 
   Robot::Point get_relative_position(const OccupationGrid *grid) const;
 
   void reset();
   void update_grid(OccupationGrid *grid);
 
-  void explore(const OccupationGrid *grid);
+  void explore(const OccupationGrid *grid, DynamicScheduler *sched);
 
   void phase1_wall_discovery();
   void phase2_wall_alignment(const OccupationGrid *grid);
   Robot::Vector compute_wall_following_vector(
+      const OccupationGrid *grid,
       const Robot::Vector &preferred_direction = Robot::Vector(0, 0));
 
   void phase3_wall_following(const OccupationGrid *grid);
   void phase5_region_alignment(const OccupationGrid *grid);
-  void phase6_region_exploration(const OccupationGrid *grid);
+  void phase6_region_exploration(const OccupationGrid *grid,
+                                 DynamicScheduler *sched);
 
   void draw(const DrawData &draw_data) const;
 };

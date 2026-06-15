@@ -1,6 +1,6 @@
 #include "Graph.hpp"
 
-vertex_t DynamicScheduler::add_node(FrontierRegion &region) {
+vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region) {
   std::lock_guard<std::mutex> lg(mutex_);
   vertex_t v = boost::add_vertex(VertexData{next_id_++, region}, g_);
   return v;
@@ -80,6 +80,13 @@ void DynamicScheduler::done(vertex_t v) {
 VertexData DynamicScheduler::get_vertex_data(vertex_t v) {
   std::lock_guard<std::mutex> lg(mutex_);
   return g_[v];
+}
+
+std::vector<vertex_t> DynamicScheduler::all_vertices() {
+  std::vector<vertex_t> out;
+  for (auto vp = vertices(g_); vp.first != vp.second; ++vp.first)
+    out.push_back(*vp.first);
+  return out;
 }
 
 std::optional<vertex_t> DynamicScheduler::pop_dfs() {

@@ -10,7 +10,7 @@
 class OccupationGrid {
 private:
   const Robot::Point origin = environment_center();
-  Grid2D<std::shared_ptr<Cell>> grid;
+  Grid2D<std::unique_ptr<Cell>> grid;
 
   std::size_t grid_min_y = MAP_HEIGHT;
   std::size_t grid_max_y = 0;
@@ -23,7 +23,7 @@ private:
 public:
   OccupationGrid();
 
-  const auto get_data() const { return grid; };
+  const auto get_data() const { return &grid; };
   const Robot::Point get_origin() const { return origin; };
 
   void mark_cells(const Robot::Point &relative_position,

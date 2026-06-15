@@ -8,11 +8,6 @@ void Bot::reset() {
   closest_wall_reading_index = std::nullopt;
 }
 
-Robot::Point Bot::reading_index_to_point(std::size_t index) const {
-  const Reading &r = current_readings[index];
-  return point_at_reading(real_position, r);
-}
-
 // Returns delta applied to position
 Robot::Vector Bot::move(const Robot::Vector &dir) {
   const Robot::Vector delta = normalize_vector(dir) * SPEED;

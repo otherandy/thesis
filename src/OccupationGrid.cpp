@@ -85,7 +85,7 @@ OccupationGrid::OccupationGrid() {
       const double cell_center_y = (y + 0.5) * CELL_SIZE - ENV_HEIGHT;
 
       grid[y][x] =
-          std::make_shared<Cell>(std::make_pair(y, x), CellState::Unknown,
+          std::make_unique<Cell>(std::make_pair(y, x), CellState::Unknown,
                                  Robot::Point(cell_center_x, cell_center_y));
     }
   }
@@ -135,14 +135,14 @@ void OccupationGrid::mark_cells(
 }
 
 void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
-  std::vector<FrontierRegion> regions;
+  std::vector<std::shared_ptr<FrontierRegion>> regions;
   std::unordered_set<Cell *> visited;
 
   for (std::size_t y = grid_min_y; y < grid_max_y; ++y) {
     for (std::size_t x = grid_min_x; x < grid_max_x; ++x) {
-      auto cell = grid[y][x];
+      Cell *cell = grid[y][x].get();
 
-      if (visited.count(cell.get())) {
+      if (visited.count(cell)) {
         continue;
       }
 
@@ -150,44 +150,97 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
         continue;
       }
 
-      FrontierRegion new_region;
+      auto new_region = std::make_shared<FrontierRegion>();
       Index2D idx = std::make_pair(y, x);
-      new_region.min = idx;
-      new_region.max = idx;
+      new_region->min = idx;
+      new_region->max = idx;
 
-      std::queue<std::shared_ptr<Cell>> to_visit;
+      std::queue<Cell *> to_visit;
       to_visit.push(cell);
-      visited.insert(cell.get());
+      visited.insert(cell);
 
       while (!to_visit.empty()) {
         auto current_cell = to_visit.front();
         to_visit.pop();
 
-        new_region.cells.push_back(current_cell);
+        new_region->cells.push_back(current_cell->index);
 
-        if (current_cell->index < new_region.min) {
-          new_region.min = current_cell->index;
+        if (current_cell->index < new_region->min) {
+          new_region->min = current_cell->index;
         }
 
-        if (current_cell->index > new_region.max) {
-          new_region.max = current_cell->index;
+        if (current_cell->index > new_region->max) {
+          new_region->max = current_cell->index;
         }
 
         auto neighbors = current_cell->get_neighbors();
 
         for (Index2D n_idx : neighbors) {
-          auto neighbor = grid[n_idx.first][n_idx.second];
+          Cell *neighbor = grid[n_idx.first][n_idx.second].get();
 
           if (neighbor->state == CellState::Frontier &&
-              !visited.count(neighbor.get())) {
+              !visited.count(neighbor)) {
             to_visit.push(neighbor);
-            visited.insert(neighbor.get());
+            visited.insert(neighbor);
           }
         }
       }
 
       regions.push_back(std::move(new_region));
     }
+  }
+
+  auto contains = [](const FrontierRegion &outer,
+                     const FrontierRegion &inner) -> bool {
+    return outer.min.first <= inner.min.first &&
+           outer.min.second <= inner.min.second &&
+           outer.max.first >= inner.max.first &&
+           outer.max.second >= inner.max.second;
+  };
+
+  for (auto v : sched->all_vertices()) {
+    auto vd = sched->get_vertex_data(v);
+    auto existing = vd.region;
+
+    for (auto it = regions.begin(); it != regions.end();) {
+      if ((*it)->cells == existing->cells) {
+        it = regions.erase(it);
+      } else {
+        it++;
+      }
+    }
+  }
+
+  for (auto child : regions) {
+    vertex_t id = sched->add_vertex(child);
+    vertex_t parent_id = 0;
+    FrontierRegion *best_parent = nullptr;
+
+    for (auto v : sched->all_vertices()) {
+      if (v == id) {
+        continue;
+      }
+
+      auto vd = sched->get_vertex_data(v);
+      auto candidate = vd.region;
+
+      if (!contains(*candidate, *child)) {
+        continue;
+      }
+
+      if (best_parent == nullptr) {
+        best_parent = candidate.get();
+        parent_id = v;
+        continue;
+      }
+
+      if (candidate->cells.size() < best_parent->cells.size()) {
+        best_parent = candidate.get();
+        parent_id = v;
+      }
+    }
+
+    sched->add_edge(parent_id, id);
   }
 }
 
@@ -211,7 +264,7 @@ void OccupationGrid::save_to_file(const std::string &filename) const {
 
   for (std::size_t y = 0; y < MAP_HEIGHT; ++y) {
     for (std::size_t x = 0; x < MAP_WIDTH; ++x) {
-      f << static_cast<int>(grid[y][x].get()->state) << " ";
+      f << static_cast<int>(grid[y][x]->state) << " ";
     }
     f << "\n";
   }

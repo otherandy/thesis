@@ -2,7 +2,9 @@
 #define FRONTIER_REGION_HPP
 
 #include "Cell.hpp"
+#include "Grid.hpp"
 #include "cgal_types.hpp"
+#include <memory>
 #include <raylib-cpp.hpp>
 
 const std::array<Color, 9> FrontierColors = {
@@ -10,14 +12,15 @@ const std::array<Color, 9> FrontierColors = {
 };
 
 struct FrontierRegion {
-  std::vector<std::shared_ptr<Cell>> cells;
+  std::vector<Index2D> cells;
   Index2D min;
   Index2D max;
 
-  const bool explored() const;
+  const bool explored(const Grid2D<std::unique_ptr<Cell>> &grid) const;
 
   std::optional<Robot::Point>
-  get_closest_unexplored(const Robot::Point &pos) const;
+  get_closest_unexplored(const Grid2D<std::unique_ptr<Cell>> &grid,
+                         const Robot::Point &pos) const;
 };
 
 #endif

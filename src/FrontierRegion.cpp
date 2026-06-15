@@ -1,7 +1,9 @@
 #include "FrontierRegion.hpp"
 
-const bool FrontierRegion::explored() const {
-  for (const auto cell : cells) {
+const bool
+FrontierRegion::explored(const Grid2D<std::unique_ptr<Cell>> &grid) const {
+  for (const Index2D idx : cells) {
+    const Cell *cell = grid[idx.first][idx.second].get();
     if (cell->state == CellState::Frontier) {
       return false;
     }
@@ -9,12 +11,15 @@ const bool FrontierRegion::explored() const {
   return true;
 }
 
-std::optional<Robot::Point>
-FrontierRegion::get_closest_unexplored(const Robot::Point &pos) const {
+std::optional<Robot::Point> FrontierRegion::get_closest_unexplored(
+    const Grid2D<std::unique_ptr<Cell>> &grid, const Robot::Point &pos) const {
+
   std::optional<Robot::Point> closest_point = std::nullopt;
   double closest_distance = std::numeric_limits<double>::max();
 
-  for (const auto cell : cells) {
+  for (const Index2D idx : cells) {
+    const Cell *cell = grid[idx.first][idx.second].get();
+
     if (cell->state != CellState::Frontier) {
       continue;
     }

@@ -30,7 +30,6 @@ protected:
   std::optional<std::size_t> closest_wall_reading_index = std::nullopt;
 
   void reset();
-  Robot::Point reading_index_to_point(std::size_t index) const;
 
   Robot::Point get_real_position() const { return real_position; }
   void update_visited_positions();

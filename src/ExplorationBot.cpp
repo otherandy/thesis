@@ -1,5 +1,7 @@
 #include "ExplorationBot.hpp"
 #include "Cell.hpp"
+#include "FrontierRegion.hpp"
+#include "Graph.hpp"
 #include "OccupationGrid.hpp"
 #include "Utils.hpp"
 #include "cgal_types.hpp"
@@ -15,7 +17,6 @@ ExplorationBot::get_relative_position(const OccupationGrid *grid) const {
 void ExplorationBot::reset() {
   // direction = get_random_heading();
   phase = ExplorationPhase::WallDiscovery;
-  target_region = nullptr;
 
   Bot::reset();
 }
@@ -54,7 +55,7 @@ void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
 }
 
 Robot::Vector ExplorationBot::compute_wall_following_vector(
-    const Robot::Vector &preferred_direction) {
+    const OccupationGrid *grid, const Robot::Vector &preferred_direction) {
 
   auto cross_z = [&](const Robot::Vector &a, const Robot::Vector &b) -> double {
     return a.x() * b.y() - a.y() * b.x();
@@ -111,12 +112,12 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
       if (idx == ref || current_readings[idx].distance >= LIDAR_RADIUS) {
         break;
       }
-      wall_points.push_back(reading_index_to_point(idx));
+      wall_points.push_back(reading_index_to_point(idx, grid));
     }
     std::reverse(wall_points.begin(), wall_points.end());
   }
 
-  wall_points.push_back(reading_index_to_point(ref));
+  wall_points.push_back(reading_index_to_point(ref, grid));
 
   // next
   {
@@ -126,7 +127,7 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
       if (idx == ref || current_readings[idx].distance >= LIDAR_RADIUS) {
         break;
       }
-      wall_points.push_back(reading_index_to_point(idx));
+      wall_points.push_back(reading_index_to_point(idx, grid));
     }
   }
 
@@ -179,7 +180,7 @@ void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
     left_contact_point = true;
   }
 
-  Robot::Vector desired_vector = compute_wall_following_vector();
+  Robot::Vector desired_vector = compute_wall_following_vector(grid);
 
   const Robot::Vector delta = move(desired_vector);
   if (delta.squared_length() <= 1e-12) {
@@ -189,7 +190,6 @@ void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
 
 bool ExplorationBot::path_blocked_to(const Robot::Point &target,
                                      const OccupationGrid *grid) const {
-
   const Robot::Point rp = get_relative_position(grid);
   const Robot::Vector to_target = target - rp;
 
@@ -210,50 +210,51 @@ bool ExplorationBot::path_blocked_to(const Robot::Point &target,
 }
 
 void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
-
-  if (target_region == nullptr) {
-    phase = ExplorationPhase::RegionDiscovery;
-    return;
-  }
-
   const Robot::Point rp = get_relative_position(grid);
-  const auto target_point = target_region->get_closest_unexplored(rp);
-
-  if (!target_point.has_value()) {
-    phase = ExplorationPhase::RegionDiscovery;
-    return;
-  }
-
-  const double distance = std::sqrt(CGAL::squared_distance(rp, *target_point));
+  const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
 
   if (distance < SPEED * 2) {
     phase = ExplorationPhase::RegionExploration;
     return;
   }
 
-  Robot::Vector desired_vector = *target_point - rp;
+  Robot::Vector desired_vector = target_point - rp;
 
-  if (path_blocked_to(*target_point, grid)) {
-    desired_vector = compute_wall_following_vector(desired_vector);
+  if (path_blocked_to(target_point, grid)) {
+    desired_vector = compute_wall_following_vector(grid, desired_vector);
   }
 
   move(desired_vector);
 }
 
-void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
+Robot::Point
+ExplorationBot::reading_index_to_point(std::size_t index,
+                                       const OccupationGrid *grid) const {
+  const Reading &r = current_readings[index];
+  const Robot::Point rp = get_relative_position(grid);
+  return point_at_reading(rp, r);
+}
 
-  if (target_region == nullptr) {
+void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid,
+                                               DynamicScheduler *sched) {
+  const VertexData vd = sched->get_vertex_data(target_vertex);
+  const FrontierRegion *target_region = vd.region.get();
+
+  if (target_region->cells.empty()) {
+    target_region = nullptr;
     phase = ExplorationPhase::RegionDiscovery;
     return;
   }
 
-  if (target_region->explored()) {
+  const auto g = grid->get_data();
+
+  if (target_region->explored(*g)) {
     phase = ExplorationPhase::RegionDiscovery;
     return;
   }
 
   const Robot::Point rp = get_relative_position(grid);
-  const auto target_point = target_region->get_closest_unexplored(rp);
+  const auto target_point = target_region->get_closest_unexplored(*g, rp);
 
   if (!target_point.has_value()) {
     phase = ExplorationPhase::RegionDiscovery;
@@ -263,11 +264,10 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
 
   if (closest_wall_reading_index) {
     const Robot::Point closest_point =
-        reading_index_to_point(*closest_wall_reading_index);
+        reading_index_to_point(*closest_wall_reading_index, grid);
     const Index2D index =
         get_cell_index_from(closest_point.x(), closest_point.y());
-    const auto g = grid->get_data();
-    const auto obstacle_cell = g[index.first][index.second].get();
+    const Cell *obstacle_cell = (*g)[index.first][index.second].get();
 
     if (obstacle_cell->state == CellState::Unknown) {
       phase = ExplorationPhase::WallAlignment;
@@ -278,7 +278,7 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
   desired_vector = *target_point - rp;
 
   if (path_blocked_to(*target_point, grid)) {
-    desired_vector = compute_wall_following_vector(desired_vector);
+    desired_vector = compute_wall_following_vector(grid, desired_vector);
   }
 
   move(desired_vector);
@@ -296,7 +296,8 @@ void ExplorationBot::update_grid(OccupationGrid *grid) {
   grid->mark_cells(rp, current_readings);
 }
 
-void ExplorationBot::explore(const OccupationGrid *grid) {
+void ExplorationBot::explore(const OccupationGrid *grid,
+                             DynamicScheduler *sched) {
 
   if (phase == ExplorationPhase::Complete) {
     return;
@@ -323,7 +324,7 @@ void ExplorationBot::explore(const OccupationGrid *grid) {
   }
 
   if (phase == ExplorationPhase::RegionExploration) {
-    phase6_region_exploration(grid);
+    phase6_region_exploration(grid, sched);
     return;
   }
 }
