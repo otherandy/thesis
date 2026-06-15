@@ -30,8 +30,7 @@ private:
   Robot::Point start_point;
   Robot::Point contact_point;
 
-  bool path_blocked_to(const Robot::Point &target,
-                       const OccupationGrid *grid) const;
+  bool path_blocked_to(const Robot::Vector &target) const;
 
   Robot::Point reading_index_to_point(std::size_t index,
                                       const OccupationGrid *grid) const;

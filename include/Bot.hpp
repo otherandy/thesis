@@ -32,7 +32,6 @@ protected:
   void reset();
 
   Robot::Point get_real_position() const { return real_position; }
-  void update_visited_positions();
 
   void draw_body(const DrawData &draw_data) const;
   void draw_lidar(const DrawData &draw_data) const;

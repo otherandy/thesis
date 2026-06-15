@@ -1,4 +1,5 @@
 #include "ExplorationBot.hpp"
+#include "Bot.hpp"
 #include "Cell.hpp"
 #include "FrontierRegion.hpp"
 #include "Graph.hpp"
@@ -6,6 +7,7 @@
 #include "Utils.hpp"
 #include "cgal_types.hpp"
 #include <CGAL/linear_least_squares_fitting_2.h>
+#include <cmath>
 
 Robot::Point
 ExplorationBot::get_relative_position(const OccupationGrid *grid) const {
@@ -188,25 +190,26 @@ void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
   }
 }
 
-bool ExplorationBot::path_blocked_to(const Robot::Point &target,
-                                     const OccupationGrid *grid) const {
-  const Robot::Point rp = get_relative_position(grid);
-  const Robot::Vector to_target = target - rp;
+bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
+  double target_angle = std::atan2(target.y(), target.x());
+  double target_dist = std::sqrt(target.squared_length());
 
-  const double target_dist = std::sqrt(to_target.squared_length());
+  double step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
 
-  double target_angle = std::atan2(to_target.y(), to_target.x());
-  if (target_angle < 0) {
-    target_angle += 2.0 * M_PI;
+  for (const auto &reading : current_readings) {
+    double a = std::remainder(reading.angle, 2.0 * M_PI);
+    double diff = std::remainder(a - target_angle, 2.0 * M_PI);
+
+    if (std::abs(diff) > step / 2.0) {
+      continue;
+    }
+
+    if (reading.distance < target_dist) {
+      return true;
+    }
   }
 
-  const double angle_step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
-  std::size_t idx =
-      static_cast<std::size_t>(std::lround(target_angle / angle_step)) %
-      MAX_LIDAR_SAMPLES;
-
-  constexpr double eps = 2.0 * LIDAR_RESOLUTION;
-  return current_readings[idx].distance + eps < target_dist;
+  return false;
 }
 
 void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
@@ -220,7 +223,7 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
 
   Robot::Vector desired_vector = target_point - rp;
 
-  if (path_blocked_to(target_point, grid)) {
+  if (path_blocked_to(desired_vector)) {
     desired_vector = compute_wall_following_vector(grid, desired_vector);
   }
 
@@ -277,7 +280,7 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid,
 
   desired_vector = *target_point - rp;
 
-  if (path_blocked_to(*target_point, grid)) {
+  if (path_blocked_to(desired_vector)) {
     desired_vector = compute_wall_following_vector(grid, desired_vector);
   }
 
