@@ -62,7 +62,7 @@ void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
     color = raylib::RED;
     break;
   case CellState::Frontier:
-    color = raylib::BLUE;
+    color = cell->frontier_id.has_value() ? raylib::VIOLET : raylib::BLUE;
     break;
   default:
     return;
@@ -149,12 +149,15 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
         continue;
       }
 
-      std::vector<Cell *> region_cells;
-      std::unordered_set<std::size_t> found_ids;
+      if (cell->frontier_id.has_value()) {
+        continue;
+      }
 
-      Index2D idx = std::make_pair(y, x);
-      Index2D min = idx;
-      Index2D max = idx;
+      std::vector<Cell *> region_cells;
+      bool is_loop = true;
+
+      Index2D min = std::make_pair(y, x);
+      Index2D max = std::make_pair(y, x);
 
       std::queue<Cell *> to_visit;
       to_visit.push(cell);
@@ -166,11 +169,6 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 
         region_cells.push_back(current_cell);
 
-        auto id = current_cell->frontier_id;
-        if (id.has_value() && !found_ids.count(*id)) {
-          found_ids.insert(*id);
-        }
-
         if (current_cell->index < min) {
           min = current_cell->index;
         }
@@ -180,19 +178,36 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
         }
 
         auto neighbors = current_cell->get_neighbors();
+        int frontier_neighbors = 0;
 
-        for (Index2D n_idx : neighbors) {
-          Cell *neighbor = grid[n_idx.first][n_idx.second].get();
+        for (Index2D idx : neighbors) {
+          Cell *neighbor = grid[idx.first][idx.second].get();
 
-          if (neighbor->state == CellState::Frontier &&
-              !visited.count(neighbor)) {
-            to_visit.push(neighbor);
-            visited.insert(neighbor);
+          if (neighbor->state != CellState::Frontier) {
+            continue;
           }
+
+          if (!neighbor->frontier_id.has_value()) {
+            frontier_neighbors++;
+          }
+
+          if (visited.count(neighbor)) {
+            continue;
+          }
+
+          visited.insert(neighbor);
+
+          if (!neighbor->frontier_id.has_value()) {
+            to_visit.push(neighbor);
+          }
+        }
+
+        if (frontier_neighbors < 2) {
+          is_loop = false;
         }
       }
 
-      if (found_ids.empty()) {
+      if (is_loop) {
         auto new_region = std::make_shared<FrontierRegion>();
 
         for (auto c : region_cells) {
@@ -202,21 +217,7 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
         new_region->min = min;
         new_region->max = max;
         regions.push_back(std::move(new_region));
-        continue;
       }
-
-      auto id = *found_ids.begin();
-      auto vd = sched->get_vertex_data(id);
-      auto r = vd.region;
-
-      r->cells.clear();
-      for (auto c : region_cells) {
-        c->frontier_id = id;
-        r->cells.push_back(c->index);
-      }
-
-      r->min = min;
-      r->max = max;
     }
   }
 
