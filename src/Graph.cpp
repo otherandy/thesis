@@ -1,8 +1,16 @@
 #include "Graph.hpp"
 
-vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region) {
+vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region,
+                                      bool root) {
   std::lock_guard<std::mutex> lg(mutex_);
-  vertex_t v = boost::add_vertex(VertexData{next_id_++, region}, g_);
+
+  vertex_t v = boost::add_vertex(
+      VertexData{next_id_++, region, VertexData::Color::Black}, g_);
+
+  if (!root && empty()) {
+    push(v);
+  }
+
   return v;
 }
 
@@ -11,61 +19,48 @@ void DynamicScheduler::add_edge(vertex_t u, vertex_t v) {
   boost::add_edge(u, v, g_);
 }
 
-void DynamicScheduler::start_from(vertex_t root, bool use_bfs) {
-  std::lock_guard<std::mutex> lg(mutex_);
-  if (use_bfs) {
-    if (g_[root].color == VertexData::Color::White) {
-      bfs_queue_.push(root);
-      g_[root].color = VertexData::Color::Gray;
-      g_[root].discover_time = ++time_;
-    }
-  } else {
-    if (g_[root].color == VertexData::Color::White) {
-      dfs_stack_.push(root);
-      g_[root].color = VertexData::Color::Gray;
-      g_[root].discover_time = ++time_;
-    }
-  }
-}
-
-std::vector<vertex_t>
-DynamicScheduler::next_nodes(std::size_t k, const std::string &strategy) {
-  std::lock_guard<std::mutex> lg(mutex_);
-  std::vector<vertex_t> out;
-  while (out.size() < k) {
-    std::optional<vertex_t> vopt;
-    if (strategy == "bfs")
-      vopt = pop_bfs();
-    else
-      vopt = pop_dfs();
-
-    if (!vopt)
-      break;
-    vertex_t v = *vopt;
-    out.push_back(v);
-
-    for (auto ei = boost::adjacent_vertices(v, g_); ei.first != ei.second;
-         ++ei.first) {
-      vertex_t n = *ei.first;
-      if (g_[n].color == VertexData::Color::White) {
-        g_[n].color = VertexData::Color::Gray;
-        g_[n].discover_time = ++time_;
-        if (strategy == "bfs")
-          bfs_queue_.push(n);
-        else
-          dfs_stack_.push(n);
-      }
-    }
-  }
-  return out;
-}
-
 void DynamicScheduler::done(vertex_t v) {
   std::lock_guard<std::mutex> lg(mutex_);
   if (g_[v].color != VertexData::Color::Black) {
-    g_[v].finish_time = ++time_;
     g_[v].color = VertexData::Color::Black;
   }
+}
+
+std::optional<vertex_t> DynamicScheduler::next(const std::string &strategy) {
+  std::lock_guard<std::mutex> lg(mutex_);
+  std::optional<vertex_t> vopt;
+
+  if (strategy == "dfs") {
+    vopt = pop_bfs();
+  } else if (strategy == "bfs") {
+    vopt = pop_dfs();
+  }
+
+  if (!vopt.has_value()) {
+    return std::nullopt;
+  }
+
+  vertex_t v = *vopt;
+
+  for (auto ei = boost::adjacent_vertices(v, g_); ei.first != ei.second;
+       ++ei.first) {
+    vertex_t n = *ei.first;
+    if (g_[n].color == VertexData::Color::White) {
+      push(n);
+    }
+  }
+
+  return v;
+}
+
+void DynamicScheduler::push(vertex_t v) {
+  g_[v].color = VertexData::Color::Gray;
+  bfs_queue_.push(v);
+  dfs_stack_.push(v);
+}
+
+bool DynamicScheduler::empty() {
+  return dfs_stack_.empty() || bfs_queue_.empty();
 }
 
 VertexData DynamicScheduler::get_vertex_data(vertex_t v) {
@@ -73,10 +68,11 @@ VertexData DynamicScheduler::get_vertex_data(vertex_t v) {
   return g_[v];
 }
 
-std::vector<vertex_t> DynamicScheduler::all_vertices() {
+std::vector<vertex_t> DynamicScheduler::get_all_vertices() {
   std::vector<vertex_t> out;
-  for (auto vp = vertices(g_); vp.first != vp.second; ++vp.first)
+  for (auto vp = vertices(g_); vp.first != vp.second; ++vp.first) {
     out.push_back(*vp.first);
+  }
   return out;
 }
 

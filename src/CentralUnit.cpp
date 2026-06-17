@@ -53,28 +53,27 @@ void CentralUnit::get_input_and_move() {
 }
 
 void CentralUnit::assign_frontier_regions() {
+  bool ran_compute = false;
+  vertex_t target_v;
+
   for (ExplorationBot *bot : bots) {
     if (bot->phase == ExplorationPhase::RegionDiscovery) {
-      occupation_grid->compute_frontier_regions(frontier_sched.get());
-      frontier_sched->start_from(root);
-    schedule:
-      auto vlist = frontier_sched->next_nodes();
+      if (!ran_compute) {
+        occupation_grid->compute_frontier_regions(frontier_sched.get());
+        auto vopt = frontier_sched->next();
 
-      if (vlist.empty()) {
-        continue;
+        if (!vopt.has_value()) {
+          continue;
+        }
+
+        target_v = *vopt;
+
+        root = target_v;
+        ran_compute = true;
       }
-
-      auto v = vlist.front();
-
-      if (v == 0) {
-        frontier_sched->done(v);
-        goto schedule;
-      }
-
-      root = v;
 
       bot->phase = ExplorationPhase::RegionExploration;
-      bot->target_vertex = v;
+      bot->target_vertex = target_v;
     }
 
     if (bot->phase == ExplorationPhase::RegionExploration) {
@@ -202,7 +201,7 @@ void CentralUnit::reset() {
   auto outer_wall = std::make_shared<FrontierRegion>();
   outer_wall->min = std::make_pair(0, 0);
   outer_wall->max = std::make_pair(MAP_HEIGHT, MAP_WIDTH);
-  root = frontier_sched->add_vertex(outer_wall);
+  root = frontier_sched->add_vertex(outer_wall, true);
 
   for (ExplorationBot *bot : bots) {
     bot->reset();

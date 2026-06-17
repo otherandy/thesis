@@ -240,7 +240,7 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
     vertex_t parent_id = 0;
     FrontierRegion *best_parent = nullptr;
 
-    for (auto v : sched->all_vertices()) {
+    for (auto v : sched->get_all_vertices()) {
       if (v == id) {
         continue;
       }

@@ -12,8 +12,6 @@ struct VertexData {
   std::shared_ptr<FrontierRegion> region;
 
   enum class Color { White, Gray, Black } color = Color::White;
-  std::size_t discover_time = 0;
-  std::size_t finish_time = 0;
 };
 
 using Graph = boost::adjacency_list<boost::vecS,        // OutEdgeList
@@ -26,27 +24,24 @@ using edge_t = boost::graph_traits<Graph>::edge_descriptor;
 
 class DynamicScheduler {
 public:
-  DynamicScheduler() : time_(0) {}
+  DynamicScheduler() {}
 
-  vertex_t add_vertex(std::shared_ptr<FrontierRegion> region);
+  vertex_t add_vertex(std::shared_ptr<FrontierRegion> region,
+                      bool root = false);
   void add_edge(vertex_t u, vertex_t v);
 
-  void start_from(vertex_t root, bool use_bfs = false);
-
-  // Request next up to `k` nodes to process. Strategy: "dfs" or "bfs".
-  // Returns descriptors in visit order and marks them Gray/Black accordingly.
-  std::vector<vertex_t> next_nodes(std::size_t k = 1,
-                                   const std::string &strategy = "dfs");
-
+  std::optional<vertex_t> next(const std::string &strategy = "dfs");
   void done(vertex_t v);
 
   VertexData get_vertex_data(vertex_t v);
-
-  std::vector<vertex_t> all_vertices();
+  std::vector<vertex_t> get_all_vertices();
 
   Graph &graph() { return g_; }
 
 private:
+  void push(vertex_t v);
+  bool empty();
+
   std::optional<vertex_t> pop_dfs();
   std::optional<vertex_t> pop_bfs();
 
