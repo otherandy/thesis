@@ -1,4 +1,5 @@
 #include "OccupationGrid.hpp"
+#include "Cell.hpp"
 #include "FrontierRegion.hpp"
 #include "Grid.hpp"
 #include "Utils.hpp"
@@ -94,6 +95,8 @@ void OccupationGrid::mark_cells(
     const Robot::Point &relative_position,
     const std::array<Reading, MAX_LIDAR_SAMPLES> &readings) {
 
+  static constexpr double steps_count = LIDAR_RADIUS / CELL_SIZE;
+
   const double rel_pos_x = relative_position.x();
   const double rel_pos_y = relative_position.y();
 
@@ -101,15 +104,12 @@ void OccupationGrid::mark_cells(
 
   mark_cell(relative_cell_index, CellState::Visited);
 
-  std::vector<std::size_t> frontier_cells_to_update;
-
   for (const Reading &r : readings) {
     const double hit_x_rel = rel_pos_x + r.distance * cos(r.angle);
     const double hit_y_rel = rel_pos_y + r.distance * sin(r.angle);
 
     const Index2D hit_cell_index = get_cell_index_from(hit_x_rel, hit_y_rel);
 
-    const double steps_count = r.distance / CELL_SIZE;
     const double step_x = (hit_x_rel - rel_pos_x) / steps_count;
     const double step_y = (hit_y_rel - rel_pos_y) / steps_count;
 
@@ -135,15 +135,79 @@ void OccupationGrid::mark_cells(
 
 void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
   std::vector<std::shared_ptr<FrontierRegion>> regions;
-  std::unordered_set<Cell *> visited;
+  std::unordered_set<Cell *> global_visited;
+
+  auto is_closed = [&](std::vector<Cell *> region, Index2D min,
+                       Index2D max) -> bool {
+    auto key = [](int y, int x) {
+      return (static_cast<uint64_t>(y) << 32) | static_cast<uint32_t>(x);
+    };
+
+    std::unordered_set<Cell *> region_set(region.begin(), region.end());
+
+    int min_y = min.first - 1;
+    int min_x = min.second - 1;
+    int max_y = max.first + 1;
+    int max_x = max.second + 1;
+
+    std::queue<Index2D> q;
+    std::unordered_set<uint64_t> visited;
+
+    q.push({max_y, max_x});
+    visited.insert(key(max_y, max_x));
+
+    q.push({min_y, min_x});
+    visited.insert(key(min_y, min_x));
+
+    static constexpr std::array<std::pair<int, int>, 4> directions{{
+        {-1, 0}, // N
+        {1, 0},  // S
+        {0, -1}, // W
+        {0, 1}   // E
+    }};
+
+    while (!q.empty()) {
+      auto [y, x] = q.front();
+      q.pop();
+
+      Cell *c = grid[y][x].get();
+
+      if (c->state == CellState::Unknown) {
+        return false;
+      }
+
+      for (auto [dy, dx] : directions) {
+        int ny = y + dy;
+        int nx = x + dx;
+
+        if (ny < min_y || ny > max_y || nx < min_x || nx > max_x) {
+          continue;
+        }
+
+        Cell *neighbor = grid[ny][nx].get();
+
+        if (region_set.count(neighbor)) {
+          continue;
+        }
+
+        if (neighbor->state == CellState::Occupied) {
+          continue;
+        }
+
+        auto k = key(ny, nx);
+
+        if (visited.insert(k).second) {
+          q.push({ny, nx});
+        }
+      }
+    }
+
+    return true;
+  };
 
   for (std::size_t y = grid_min_y; y < grid_max_y; ++y) {
     for (std::size_t x = grid_min_x; x < grid_max_x; ++x) {
       Cell *cell = grid[y][x].get();
-
-      if (visited.count(cell)) {
-        continue;
-      }
 
       if (cell->state != CellState::Frontier) {
         continue;
@@ -153,15 +217,19 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
         continue;
       }
 
+      if (global_visited.count(cell)) {
+        continue;
+      }
+
+      global_visited.insert(cell);
+
       std::vector<Cell *> region_cells;
-      bool is_loop = true;
 
       Index2D min = std::make_pair(y, x);
       Index2D max = std::make_pair(y, x);
 
       std::queue<Cell *> to_visit;
       to_visit.push(cell);
-      visited.insert(cell);
 
       while (!to_visit.empty()) {
         auto current_cell = to_visit.front();
@@ -173,41 +241,33 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
           min = current_cell->index;
         }
 
-        if (current_cell->index > max) {
-          max = current_cell->index;
+        if (current_cell->index.first > max.first) {
+          max.first = current_cell->index.first;
         }
 
-        auto neighbors = current_cell->get_neighbors();
-        int frontier_neighbors = 0;
+        if (current_cell->index.second > max.second) {
+          max.second = current_cell->index.second;
+        }
 
-        for (Index2D idx : neighbors) {
-          Cell *neighbor = grid[idx.first][idx.second].get();
+        auto neighbors = current_cell->get_neighbors(&grid);
 
+        for (Cell *neighbor : neighbors) {
           if (neighbor->state != CellState::Frontier) {
             continue;
           }
 
-          if (!neighbor->frontier_id.has_value()) {
-            frontier_neighbors++;
-          }
-
-          if (visited.count(neighbor)) {
+          if (global_visited.count(neighbor)) {
             continue;
           }
 
-          visited.insert(neighbor);
-
-          if (!neighbor->frontier_id.has_value()) {
+          if (global_visited.insert(neighbor).second &&
+              !neighbor->frontier_id.has_value()) {
             to_visit.push(neighbor);
           }
         }
-
-        if (frontier_neighbors < 2) {
-          is_loop = false;
-        }
       }
 
-      if (is_loop) {
+      if (is_closed(region_cells, min, max)) {
         auto new_region = std::make_shared<FrontierRegion>();
 
         for (auto c : region_cells) {
@@ -288,7 +348,7 @@ void OccupationGrid::save_to_file(const std::string &filename) const {
 
   for (std::size_t y = 0; y < MAP_HEIGHT; ++y) {
     for (std::size_t x = 0; x < MAP_WIDTH; ++x) {
-      f << static_cast<int>(grid[y][x]->state) << " ";
+      f << static_cast<int>(grid[y][x]->state) << ",";
     }
     f << "\n";
   }

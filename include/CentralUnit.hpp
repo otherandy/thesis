@@ -39,6 +39,7 @@ public:
   void draw(const DrawData &draw_data);
   void reset();
   void report_time();
+  void save_data();
 };
 
 #endif

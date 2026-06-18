@@ -1,4 +1,5 @@
 #include "Graph.hpp"
+#include "raylib.h"
 
 vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region,
                                       bool root) {

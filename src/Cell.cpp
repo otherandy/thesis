@@ -1,7 +1,7 @@
 #include "Cell.hpp"
 
-std::array<Index2D, 8> Cell::get_neighbors() {
-  std::array<Index2D, 8> neighbors;
+std::array<Cell *, 8> Cell::get_neighbors(Grid2D<std::unique_ptr<Cell>> *grid) {
+  std::array<Cell *, 8> neighbors;
 
   int idx = 0;
   for (int dy = -1; dy <= 1; ++dy) {
@@ -14,7 +14,7 @@ std::array<Index2D, 8> Cell::get_neighbors() {
       const int neighbor_x = cell_x + dx;
       const int neighbor_y = cell_y + dy;
 
-      neighbors[idx++] = std::make_pair(neighbor_y, neighbor_x);
+      neighbors[idx++] = (*grid)[neighbor_y][neighbor_x].get();
     }
   }
 

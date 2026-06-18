@@ -305,5 +305,5 @@ void ExplorationBot::explore(const OccupationGrid *grid) {
 void ExplorationBot::draw(const DrawData &draw_data) const {
   // draw_readings(draw_data);
   draw_body(draw_data);
-  draw_lidar(draw_data);
+  // draw_lidar(draw_data);
 }

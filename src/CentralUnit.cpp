@@ -229,3 +229,7 @@ void CentralUnit::report_time() {
 
   std::cout << "Total Exploration Time: " << total_time << "s\n";
 }
+
+void CentralUnit::save_data() {
+  occupation_grid->save_to_file("Testing/grid.csv");
+}
