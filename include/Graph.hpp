@@ -31,6 +31,7 @@ public:
   void add_edge(vertex_t u, vertex_t v);
 
   std::optional<vertex_t> next(const std::string &strategy = "dfs");
+  std::optional<vertex_t> help(const std::string &strategy = "dfs");
   void done(vertex_t v);
 
   VertexData get_vertex_data(vertex_t v);
@@ -43,12 +44,16 @@ private:
   bool empty();
 
   std::optional<vertex_t> pop_dfs();
+  std::optional<vertex_t> pop_dfs_gray();
   std::optional<vertex_t> pop_bfs();
+  std::optional<vertex_t> pop_bfs_gray();
 
   Graph g_;
   std::mutex mutex_;
   std::stack<vertex_t> dfs_stack_;
+  std::stack<vertex_t> dfs_stack_gray_;
   std::queue<vertex_t> bfs_queue_;
+  std::queue<vertex_t> bfs_queue_gray_;
   std::size_t time_;
   std::size_t next_id_ = 0;
 };

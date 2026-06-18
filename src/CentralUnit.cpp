@@ -63,7 +63,12 @@ void CentralUnit::assign_frontier_regions() {
         auto vopt = frontier_sched->next();
 
         if (!vopt.has_value()) {
-          continue;
+          vopt = frontier_sched->help();
+
+          if (!vopt.has_value()) {
+            phase = CentralPhase::Complete;
+            return;
+          }
         }
 
         target_v = *vopt;

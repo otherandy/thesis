@@ -1,5 +1,4 @@
 #include "Graph.hpp"
-#include "raylib.h"
 
 vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region,
                                       bool root) {
@@ -54,10 +53,29 @@ std::optional<vertex_t> DynamicScheduler::next(const std::string &strategy) {
   return v;
 }
 
+std::optional<vertex_t> DynamicScheduler::help(const std::string &strategy) {
+  std::lock_guard<std::mutex> lg(mutex_);
+  std::optional<vertex_t> vopt;
+
+  if (strategy == "dfs") {
+    vopt = pop_bfs_gray();
+  } else if (strategy == "bfs") {
+    vopt = pop_dfs_gray();
+  }
+
+  if (!vopt.has_value()) {
+    return std::nullopt;
+  }
+
+  return *vopt;
+}
+
 void DynamicScheduler::push(vertex_t v) {
   g_[v].color = VertexData::Color::Gray;
-  bfs_queue_.push(v);
   dfs_stack_.push(v);
+  dfs_stack_gray_.push(v);
+  bfs_queue_.push(v);
+  bfs_queue_gray_.push(v);
 }
 
 bool DynamicScheduler::empty() {
@@ -92,6 +110,32 @@ std::optional<vertex_t> DynamicScheduler::pop_bfs() {
   while (!bfs_queue_.empty()) {
     vertex_t v = bfs_queue_.front();
     bfs_queue_.pop();
+    if (g_[v].color == VertexData::Color::Gray) {
+      return v;
+    }
+  }
+  return std::nullopt;
+}
+
+std::optional<vertex_t> DynamicScheduler::pop_dfs_gray() {
+  while (!dfs_stack_gray_.empty()) {
+    vertex_t v = dfs_stack_gray_.top();
+    if (g_[v].color == VertexData::Color::Black) {
+      dfs_stack_gray_.pop();
+    }
+    if (g_[v].color == VertexData::Color::Gray) {
+      return v;
+    }
+  }
+  return std::nullopt;
+}
+
+std::optional<vertex_t> DynamicScheduler::pop_bfs_gray() {
+  while (!bfs_queue_gray_.empty()) {
+    vertex_t v = bfs_queue_gray_.front();
+    if (g_[v].color == VertexData::Color::Black) {
+      bfs_queue_gray_.pop();
+    }
     if (g_[v].color == VertexData::Color::Gray) {
       return v;
     }
