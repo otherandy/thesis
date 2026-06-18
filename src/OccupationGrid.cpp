@@ -5,6 +5,7 @@
 #include "Utils.hpp"
 #include <memory>
 #include <queue>
+#include <unordered_set>
 #include <utility>
 
 bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
@@ -12,13 +13,13 @@ bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
     grid_min_y = index.first;
   }
   if (index.first > grid_max_y) {
-    grid_max_y = index.first + INV_CELL_SIZE;
+    grid_max_y = index.first + 1;
   }
   if (index.second < grid_min_x) {
     grid_min_x = index.second;
   }
   if (index.second > grid_max_x) {
-    grid_max_x = index.second + INV_CELL_SIZE;
+    grid_max_x = index.second + 1;
   }
 
   Cell *cell = grid[index.first][index.second].get();
@@ -117,9 +118,13 @@ void OccupationGrid::mark_cells(
     double curr_y = rel_pos_y;
 
     for (std::size_t i = 0; i < steps_count; ++i) {
-      const Index2D cell = get_cell_index_from(curr_x, curr_y);
+      const Index2D curr_cell_index = get_cell_index_from(curr_x, curr_y);
 
-      mark_cell(cell, CellState::Free);
+      if (curr_cell_index == hit_cell_index) {
+        break;
+      }
+
+      mark_cell(curr_cell_index, CellState::Free);
       curr_x += step_x;
       curr_y += step_y;
     }
@@ -329,8 +334,8 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 }
 
 void OccupationGrid::draw(const DrawData &draw_data) const {
-  for (std::size_t y = grid_min_y; y < grid_max_y; ++y) {
-    for (std::size_t x = grid_min_x; x < grid_max_x; ++x) {
+  for (std::size_t y = grid_min_y; y <= grid_max_y; ++y) {
+    for (std::size_t x = grid_min_x; x <= grid_max_x; ++x) {
       draw_cell({y, x}, draw_data);
     }
   }
