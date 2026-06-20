@@ -25,7 +25,7 @@ private:
 
   vertex_t root;
 
-  Timer p1, p2, p3, p4, p5, p6;
+  Timer physical_time, virtual_time, total_time;
 
   void assign_frontier_regions();
   void run_exploration();

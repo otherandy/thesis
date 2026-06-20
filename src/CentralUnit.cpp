@@ -31,11 +31,8 @@ void CentralUnit::get_input_and_move() {
   }
 
   if (IsKeyPressed(KEY_SPACE)) {
-    for (ExplorationBot *bot : bots) {
-      bot->reset();
-    }
-
     phase = CentralPhase::Explore;
+    total_time.start();
   }
 
   if (IsKeyDown(KEY_UP)) {
@@ -164,6 +161,27 @@ void CentralUnit::update() {
     return;
   }
 
+  if (phase == CentralPhase::Complete) {
+    total_time.pause();
+  }
+
+  physical_time.pause();
+  virtual_time.pause();
+
+  for (ExplorationBot *bot : bots) {
+    if (bot->phase == ExplorationPhase::WallDiscovery ||
+        bot->phase == ExplorationPhase::WallAlignment ||
+        bot->phase == ExplorationPhase::WallAlignment) {
+      physical_time.start();
+    }
+
+    if (bot->phase == ExplorationPhase::RegionDiscovery ||
+        bot->phase == ExplorationPhase::RegionAlignment ||
+        bot->phase == ExplorationPhase::RegionExploration) {
+      virtual_time.start();
+    }
+  }
+
   std::vector<std::future<void>> update_jobs;
 
   for (ExplorationBot *bot : bots) {
@@ -187,13 +205,6 @@ void CentralUnit::draw(const DrawData &draw_data) {
 
   auto draw_bot = [&](ExplorationBot *bot) { bot->draw(draw_data); };
   std::for_each(bots.begin(), bots.end(), draw_bot);
-
-  p1.pause();
-  p2.pause();
-  p3.pause();
-  p4.pause();
-  p5.pause();
-  p6.pause();
 }
 
 void CentralUnit::reset() {
@@ -212,27 +223,16 @@ void CentralUnit::reset() {
     bot->reset();
   }
 
-  p1.reset();
-  p2.reset();
-  p3.reset();
-  p4.reset();
-  p5.reset();
-  p6.reset();
+  physical_time.reset();
+  virtual_time.reset();
+  total_time.reset();
 }
 
 void CentralUnit::report_time() {
-  const double p1t = p1.get_time();
-  const double p2t = p2.get_time();
-  const double p3t = p3.get_time();
-  const double p4t = p4.get_time();
-  const double p5t = p5.get_time();
-  const double p6t = p6.get_time();
-  const double total_time = p1t + p2t + p3t + p4t + p5t + p6t;
+  std::cout << "Physical Time: " << physical_time.get_time() << "s\n";
+  std::cout << "Virtual Time: " << virtual_time.get_time() << "s\n";
 
-  std::cout << "Physical Time: " << p1t + p2t + p3t << "s\n";
-  std::cout << "Virtual Time: " << p4t + p5t + p6t << "s\n";
-
-  std::cout << "Total Exploration Time: " << total_time << "s\n";
+  std::cout << "Total Exploration Time: " << total_time.get_time() << "s\n";
 }
 
 void CentralUnit::save_data() {
