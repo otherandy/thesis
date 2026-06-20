@@ -146,7 +146,8 @@ void CentralUnit::check_collisions_during_wall() {
       const double distance = CGAL::sqrt(CGAL::squared_distance(pos1, pos2));
 
       if (distance < SPEED * 3 && bot1->left_contact_point &&
-          bot2->left_contact_point) {
+          bot2->left_contact_point &&
+          bot1->clockwise_following != bot2->clockwise_following) {
         bot1->phase = ExplorationPhase::RegionDiscovery;
         bot2->phase = ExplorationPhase::RegionDiscovery;
       }

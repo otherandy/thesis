@@ -23,8 +23,6 @@ enum class ExplorationPhase {
 
 class ExplorationBot : public Bot {
 private:
-  bool clockwise_following;
-
   Robot::Vector direction;
   Robot::Point start_point;
   Robot::Point contact_point;
@@ -35,6 +33,8 @@ private:
                                       const OccupationGrid *grid) const;
 
 public:
+  bool clockwise_following;
+
   ExplorationBot(const Robot::Point &start_pos, const Robot::Vector &start_dir,
                  bool clockwise);
 
