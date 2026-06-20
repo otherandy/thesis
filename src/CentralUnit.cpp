@@ -99,6 +99,7 @@ void CentralUnit::assign_frontier_regions() {
 
 void CentralUnit::run_exploration() {
   if (phase == CentralPhase::Complete) {
+    total_time.pause();
     return;
   }
 
@@ -162,24 +163,36 @@ void CentralUnit::update() {
     return;
   }
 
-  if (phase == CentralPhase::Complete) {
-    total_time.pause();
-  }
-
   physical_time.pause();
   virtual_time.pause();
+  alignment_time.pause();
+  exploration_time.pause();
 
-  for (ExplorationBot *bot : bots) {
-    if (bot->phase == ExplorationPhase::WallDiscovery ||
-        bot->phase == ExplorationPhase::WallAlignment ||
-        bot->phase == ExplorationPhase::WallAlignment) {
-      physical_time.start();
-    }
+  if (phase != CentralPhase::Complete) {
+    for (ExplorationBot *bot : bots) {
+      if (bot->phase == ExplorationPhase::WallDiscovery ||
+          bot->phase == ExplorationPhase::WallAlignment ||
+          bot->phase == ExplorationPhase::WallFollowing) {
+        physical_time.start();
+      }
 
-    if (bot->phase == ExplorationPhase::RegionDiscovery ||
-        bot->phase == ExplorationPhase::RegionAlignment ||
-        bot->phase == ExplorationPhase::RegionExploration) {
-      virtual_time.start();
+      if (bot->phase == ExplorationPhase::RegionDiscovery ||
+          bot->phase == ExplorationPhase::RegionAlignment ||
+          bot->phase == ExplorationPhase::RegionExploration) {
+        virtual_time.start();
+      }
+
+      if (bot->phase == ExplorationPhase::WallDiscovery ||
+          bot->phase == ExplorationPhase::WallAlignment ||
+          bot->phase == ExplorationPhase::RegionDiscovery ||
+          bot->phase == ExplorationPhase::RegionAlignment) {
+        alignment_time.start();
+      }
+
+      if (bot->phase == ExplorationPhase::WallFollowing ||
+          bot->phase == ExplorationPhase::RegionExploration) {
+        exploration_time.start();
+      }
     }
   }
 
@@ -226,12 +239,16 @@ void CentralUnit::reset() {
 
   physical_time.reset();
   virtual_time.reset();
+  alignment_time.reset();
+  exploration_time.reset();
   total_time.reset();
 }
 
 void CentralUnit::report_time() {
   std::cout << "Physical Time: " << physical_time.get_time() << "s\n";
   std::cout << "Virtual Time: " << virtual_time.get_time() << "s\n";
+  std::cout << "Alignment Time: " << alignment_time.get_time() << "s\n";
+  std::cout << "Exploration Time: " << exploration_time.get_time() << "s\n";
 
   std::cout << "Total Exploration Time: " << total_time.get_time() << "s\n";
 }
