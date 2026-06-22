@@ -78,6 +78,29 @@ constexpr EnvData LETTER_E_DATA[] = {
     {14, 14}, {0, 14}, {0, 8},   {14, 8}, {14, 6}, {0, 6},
 };
 
+constexpr EnvData MONO_DATA[] = {
+    {0, 6},   {1, 6},   {1, 5},   {2, 5},   {2, 4},   {1, 4},   {1, 3},
+    {2, 3},   {2, 2},   {3, 2},   {3, 1},   {4, 1},   {4, 2},   {5, 2},
+    {5, 1},   {6, 1},   {6, 0},   {7, 0},   {7, 1},   {8, 1},   {8, 2},
+    {9, 2},   {9, 3},   {10, 3},  {10, 2},  {11, 2},  {11, 3},  {12, 3},
+    {12, 4},  {11, 4},  {11, 5},  {12, 5},  {12, 6},  {11, 6},  {11, 7},
+    {12, 7},  {12, 8},  {13, 8},  {13, 9},  {14, 9},  {14, 10}, {13, 10},
+    {13, 11}, {12, 11}, {12, 12}, {13, 12}, {13, 13}, {12, 13}, {12, 14},
+    {11, 14}, {11, 15}, {12, 15}, {12, 16}, {13, 16}, {13, 17}, {12, 17},
+    {12, 18}, {11, 18}, {11, 19}, {10, 19}, {10, 18}, {9, 18},  {9, 17},
+    {8, 17},  {8, 16},  {7, 16},  {7, 15},  {6, 15},  {6, 16},  {5, 16},
+    {5, 17},  {4, 17},  {4, 16},  {3, 16},  {3, 17},  {2, 17},  {2, 16},
+    {1, 16},  {1, 15},  {0, 15},  {0, 14},  {1, 14},  {1, 13},  {2, 13},
+    {2, 12},  {3, 12},  {3, 13},  {4, 13},  {4, 12},  {5, 12},  {5, 13},
+    {6, 13},  {6, 12},  {7, 12},  {7, 11},  {8, 11},  {8, 10},  {7, 10},
+    {7, 9},   {8, 9},   {8, 8},   {7, 8},   {7, 7},   {8, 7},   {8, 6},
+    {7, 6},   {7, 5},   {8, 5},   {8, 4},   {7, 4},   {7, 3},   {6, 3},
+    {6, 4},   {5, 4},   {5, 5},   {6, 5},   {6, 6},   {5, 6},   {5, 7},
+    {6, 7},   {6, 8},   {5, 8},   {5, 9},   {6, 9},   {6, 10},  {5, 10},
+    {5, 11},  {4, 11},  {4, 10},  {3, 10},  {3, 11},  {2, 11},  {2, 10},
+    {1, 10},  {1, 9},   {0, 9},   {0, 8},   {1, 8},   {1, 7},   {0, 7},
+};
+
 enum class EnvironmentPreset {
   Polygon,
   Polygon2,
@@ -89,11 +112,12 @@ enum class EnvironmentPreset {
   Corridor,
   Legs,
   Star,
-  LetterE
+  LetterE,
+  Mono,
 };
 
 // Change this single line to switch the environment before compiling.
-constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::LetterE;
+constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Mono;
 
 struct SelectedEnvironmentData {
   const EnvData *outer_data;
@@ -167,6 +191,9 @@ constexpr SelectedEnvironmentData get_selected_environment_data() {
   case EnvironmentPreset::LetterE:
     return {LETTER_E_DATA, sizeof(LETTER_E_DATA) / sizeof(LETTER_E_DATA[0]),
             NO_HOLE_DATA, 0};
+  case EnvironmentPreset::Mono:
+    return {MONO_DATA, sizeof(MONO_DATA) / sizeof(MONO_DATA[0]), NO_HOLE_DATA,
+            0};
   }
 
   return {SQUARE_ENV_DATA, sizeof(SQUARE_ENV_DATA) / sizeof(SQUARE_ENV_DATA[0]),
