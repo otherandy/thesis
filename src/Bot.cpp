@@ -22,7 +22,7 @@ Robot::Vector Bot::move(const Robot::Vector &dir) {
 }
 
 void Bot::take_lidar_readings() {
-  const double angle_step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
+  static const double angle_step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
 
   double closest_distance = std::numeric_limits<double>::max();
   closest_wall_reading_index = std::nullopt;

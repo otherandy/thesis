@@ -233,7 +233,9 @@ inline const Robot::PolygonWithHoles &get_environment() {
 inline const Robot::PolygonWithHoles &ENVIRONMENT = get_environment();
 
 inline bool point_in_environment(const Robot::Point &p) {
-  if (ENVIRONMENT.outer_boundary().bounded_side(p) != CGAL::ON_BOUNDED_SIDE) {
+  static const auto &ob = ENVIRONMENT.outer_boundary();
+
+  if (ob.bounded_side(p) != CGAL::ON_BOUNDED_SIDE) {
     return false;
   }
 
