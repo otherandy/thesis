@@ -73,6 +73,11 @@ constexpr EnvData STAR_DATA[] = {
     {6, 6}, {5, 9}, {4, 6}, {0, 6}, {3, 4},
 };
 
+constexpr EnvData LETTER_E_DATA[] = {
+    {0, 0},   {20, 0}, {20, 22}, {0, 22}, {0, 16}, {14, 16},
+    {14, 14}, {0, 14}, {0, 8},   {14, 8}, {14, 6}, {0, 6},
+};
+
 enum class EnvironmentPreset {
   Polygon,
   Polygon2,
@@ -84,10 +89,11 @@ enum class EnvironmentPreset {
   Corridor,
   Legs,
   Star,
+  LetterE
 };
 
 // Change this single line to switch the environment before compiling.
-constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Star;
+constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::LetterE;
 
 struct SelectedEnvironmentData {
   const EnvData *outer_data;
@@ -158,6 +164,9 @@ constexpr SelectedEnvironmentData get_selected_environment_data() {
   case EnvironmentPreset::Star:
     return {STAR_DATA, sizeof(STAR_DATA) / sizeof(STAR_DATA[0]), NO_HOLE_DATA,
             0};
+  case EnvironmentPreset::LetterE:
+    return {LETTER_E_DATA, sizeof(LETTER_E_DATA) / sizeof(LETTER_E_DATA[0]),
+            NO_HOLE_DATA, 0};
   }
 
   return {SQUARE_ENV_DATA, sizeof(SQUARE_ENV_DATA) / sizeof(SQUARE_ENV_DATA[0]),
