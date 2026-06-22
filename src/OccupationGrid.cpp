@@ -9,17 +9,17 @@
 #include <utility>
 
 bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
-  if (index.first < grid_min_y) {
-    grid_min_y = index.first;
+  if (index.first < grid_min.first) {
+    grid_min.first = index.first;
   }
-  if (index.first > grid_max_y) {
-    grid_max_y = index.first + 1;
+  if (index.first > grid_max.first) {
+    grid_max.first = index.first + 1;
   }
-  if (index.second < grid_min_x) {
-    grid_min_x = index.second;
+  if (index.second < grid_min.second) {
+    grid_min.second = index.second;
   }
-  if (index.second > grid_max_x) {
-    grid_max_x = index.second + 1;
+  if (index.second > grid_max.second) {
+    grid_max.second = index.second + 1;
   }
 
   Cell *cell = grid[index.first][index.second].get();
@@ -210,8 +210,8 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
     return true;
   };
 
-  for (std::size_t y = grid_min_y; y < grid_max_y; ++y) {
-    for (std::size_t x = grid_min_x; x < grid_max_x; ++x) {
+  for (std::size_t y = grid_min.first; y <= grid_max.first; ++y) {
+    for (std::size_t x = grid_min.second; x <= grid_max.second; ++x) {
       Cell *cell = grid[y][x].get();
 
       if (cell->state != CellState::Frontier) {
@@ -334,8 +334,8 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 }
 
 void OccupationGrid::draw(const DrawData &draw_data) const {
-  for (std::size_t y = grid_min_y; y <= grid_max_y; ++y) {
-    for (std::size_t x = grid_min_x; x <= grid_max_x; ++x) {
+  for (std::size_t y = grid_min.first; y <= grid_max.first; ++y) {
+    for (std::size_t x = grid_min.second; x <= grid_max.second; ++x) {
       draw_cell({y, x}, draw_data);
     }
   }

@@ -12,10 +12,8 @@ private:
   const Robot::Point origin = environment_center();
   Grid2D<std::unique_ptr<Cell>> grid;
 
-  std::size_t grid_min_y = MAP_HEIGHT;
-  std::size_t grid_max_y = 0;
-  std::size_t grid_min_x = MAP_WIDTH;
-  std::size_t grid_max_x = 0;
+  Index2D grid_min = {MAP_HEIGHT, MAP_WIDTH};
+  Index2D grid_max = {0, 0};
 
   bool mark_cell(Index2D index, CellState new_state);
   void draw_cell(Index2D index, const DrawData &draw_data) const;
