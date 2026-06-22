@@ -26,6 +26,10 @@ bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
 
   // Always overwrite cells to Visited
   if (new_state == CellState::Visited) {
+    if (cell->state == CellState::Frontier) {
+      frontier_cell_count--;
+    }
+
     cell->state = CellState::Visited;
     return true;
   }
@@ -38,6 +42,12 @@ bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
   // Don't mark known cells as Frontier
   if (cell->state == CellState::Free && new_state == CellState::Frontier) {
     return false;
+  }
+
+  if (cell->state != CellState::Frontier && new_state == CellState::Frontier) {
+    frontier_cell_count++;
+  } else if (cell->state == CellState::Frontier && new_state != CellState::Frontier) {
+    frontier_cell_count--;
   }
 
   cell->state = new_state;

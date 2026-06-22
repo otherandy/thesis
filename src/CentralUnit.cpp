@@ -63,7 +63,8 @@ void CentralUnit::assign_frontier_regions() {
           vopt = frontier_sched->help();
 
           if (!vopt.has_value()) {
-            phase = CentralPhase::Complete;
+            bot->clockwise_following = !bot->clockwise_following;
+            bot->phase = ExplorationPhase::WallDiscovery;
             return;
           }
         }
@@ -212,6 +213,10 @@ void CentralUnit::update() {
   }
 
   run_exploration();
+
+  if (occupation_grid->frontier_cell_count == 0) {
+    phase = CentralPhase::Complete;
+  }
 }
 
 void CentralUnit::draw(const DrawData &draw_data) {

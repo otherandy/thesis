@@ -21,6 +21,8 @@ private:
 public:
   OccupationGrid();
 
+  std::size_t frontier_cell_count = 0;
+
   const auto get_data() const { return &grid; };
   const Robot::Point get_origin() const { return origin; };
 
