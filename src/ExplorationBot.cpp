@@ -7,6 +7,13 @@
 #include <CGAL/linear_least_squares_fitting_2.h>
 #include <cmath>
 
+ExplorationBot::ExplorationBot(const Robot::Point &start_pos,
+                               const Robot::Vector &start_dir, bool clockwise)
+    : Bot(start_pos), clockwise_following(clockwise) {
+
+  direction = start_dir;
+}
+
 Robot::Point
 ExplorationBot::get_relative_position(const OccupationGrid *grid) const {
   const Robot::Point rp = get_real_position();
@@ -19,6 +26,43 @@ void ExplorationBot::reset() {
   phase = ExplorationPhase::WallDiscovery;
 
   Bot::reset();
+}
+
+void ExplorationBot::update_grid(OccupationGrid *grid) {
+  const Robot::Point rp = get_relative_position(grid);
+  grid->mark_cells(rp, current_readings);
+}
+
+void ExplorationBot::explore(const OccupationGrid *grid) {
+
+  if (phase == ExplorationPhase::Complete) {
+    return;
+  }
+
+  if (phase == ExplorationPhase::WallDiscovery) {
+    phase1_wall_discovery();
+    return;
+  }
+
+  if (phase == ExplorationPhase::WallAlignment) {
+    phase2_wall_alignment(grid);
+    return;
+  }
+
+  if (phase == ExplorationPhase::WallFollowing) {
+    phase3_wall_following(grid);
+    return;
+  }
+
+  if (phase == ExplorationPhase::RegionAlignment) {
+    phase5_region_alignment(grid);
+    return;
+  }
+
+  if (phase == ExplorationPhase::RegionExploration) {
+    phase6_region_exploration(grid);
+    return;
+  }
 }
 
 void ExplorationBot::phase1_wall_discovery() {
@@ -256,50 +300,6 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
   Robot::Vector desired_vector = target_point - rp;
 
   move(desired_vector);
-}
-
-ExplorationBot::ExplorationBot(const Robot::Point &start_pos,
-                               const Robot::Vector &start_dir, bool clockwise)
-    : Bot(start_pos), clockwise_following(clockwise) {
-
-  direction = start_dir;
-}
-
-void ExplorationBot::update_grid(OccupationGrid *grid) {
-  const Robot::Point rp = get_relative_position(grid);
-  grid->mark_cells(rp, current_readings);
-}
-
-void ExplorationBot::explore(const OccupationGrid *grid) {
-
-  if (phase == ExplorationPhase::Complete) {
-    return;
-  }
-
-  if (phase == ExplorationPhase::WallDiscovery) {
-    phase1_wall_discovery();
-    return;
-  }
-
-  if (phase == ExplorationPhase::WallAlignment) {
-    phase2_wall_alignment(grid);
-    return;
-  }
-
-  if (phase == ExplorationPhase::WallFollowing) {
-    phase3_wall_following(grid);
-    return;
-  }
-
-  if (phase == ExplorationPhase::RegionAlignment) {
-    phase5_region_alignment(grid);
-    return;
-  }
-
-  if (phase == ExplorationPhase::RegionExploration) {
-    phase6_region_exploration(grid);
-    return;
-  }
 }
 
 void ExplorationBot::draw(const DrawData &draw_data) const {

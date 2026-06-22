@@ -49,6 +49,37 @@ void CentralUnit::get_input_and_move() {
   }
 }
 
+void CentralUnit::check_collisions_during_wall() {
+  for (ExplorationBot *bot1 : bots) {
+    if (bot1->phase != ExplorationPhase::WallFollowing) {
+      continue;
+    }
+
+    Robot::Point pos1 = bot1->get_relative_position(occupation_grid.get());
+
+    for (ExplorationBot *bot2 : bots) {
+      if (bot1 == bot2) {
+        continue;
+      }
+
+      if (bot2->phase != ExplorationPhase::WallFollowing) {
+        continue;
+      }
+
+      Robot::Point pos2 = bot2->get_relative_position(occupation_grid.get());
+
+      const double distance = CGAL::sqrt(CGAL::squared_distance(pos1, pos2));
+
+      if (distance < SPEED * 3 && bot1->left_contact_point &&
+          bot2->left_contact_point &&
+          bot1->clockwise_following != bot2->clockwise_following) {
+        bot1->phase = ExplorationPhase::RegionDiscovery;
+        bot2->phase = ExplorationPhase::RegionDiscovery;
+      }
+    }
+  }
+}
+
 void CentralUnit::assign_frontier_regions() {
   bool ran_compute = false;
   vertex_t target_v;
@@ -122,37 +153,6 @@ void CentralUnit::run_exploration() {
 
     for (auto &job : jobs) {
       job.get();
-    }
-  }
-}
-
-void CentralUnit::check_collisions_during_wall() {
-  for (ExplorationBot *bot1 : bots) {
-    if (bot1->phase != ExplorationPhase::WallFollowing) {
-      continue;
-    }
-
-    Robot::Point pos1 = bot1->get_relative_position(occupation_grid.get());
-
-    for (ExplorationBot *bot2 : bots) {
-      if (bot1 == bot2) {
-        continue;
-      }
-
-      if (bot2->phase != ExplorationPhase::WallFollowing) {
-        continue;
-      }
-
-      Robot::Point pos2 = bot2->get_relative_position(occupation_grid.get());
-
-      const double distance = CGAL::sqrt(CGAL::squared_distance(pos1, pos2));
-
-      if (distance < SPEED * 3 && bot1->left_contact_point &&
-          bot2->left_contact_point &&
-          bot1->clockwise_following != bot2->clockwise_following) {
-        bot1->phase = ExplorationPhase::RegionDiscovery;
-        bot2->phase = ExplorationPhase::RegionDiscovery;
-      }
     }
   }
 }

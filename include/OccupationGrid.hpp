@@ -8,16 +8,6 @@
 #include "Grid.hpp"
 
 class OccupationGrid {
-private:
-  const Robot::Point origin = environment_center();
-  Grid2D<std::unique_ptr<Cell>> grid;
-
-  Index2D grid_min = {MAP_HEIGHT, MAP_WIDTH};
-  Index2D grid_max = {0, 0};
-
-  bool mark_cell(Index2D index, CellState new_state);
-  void draw_cell(Index2D index, const DrawData &draw_data) const;
-
 public:
   OccupationGrid();
 
@@ -33,6 +23,16 @@ public:
 
   void draw(const DrawData &draw_data) const;
   void save_to_file(const std::string &filename) const;
+
+private:
+  const Robot::Point origin = environment_center();
+  Grid2D<std::unique_ptr<Cell>> grid;
+
+  Index2D grid_min = {MAP_HEIGHT, MAP_WIDTH};
+  Index2D grid_max = {0, 0};
+
+  bool mark_cell(Index2D index, CellState new_state);
+  void draw_cell(Index2D index, const DrawData &draw_data) const;
 };
 
 #endif

@@ -22,16 +22,6 @@ enum class ExplorationPhase {
 };
 
 class ExplorationBot : public Bot {
-private:
-  Robot::Vector direction;
-  Robot::Point start_point;
-  Robot::Point contact_point;
-
-  bool path_blocked_to(const Robot::Vector &target) const;
-
-  Robot::Point reading_index_to_point(std::size_t index,
-                                      const OccupationGrid *grid) const;
-
 public:
   bool clockwise_following;
 
@@ -53,6 +43,7 @@ public:
 
   void phase1_wall_discovery();
   void phase2_wall_alignment(const OccupationGrid *grid);
+
   Robot::Vector compute_wall_following_vector(
       const OccupationGrid *grid,
       const Robot::Vector &preferred_direction = Robot::Vector(0, 0));
@@ -62,6 +53,16 @@ public:
   void phase6_region_exploration(const OccupationGrid *grid);
 
   void draw(const DrawData &draw_data) const;
+
+private:
+  Robot::Vector direction;
+  Robot::Point start_point;
+  Robot::Point contact_point;
+
+  bool path_blocked_to(const Robot::Vector &target) const;
+
+  Robot::Point reading_index_to_point(std::size_t index,
+                                      const OccupationGrid *grid) const;
 };
 
 #endif

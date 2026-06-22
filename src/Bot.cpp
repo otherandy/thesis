@@ -2,10 +2,8 @@
 #include "Utils.hpp"
 #include <raylib-cpp.hpp>
 
-void Bot::reset() {
-  real_position = START_POSITION;
+Bot::Bot(const Robot::Point &start_pos) : real_position(start_pos) {
   current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
-  closest_wall_reading_index = std::nullopt;
 }
 
 // Returns delta applied to position
@@ -58,6 +56,12 @@ void Bot::take_lidar_readings() {
   }
 }
 
+void Bot::reset() {
+  real_position = START_POSITION;
+  current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
+  closest_wall_reading_index = std::nullopt;
+}
+
 void Bot::draw_body(const DrawData &draw_data) const {
   DrawCircle(real_position.x() * draw_data.scale_factor + draw_data.offset_x,
              real_position.y() * draw_data.scale_factor + draw_data.offset_y,
@@ -94,8 +98,4 @@ void Bot::draw_position_text() const {
   std::string pos_text = "Pos: (" + std::to_string(real_position.x()) + ", " +
                          std::to_string(real_position.y()) + ")";
   DrawText(pos_text.c_str(), 10, GetScreenHeight() - 30, 20, BLACK);
-}
-
-Bot::Bot(const Robot::Point &start_pos) : real_position(start_pos) {
-  current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
 }

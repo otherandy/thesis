@@ -8,6 +8,18 @@
 #include <unordered_set>
 #include <utility>
 
+OccupationGrid::OccupationGrid() {
+  for (std::size_t y = 0; y < MAP_HEIGHT; ++y) {
+    for (std::size_t x = 0; x < MAP_WIDTH; ++x) {
+      const double cell_center_x = (x + 0.5) * CELL_SIZE - ENV_WIDTH;
+      const double cell_center_y = (y + 0.5) * CELL_SIZE - ENV_HEIGHT;
+
+      grid[y][x] = std::make_unique<Cell>(
+          std::make_pair(y, x), Robot::Point(cell_center_x, cell_center_y));
+    }
+  }
+}
+
 bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
   if (index.first < grid_min.first) {
     grid_min.first = index.first;
@@ -46,60 +58,13 @@ bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
 
   if (cell->state != CellState::Frontier && new_state == CellState::Frontier) {
     frontier_cell_count++;
-  } else if (cell->state == CellState::Frontier && new_state != CellState::Frontier) {
+  } else if (cell->state == CellState::Frontier &&
+             new_state != CellState::Frontier) {
     frontier_cell_count--;
   }
 
   cell->state = new_state;
   return true;
-}
-
-void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
-  const Cell *cell = grid[index.first][index.second].get();
-
-  if (cell->state == CellState::Unknown) {
-    return;
-  }
-
-  Color color;
-
-  switch (cell->state) {
-  case CellState::Free:
-    color = raylib::YELLOW;
-    break;
-  case CellState::Occupied:
-    color = raylib::BLACK;
-    break;
-  case CellState::Visited:
-    color = raylib::RED;
-    break;
-  case CellState::Frontier:
-    color = cell->frontier_id.has_value() ? raylib::VIOLET : raylib::BLUE;
-    break;
-  default:
-    return;
-  }
-
-  const float screen_x =
-      (cell->center.x() + origin.x()) * draw_data.scale_factor +
-      draw_data.offset_x;
-  const float screen_y =
-      (cell->center.y() + origin.y()) * draw_data.scale_factor +
-      draw_data.offset_y;
-
-  DrawRectangle(screen_x, screen_y, 2, 2, color);
-}
-
-OccupationGrid::OccupationGrid() {
-  for (std::size_t y = 0; y < MAP_HEIGHT; ++y) {
-    for (std::size_t x = 0; x < MAP_WIDTH; ++x) {
-      const double cell_center_x = (x + 0.5) * CELL_SIZE - ENV_WIDTH;
-      const double cell_center_y = (y + 0.5) * CELL_SIZE - ENV_HEIGHT;
-
-      grid[y][x] = std::make_unique<Cell>(
-          std::make_pair(y, x), Robot::Point(cell_center_x, cell_center_y));
-    }
-  }
 }
 
 void OccupationGrid::mark_cells(
@@ -341,6 +306,42 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 
     sched->add_edge(parent_id, id);
   }
+}
+
+void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
+  const Cell *cell = grid[index.first][index.second].get();
+
+  if (cell->state == CellState::Unknown) {
+    return;
+  }
+
+  Color color;
+
+  switch (cell->state) {
+  case CellState::Free:
+    color = raylib::YELLOW;
+    break;
+  case CellState::Occupied:
+    color = raylib::BLACK;
+    break;
+  case CellState::Visited:
+    color = raylib::RED;
+    break;
+  case CellState::Frontier:
+    color = cell->frontier_id.has_value() ? raylib::VIOLET : raylib::BLUE;
+    break;
+  default:
+    return;
+  }
+
+  const float screen_x =
+      (cell->center.x() + origin.x()) * draw_data.scale_factor +
+      draw_data.offset_x;
+  const float screen_y =
+      (cell->center.y() + origin.y()) * draw_data.scale_factor +
+      draw_data.offset_y;
+
+  DrawRectangle(screen_x, screen_y, 2, 2, color);
 }
 
 void OccupationGrid::draw(const DrawData &draw_data) const {

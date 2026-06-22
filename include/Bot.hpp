@@ -22,8 +22,10 @@ struct Reading {
 };
 
 class Bot {
-private:
-  Robot::Point real_position;
+public:
+  Bot(const Robot::Point &start_pos);
+  Robot::Vector move(const Robot::Vector &dir);
+  void take_lidar_readings();
 
 protected:
   std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
@@ -38,10 +40,8 @@ protected:
   void draw_readings(const DrawData &draw_data) const;
   void draw_position_text() const;
 
-public:
-  Bot(const Robot::Point &start_pos);
-  void take_lidar_readings();
-  Robot::Vector move(const Robot::Vector &dir);
+private:
+  Robot::Point real_position;
 };
 
 #endif
