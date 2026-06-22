@@ -1,7 +1,6 @@
-Compiling
----------
+## Compiling
 
-Run `cmake -S . -B build` to configure the project, then `cd build && make` to compile it.
+Run `cmake -B build -DCMAKE_BUILD_TYPE=Release .` to configure the project, then `cd build && make` to compile it.
 
 ### Dependencies
 
