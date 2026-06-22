@@ -7,7 +7,7 @@
 
 constexpr std::size_t MAX_LIDAR_SAMPLES = 360;
 
-const Robot::Point START_POSITION(9.0, 9.0);
+const Robot::Point START_POSITION(2.0, 2.0);
 constexpr double LIDAR_RADIUS = 1.5;
 constexpr double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
 
