@@ -41,6 +41,7 @@ inline void draw_environment(const DrawData &draw_data) {
   };
 
   draw_polygon_edges(ENVIRONMENT.outer_boundary());
+
   for (auto h = ENVIRONMENT.holes_begin(); h != ENVIRONMENT.holes_end(); ++h) {
     draw_polygon_edges(*h);
   }

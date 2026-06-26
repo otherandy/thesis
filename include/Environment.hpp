@@ -206,14 +206,18 @@ constexpr auto get_bounds(const EnvData *data, std::size_t size) {
   double xmin = data[0].first, xmax = xmin;
   double ymin = data[0].second, ymax = ymin;
   for (std::size_t i = 0; i < size; ++i) {
-    if (data[i].first < xmin)
+    if (data[i].first < xmin) {
       xmin = data[i].first;
-    if (data[i].first > xmax)
+    }
+    if (data[i].first > xmax) {
       xmax = data[i].first;
-    if (data[i].second < ymin)
+    }
+    if (data[i].second < ymin) {
       ymin = data[i].second;
-    if (data[i].second > ymax)
+    }
+    if (data[i].second > ymax) {
       ymax = data[i].second;
+    }
   }
   return std::make_tuple(xmin, xmax, ymin, ymax);
 }
@@ -239,11 +243,12 @@ inline Robot::Point environment_center() {
 inline const Robot::PolygonWithHoles &get_environment() {
   static Robot::PolygonWithHoles env;
   static bool initialized = false;
+
   if (!initialized) {
     Robot::Polygon outer;
     for (std::size_t i = 0; i < SELECTED_ENV_DATA.outer_size; ++i) {
-      outer.push_back(Robot::Point(SELECTED_ENV_DATA.outer_data[i].first,
-                                   SELECTED_ENV_DATA.outer_data[i].second));
+      const auto point = SELECTED_ENV_DATA.outer_data[i];
+      outer.push_back(Robot::Point(point.first, point.second));
     }
 
     if (outer.is_clockwise_oriented()) {
@@ -256,9 +261,8 @@ inline const Robot::PolygonWithHoles &get_environment() {
       Robot::Polygon hole;
       for (std::size_t i = 0; i < SELECTED_ENV_DATA.hole_size_list[hole_idx];
            ++i) {
-        hole.push_back(
-            Robot::Point(SELECTED_ENV_DATA.hole_data_list[hole_idx][i].first,
-                         SELECTED_ENV_DATA.hole_data_list[hole_idx][i].second));
+        const auto point = SELECTED_ENV_DATA.hole_data_list[hole_idx][i];
+        hole.push_back(Robot::Point(point.first, point.second));
       }
 
       if (hole.is_counterclockwise_oriented()) {

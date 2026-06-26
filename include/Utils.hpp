@@ -22,10 +22,6 @@ inline Robot::Point point_at_reading(const Robot::Point &origin,
 
 inline Robot::Vector normalize_vector(const Robot::Vector &v) {
   const double len2 = v.squared_length();
-  if (len2 <= 1e-12) {
-    return Robot::Vector(0, 0);
-  }
-
   const double inv_len = 1.0 / std::sqrt(len2);
   return Robot::Vector(v.x() * inv_len, v.y() * inv_len);
 }
@@ -33,12 +29,14 @@ inline Robot::Vector normalize_vector(const Robot::Vector &v) {
 inline void ensure_parent_dir_exists(const std::string &filename) {
   const std::filesystem::path file_path(filename);
   const std::filesystem::path parent_dir = file_path.parent_path();
+
   if (parent_dir.empty()) {
     return;
   }
 
   std::error_code ec;
   const bool created = std::filesystem::create_directories(parent_dir, ec);
+
   if (ec) {
     std::cerr << "BOT: Failed to create directory " << parent_dir.string()
               << " (" << ec.message() << ")" << std::endl;
