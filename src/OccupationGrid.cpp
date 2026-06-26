@@ -117,6 +117,31 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
   std::vector<std::shared_ptr<FrontierRegion>> regions;
   std::unordered_set<Cell *> global_visited;
 
+  for (std::size_t y = grid_min.first; y <= grid_max.first; ++y) {
+    for (std::size_t x = grid_min.second; x <= grid_max.second; ++x) {
+      Cell *c = grid[y][x].get();
+
+      if (c->state != CellState::Frontier) {
+        continue;
+      }
+
+      if (c->frontier_id != std::nullopt) {
+        continue;
+      }
+
+      int frontier_neighbors = 0;
+      for (auto n : c->get_neighbors(&grid)) {
+        if (n->state == CellState::Frontier) {
+          frontier_neighbors++;
+        }
+      }
+
+      if (frontier_neighbors <= 1) {
+        c->state = CellState::Free;
+      }
+    }
+  }
+
   auto is_closed = [&](std::vector<Cell *> region, Index2D min,
                        Index2D max) -> bool {
     auto key = [](int y, int x) {
