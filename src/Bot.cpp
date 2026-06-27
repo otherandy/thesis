@@ -20,13 +20,11 @@ Robot::Vector Bot::move(const Robot::Vector &dir) {
 }
 
 void Bot::take_lidar_readings() {
-  static const double angle_step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
-
   double closest_distance = std::numeric_limits<double>::max();
   closest_wall_reading_index = std::nullopt;
 
   for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i) {
-    double angle = angle_step * i;
+    double angle = ANGLE_STEP * i - M_PI;
     double distance = LIDAR_RADIUS;
 
     // Binary search for wall intersection
@@ -58,7 +56,7 @@ void Bot::take_lidar_readings() {
 
 void Bot::reset() {
   real_position = START_POSITION;
-  current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
+  current_readings.fill({0, LIDAR_RADIUS});
   closest_wall_reading_index = std::nullopt;
 }
 

@@ -84,6 +84,17 @@ void CentralUnit::assign_frontier_regions() {
   bool ran_compute = false;
   vertex_t target_v;
 
+  auto select_target = [&](ExplorationBot *b) -> std::optional<Robot::Point> {
+    auto vd = frontier_sched->get_vertex_data(b->target_vertex);
+    auto *r = vd.region.get();
+    const auto grid = occupation_grid->get_data();
+
+    const Robot::Point rp = b->get_relative_position(occupation_grid.get());
+    const auto tp = r->get_closest_unexplored(*grid, rp);
+
+    return tp;
+  };
+
   for (ExplorationBot *bot : bots) {
     if (bot->phase == ExplorationPhase::RegionDiscovery) {
       if (!ran_compute) {
@@ -106,17 +117,13 @@ void CentralUnit::assign_frontier_regions() {
         ran_compute = true;
       }
 
-      bot->phase = ExplorationPhase::RegionExploration;
       bot->target_vertex = target_v;
+      bot->target_point = select_target(bot).value();
+      bot->phase = ExplorationPhase::RegionAlignment;
     }
 
     if (bot->phase == ExplorationPhase::RegionExploration) {
-      auto vd = frontier_sched->get_vertex_data(bot->target_vertex);
-      auto *r = vd.region.get();
-      const auto grid = occupation_grid->get_data();
-
-      const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
-      const auto tp = r->get_closest_unexplored(*grid, rp);
+      const auto tp = select_target(bot);
 
       if (!tp.has_value()) {
         frontier_sched->done(bot->target_vertex);

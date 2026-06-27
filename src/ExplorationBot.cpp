@@ -233,20 +233,17 @@ void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
 }
 
 bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
-  double target_angle = std::atan2(target.y(), target.x());
-  double target_dist = std::sqrt(target.squared_length());
-
-  double step = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
+  const double target_angle = std::atan2(target.x(), target.y()) - M_PI / 2.0;
+  const double target_dist = std::sqrt(target.squared_length());
 
   for (const auto &reading : current_readings) {
-    double a = std::remainder(reading.angle, 2.0 * M_PI);
-    double diff = std::remainder(a - target_angle, 2.0 * M_PI);
+    const double diff = std::fmod(reading.angle + target_angle, 2.0 * M_PI);
 
-    if (std::abs(diff) > step / 2.0) {
+    if (std::abs(diff) > ANGLE_STEP) {
       continue;
     }
 
-    if (reading.distance < target_dist) {
+    if (reading.distance < LIDAR_RADIUS && reading.distance < target_dist) {
       return true;
     }
   }
@@ -298,6 +295,10 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
 
   const Robot::Point rp = get_relative_position(grid);
   Robot::Vector desired_vector = target_point - rp;
+
+  if (path_blocked_to(desired_vector)) {
+    desired_vector = compute_wall_following_vector(grid, desired_vector);
+  }
 
   move(desired_vector);
 }

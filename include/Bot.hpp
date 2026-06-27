@@ -10,6 +10,7 @@ constexpr std::size_t MAX_LIDAR_SAMPLES = 360;
 const Robot::Point START_POSITION(3.0, 3.0);
 constexpr double LIDAR_RADIUS = 1.5;
 constexpr double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
+const double ANGLE_STEP = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
 
 const float DRAWN_BODY_RADIUS = 5.0;
 const float DRAWN_POINT_RADIUS = 3.0;

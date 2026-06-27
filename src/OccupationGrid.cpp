@@ -138,6 +138,7 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 
       if (frontier_neighbors <= 1) {
         c->state = CellState::Free;
+        frontier_cell_count--;
       }
     }
   }
