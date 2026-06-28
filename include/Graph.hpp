@@ -45,9 +45,6 @@ public:
   Graph &graph() { return g_; }
 
 private:
-  void push(vertex_t v);
-  bool empty();
-
   std::vector<Vector2> positions_;
   bool layout_dirty_ = true;
 

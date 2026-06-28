@@ -5,11 +5,11 @@ vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region,
   std::lock_guard<std::mutex> lg(mutex_);
 
   vertex_t v = boost::add_vertex(
-      VertexData{next_id_++, std::move(region), VertexData::Color::Black}, g_);
+      VertexData{next_id_++, std::move(region), VertexData::Color::White}, g_);
   layout_dirty_ = true;
 
-  if (!root && empty()) {
-    push(v);
+  if (root) {
+    g_[v].color = VertexData::Color::Black;
   }
 
   return v;
@@ -18,6 +18,14 @@ vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region,
 void DynamicScheduler::add_edge(vertex_t u, vertex_t v) {
   std::lock_guard<std::mutex> lg(mutex_);
   boost::add_edge(u, v, g_);
+
+  if (g_[v].color == VertexData::Color::White) {
+    g_[v].color = VertexData::Color::Gray;
+    dfs_stack_.push(v);
+    dfs_stack_gray_.push(v);
+    bfs_queue_.push(v);
+    bfs_queue_gray_.push(v);
+  }
 }
 
 void DynamicScheduler::done(vertex_t v) {
@@ -43,14 +51,6 @@ std::optional<vertex_t> DynamicScheduler::next(const std::string &strategy) {
 
   vertex_t v = *vopt;
 
-  for (auto ei = boost::adjacent_vertices(v, g_); ei.first != ei.second;
-       ++ei.first) {
-    vertex_t n = *ei.first;
-    if (g_[n].color == VertexData::Color::White) {
-      push(n);
-    }
-  }
-
   return v;
 }
 
@@ -69,18 +69,6 @@ std::optional<vertex_t> DynamicScheduler::help(const std::string &strategy) {
   }
 
   return *vopt;
-}
-
-void DynamicScheduler::push(vertex_t v) {
-  g_[v].color = VertexData::Color::Gray;
-  dfs_stack_.push(v);
-  dfs_stack_gray_.push(v);
-  bfs_queue_.push(v);
-  bfs_queue_gray_.push(v);
-}
-
-bool DynamicScheduler::empty() {
-  return dfs_stack_.empty() || bfs_queue_.empty();
 }
 
 VertexData DynamicScheduler::get_vertex_data(vertex_t v) {
@@ -172,13 +160,13 @@ void DynamicScheduler::ensure_layout(int screenW, int screenH) {
 static Color toRayColor(VertexData::Color c) {
   switch (c) {
   case VertexData::Color::White:
-    return GRAY;
+    return raylib::WHITE;
   case VertexData::Color::Gray:
-    return YELLOW;
+    return raylib::GRAY;
   case VertexData::Color::Black:
-    return DARKGRAY;
+    return raylib::DARKGRAY;
   }
-  return GRAY;
+  return raylib::RED;
 }
 
 void DynamicScheduler::draw(const DrawData &draw_data) {
