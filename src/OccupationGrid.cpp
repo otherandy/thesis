@@ -295,6 +295,8 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
            outer.max.second >= inner.max.second;
   };
 
+  const auto parents = sched->get_all_vertices();
+
   for (auto child : regions) {
     vertex_t id = sched->add_vertex(child);
 
@@ -304,9 +306,10 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
     }
 
     vertex_t parent_id = 0;
-    FrontierRegion *best_parent = nullptr;
+    FrontierRegion *best_parent =
+        sched->get_vertex_data(parent_id).region.get();
 
-    for (auto v : sched->get_all_vertices()) {
+    for (auto v : parents) {
       if (v == id) {
         continue;
       }
@@ -318,13 +321,8 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
         continue;
       }
 
-      if (best_parent == nullptr) {
-        best_parent = candidate.get();
-        parent_id = v;
-        continue;
-      }
-
-      if (candidate->cells.size() < best_parent->cells.size()) {
+      if (parent_id == 0 ||
+          candidate->cells.size() < best_parent->cells.size()) {
         best_parent = candidate.get();
         parent_id = v;
       }
