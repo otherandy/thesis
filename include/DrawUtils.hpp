@@ -10,6 +10,8 @@ struct DrawData {
   float scale_factor;
   float offset_x;
   float offset_y;
+  int screen_x;
+  int screen_y;
 };
 
 inline float calculate_scale_factor(const raylib::Window &window) {

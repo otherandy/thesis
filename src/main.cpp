@@ -1,5 +1,6 @@
 #include "CentralUnit.hpp"
 #include "ExplorationBot.hpp"
+#include "raylib.h"
 #include <memory>
 
 int main() {
@@ -10,6 +11,7 @@ int main() {
 
   raylib::Window window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
   window.SetTargetFPS(FRAME_RATE);
+  window.SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
   auto central_unit = std::make_unique<CentralUnit>();
 
@@ -38,7 +40,8 @@ int main() {
     const float scale_factor = calculate_scale_factor(window);
     const auto [offset_x, offset_y] = calculate_offset(window, scale_factor);
 
-    DrawData draw_data{scale_factor, offset_x, offset_y};
+    DrawData draw_data{scale_factor, offset_x, offset_y, window.GetWidth(),
+                       window.GetHeight()};
 
     draw_environment(draw_data);
     central_unit->draw(draw_data);

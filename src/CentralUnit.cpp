@@ -231,6 +231,8 @@ void CentralUnit::draw(const DrawData &draw_data) {
 
   auto draw_bot = [&](ExplorationBot *bot) { bot->draw(draw_data); };
   std::for_each(bots.begin(), bots.end(), draw_bot);
+
+  frontier_sched->draw(draw_data);
 }
 
 void CentralUnit::reset() {
