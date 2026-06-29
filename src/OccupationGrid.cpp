@@ -69,7 +69,7 @@ bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
 
 void OccupationGrid::mark_cells(
     const Robot::Point &relative_position,
-    const std::array<Reading, MAX_LIDAR_SAMPLES> &readings) {
+    const std::array<Reading, LIDAR_SAMPLES> &readings) {
 
   static constexpr double steps_count = LIDAR_RADIUS / CELL_SIZE;
 

@@ -5,14 +5,13 @@
 #include "Utils.hpp"
 #include "cgal_types.hpp"
 #include <CGAL/linear_least_squares_fitting_2.h>
+#include <algorithm>
 #include <cmath>
 
 ExplorationBot::ExplorationBot(const Robot::Point &start_pos,
                                const Robot::Vector &start_dir, bool clockwise)
-    : Bot(start_pos), clockwise_following(clockwise) {
-
-  direction = start_dir;
-}
+    : Bot(start_pos), start_point(start_pos), start_direction(start_dir),
+      direction(start_dir), clockwise_following(clockwise) {}
 
 Robot::Point
 ExplorationBot::get_relative_position(const OccupationGrid *grid) const {
@@ -22,15 +21,14 @@ ExplorationBot::get_relative_position(const OccupationGrid *grid) const {
 }
 
 void ExplorationBot::reset() {
-  // direction = get_random_heading();
   phase = ExplorationPhase::WallDiscovery;
-
-  Bot::reset();
+  direction = start_direction;
+  Bot::reset(start_point);
 }
 
 void ExplorationBot::update_grid(OccupationGrid *grid) {
   const Robot::Point rp = get_relative_position(grid);
-  grid->mark_cells(rp, current_readings);
+  grid->mark_cells(rp, readings);
 }
 
 void ExplorationBot::explore(const OccupationGrid *grid) {
@@ -66,7 +64,7 @@ void ExplorationBot::explore(const OccupationGrid *grid) {
 }
 
 void ExplorationBot::phase1_wall_discovery() {
-  for (const Reading &r : current_readings) {
+  for (const Reading &r : readings) {
     if (r.distance < LIDAR_RADIUS) {
       phase = ExplorationPhase::WallAlignment;
       return;
@@ -77,8 +75,7 @@ void ExplorationBot::phase1_wall_discovery() {
 }
 
 void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
-  const Reading &closest_reading =
-      current_readings[closest_wall_reading_index.value()];
+  const Reading &closest_reading = readings[closest_wall_reading_index.value()];
 
   if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
     const Robot::Vector to_wall =
@@ -106,15 +103,12 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
   };
 
   Robot::Vector heading_unit = normalize_vector(direction);
-  if (heading_unit.squared_length() <= 1e-12) {
-    heading_unit = Robot::Vector(1, 0);
-  }
 
   std::optional<std::size_t> side_ref = std::nullopt;
   double best_dist = std::numeric_limits<double>::infinity();
 
-  for (std::size_t i = 0; i < MAX_LIDAR_SAMPLES; ++i) {
-    const Reading &r = current_readings[i];
+  for (std::size_t i = 0; i < LIDAR_SAMPLES; ++i) {
+    const Reading &r = readings[i];
     if (r.distance >= LIDAR_RADIUS) {
       continue;
     }
@@ -151,9 +145,9 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
   // prev
   {
     std::size_t idx = ref;
-    for (std::size_t steps = 0; steps < MAX_LIDAR_SAMPLES; ++steps) {
+    for (std::size_t steps = 0; steps < LIDAR_SAMPLES; ++steps) {
       idx = relative_index(idx, PREV_INDEX);
-      if (idx == ref || current_readings[idx].distance >= LIDAR_RADIUS) {
+      if (idx == ref || readings[idx].distance >= LIDAR_RADIUS) {
         break;
       }
       wall_points.push_back(reading_index_to_point(idx, grid));
@@ -166,16 +160,16 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
   // next
   {
     std::size_t idx = ref;
-    for (std::size_t steps = 0; steps < MAX_LIDAR_SAMPLES; ++steps) {
+    for (std::size_t steps = 0; steps < LIDAR_SAMPLES; ++steps) {
       idx = relative_index(idx, NEXT_INDEX);
-      if (idx == ref || current_readings[idx].distance >= LIDAR_RADIUS) {
+      if (idx == ref || readings[idx].distance >= LIDAR_RADIUS) {
         break;
       }
       wall_points.push_back(reading_index_to_point(idx, grid));
     }
   }
 
-  const Reading &ref_r = current_readings[ref];
+  const Reading &ref_r = readings[ref];
   const Robot::Vector to_wall(cos(ref_r.angle), sin(ref_r.angle));
 
   Robot::Vector forward;
@@ -189,9 +183,6 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
   }
 
   Robot::Vector desired_unit = normalize_vector(preferred_direction);
-  if (desired_unit.squared_length() <= 1e-12) {
-    desired_unit = heading_unit;
-  }
 
   if ((forward * desired_unit) < 0) {
     forward = -forward;
@@ -227,23 +218,20 @@ void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
   Robot::Vector desired_vector = compute_wall_following_vector(grid);
 
   const Robot::Vector delta = move(desired_vector);
-  if (delta.squared_length() <= 1e-12) {
-    direction = -direction;
-  }
 }
 
 bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
-  const double target_angle = std::atan2(target.x(), target.y()) - M_PI / 2.0;
+  const double target_angle = std::atan2(target.y(), target.x());
   const double target_dist = std::sqrt(target.squared_length());
 
-  for (const auto &reading : current_readings) {
-    const double diff = std::fmod(reading.angle + target_angle, 2.0 * M_PI);
+  for (const auto &r : readings) {
+    const double diff = std::fmod(r.angle - target_angle, 2.0 * M_PI);
 
     if (std::abs(diff) > ANGLE_STEP) {
       continue;
     }
 
-    if (reading.distance < LIDAR_RADIUS && reading.distance < target_dist) {
+    if (r.distance < LIDAR_RADIUS && r.distance < target_dist) {
       return true;
     }
   }
@@ -272,7 +260,7 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
 Robot::Point
 ExplorationBot::reading_index_to_point(std::size_t index,
                                        const OccupationGrid *grid) const {
-  const Reading &r = current_readings[index];
+  const Reading &r = readings[index];
   const Robot::Point rp = get_relative_position(grid);
   return point_at_reading(rp, r);
 }

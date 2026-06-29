@@ -6,7 +6,7 @@
 #include <filesystem>
 
 inline std::size_t relative_index(std::size_t index, int offset) {
-  return (index + offset + MAX_LIDAR_SAMPLES) % MAX_LIDAR_SAMPLES;
+  return (index + offset + LIDAR_SAMPLES) % LIDAR_SAMPLES;
 }
 
 inline double compute_angle_to_point(const Robot::Point &from,

@@ -2,9 +2,9 @@
 #include "Utils.hpp"
 #include <raylib-cpp.hpp>
 
-Bot::Bot(const Robot::Point &start_pos) : real_position(start_pos) {
-  current_readings.fill({LIDAR_RADIUS, LIDAR_RADIUS});
-}
+Bot::Bot(const Robot::Point &start_pos) : real_position(start_pos) {}
+
+void Bot::reset(const Robot::Point &start_pos) { real_position = start_pos; }
 
 // Returns delta applied to position
 Robot::Vector Bot::move(const Robot::Vector &dir) {
@@ -23,7 +23,7 @@ void Bot::take_lidar_readings() {
   double closest_distance = std::numeric_limits<double>::max();
   closest_wall_reading_index = std::nullopt;
 
-  for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i) {
+  for (int i = 0; i < LIDAR_SAMPLES; ++i) {
     double angle = ANGLE_STEP * i - M_PI;
     double distance = LIDAR_RADIUS;
 
@@ -32,9 +32,9 @@ void Bot::take_lidar_readings() {
     double max_dist = LIDAR_RADIUS;
 
     while (max_dist - min_dist > LIDAR_RESOLUTION) {
-      double mid_dist = (min_dist + max_dist) / 2.0;
-      double sample_x = real_position.x() + mid_dist * cos(angle);
-      double sample_y = real_position.y() + mid_dist * sin(angle);
+      const double mid_dist = (min_dist + max_dist) / 2.0;
+      const double sample_x = real_position.x() + mid_dist * cos(angle);
+      const double sample_y = real_position.y() + mid_dist * sin(angle);
 
       if (point_in_environment(Robot::Point(sample_x, sample_y))) {
         min_dist = mid_dist;
@@ -50,35 +50,29 @@ void Bot::take_lidar_readings() {
       closest_wall_reading_index = i;
     }
 
-    current_readings[i] = Reading{angle, distance};
+    readings[i] = Reading{angle, distance};
   }
-}
-
-void Bot::reset() {
-  real_position = START_POSITION;
-  current_readings.fill({0, LIDAR_RADIUS});
-  closest_wall_reading_index = std::nullopt;
 }
 
 void Bot::draw_body(const DrawData &draw_data) const {
   DrawCircle(real_position.x() * draw_data.scale_factor + draw_data.offset_x,
              real_position.y() * draw_data.scale_factor + draw_data.offset_y,
-             DRAWN_BODY_RADIUS, RED);
+             DRAWN_BODY_RADIUS, raylib::RED);
 }
 
-void Bot::draw_lidar(const DrawData &draw_data) const {
+void Bot::draw_range(const DrawData &draw_data) const {
   DrawCircleLines(
       real_position.x() * draw_data.scale_factor + draw_data.offset_x,
       real_position.y() * draw_data.scale_factor + draw_data.offset_y,
-      LIDAR_RADIUS * draw_data.scale_factor, BLUE);
+      LIDAR_RADIUS * draw_data.scale_factor, raylib::BLUE);
 }
 
 void Bot::draw_readings(const DrawData &draw_data) const {
   float pos_x = real_position.x() * draw_data.scale_factor + draw_data.offset_x;
   float pos_y = real_position.y() * draw_data.scale_factor + draw_data.offset_y;
 
-  for (int i = 0; i < MAX_LIDAR_SAMPLES; ++i) {
-    const Reading &r = current_readings[i];
+  for (int i = 0; i < LIDAR_SAMPLES; ++i) {
+    const Reading &r = readings[i];
     const float end_x =
         pos_x + r.distance * draw_data.scale_factor * cos(r.angle);
     const float end_y =

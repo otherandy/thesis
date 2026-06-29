@@ -17,7 +17,7 @@ public:
   const Robot::Point get_origin() const { return origin; };
 
   void mark_cells(const Robot::Point &relative_position,
-                  const std::array<Reading, MAX_LIDAR_SAMPLES> &readings);
+                  const std::array<Reading, LIDAR_SAMPLES> &readings);
 
   void compute_frontier_regions(DynamicScheduler *sched);
 

@@ -2,15 +2,13 @@
 #define BOT_HPP
 
 #include "DrawUtils.hpp"
-#include "cgal_types.hpp"
 #include <array>
 
-constexpr std::size_t MAX_LIDAR_SAMPLES = 360;
+constexpr std::size_t LIDAR_SAMPLES = 360;
 
-const Robot::Point START_POSITION(3.0, 3.0);
 constexpr double LIDAR_RADIUS = 1.5;
 constexpr double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
-const double ANGLE_STEP = 2.0 * M_PI / MAX_LIDAR_SAMPLES;
+const double ANGLE_STEP = 2.0 * M_PI / LIDAR_SAMPLES;
 
 const float DRAWN_BODY_RADIUS = 5.0;
 const float DRAWN_POINT_RADIUS = 3.0;
@@ -29,15 +27,15 @@ public:
   void take_lidar_readings();
 
 protected:
-  std::array<Reading, MAX_LIDAR_SAMPLES> current_readings;
-  std::optional<std::size_t> closest_wall_reading_index = std::nullopt;
+  std::array<Reading, LIDAR_SAMPLES> readings;
+  std::optional<std::size_t> closest_wall_reading_index;
 
-  void reset();
+  void reset(const Robot::Point &start_pos);
 
   Robot::Point get_real_position() const { return real_position; }
 
   void draw_body(const DrawData &draw_data) const;
-  void draw_lidar(const DrawData &draw_data) const;
+  void draw_range(const DrawData &draw_data) const;
   void draw_readings(const DrawData &draw_data) const;
   void draw_position_text() const;
 

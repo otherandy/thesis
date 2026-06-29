@@ -3,7 +3,6 @@
 
 #include "Bot.hpp"
 #include "OccupationGrid.hpp"
-#include "cgal_types.hpp"
 
 #define NEXT_INDEX 1
 #define PREV_INDEX -1
@@ -55,8 +54,10 @@ public:
   void draw(const DrawData &draw_data) const;
 
 private:
+  const Robot::Point start_point;
+  const Robot::Vector start_direction;
+
   Robot::Vector direction;
-  Robot::Point start_point;
   Robot::Point contact_point;
 
   bool path_blocked_to(const Robot::Vector &target) const;

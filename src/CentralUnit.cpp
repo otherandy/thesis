@@ -13,7 +13,12 @@
 
 CentralUnit::CentralUnit() { reset(); }
 
-void CentralUnit::register_bot(ExplorationBot *bot) { bots.push_back(bot); }
+void CentralUnit::register_bot(const Robot::Point &start_pos,
+                               const Robot::Vector &start_dir, bool clockwise) {
+
+  auto bot = std::make_shared<ExplorationBot>(start_pos, start_dir, clockwise);
+  bots.push_back(std::move(bot));
+}
 
 void CentralUnit::get_input_and_move() {
   if (IsKeyPressed(KEY_R)) {
@@ -50,14 +55,14 @@ void CentralUnit::get_input_and_move() {
 }
 
 void CentralUnit::check_collisions_during_wall() {
-  for (ExplorationBot *bot1 : bots) {
+  for (auto bot1 : bots) {
     if (bot1->phase != ExplorationPhase::WallFollowing) {
       continue;
     }
 
     Robot::Point pos1 = bot1->get_relative_position(occupation_grid.get());
 
-    for (ExplorationBot *bot2 : bots) {
+    for (auto bot2 : bots) {
       if (bot1 == bot2) {
         continue;
       }
@@ -85,7 +90,7 @@ void CentralUnit::assign_frontier_regions() {
   vertex_t target_v;
 
   auto select_target = [&](ExplorationBot *b) -> std::optional<Robot::Point> {
-    auto vd = frontier_sched->get_vertex_data(b->target_vertex);
+    auto vd = frontier_scheduler->get_vertex_data(b->target_vertex);
     auto *r = vd.region.get();
     const auto grid = occupation_grid->get_data();
 
@@ -95,18 +100,16 @@ void CentralUnit::assign_frontier_regions() {
     return tp;
   };
 
-  for (ExplorationBot *bot : bots) {
+  for (auto bot : bots) {
     if (bot->phase == ExplorationPhase::RegionDiscovery) {
       if (!ran_compute) {
-        occupation_grid->compute_frontier_regions(frontier_sched.get());
-        auto vopt = frontier_sched->next();
+        occupation_grid->compute_frontier_regions(frontier_scheduler.get());
+        auto vopt = frontier_scheduler->next();
 
         if (!vopt.has_value()) {
-          vopt = frontier_sched->help();
+          vopt = frontier_scheduler->help();
 
           if (!vopt.has_value()) {
-            bot->clockwise_following = !bot->clockwise_following;
-            bot->phase = ExplorationPhase::WallDiscovery;
             return;
           }
         }
@@ -118,15 +121,15 @@ void CentralUnit::assign_frontier_regions() {
       }
 
       bot->target_vertex = target_v;
-      bot->target_point = select_target(bot).value();
+      bot->target_point = select_target(bot.get()).value();
       bot->phase = ExplorationPhase::RegionAlignment;
     }
 
     if (bot->phase == ExplorationPhase::RegionExploration) {
-      const auto tp = select_target(bot);
+      const auto tp = select_target(bot.get());
 
       if (!tp.has_value()) {
-        frontier_sched->done(bot->target_vertex);
+        frontier_scheduler->done(bot->target_vertex);
         bot->phase = ExplorationPhase::RegionDiscovery;
         continue;
       }
@@ -152,8 +155,10 @@ void CentralUnit::run_exploration() {
 
     std::vector<std::future<void>> jobs;
 
-    for (ExplorationBot *bot : bots) {
-      auto f = [bot, grid = occupation_grid.get()]() { bot->explore(grid); };
+    for (auto bot : bots) {
+      auto f = [bot = bot, grid = occupation_grid.get()]() {
+        bot->explore(grid);
+      };
 
       jobs.emplace_back(std::async(std::launch::async, f));
     }
@@ -177,7 +182,7 @@ void CentralUnit::update() {
   exploration_time.pause();
 
   if (phase != CentralPhase::Complete) {
-    for (ExplorationBot *bot : bots) {
+    for (auto bot : bots) {
       if (bot->phase == ExplorationPhase::WallDiscovery ||
           bot->phase == ExplorationPhase::WallAlignment ||
           bot->phase == ExplorationPhase::WallFollowing) {
@@ -206,16 +211,16 @@ void CentralUnit::update() {
 
   std::vector<std::future<void>> update_jobs;
 
-  for (ExplorationBot *bot : bots) {
+  for (auto bot : bots) {
     update_jobs.emplace_back(std::async(
-        std::launch::async, [bot]() { bot->take_lidar_readings(); }));
+        std::launch::async, [bot = bot]() { bot->take_lidar_readings(); }));
   }
 
   for (auto &job : update_jobs) {
     job.get();
   }
 
-  for (ExplorationBot *bot : bots) {
+  for (auto bot : bots) {
     bot->update_grid(occupation_grid.get());
   }
 
@@ -229,10 +234,13 @@ void CentralUnit::update() {
 void CentralUnit::draw(const DrawData &draw_data) {
   occupation_grid->draw(draw_data);
 
-  auto draw_bot = [&](ExplorationBot *bot) { bot->draw(draw_data); };
+  auto draw_bot = [&](std::shared_ptr<ExplorationBot> bot) {
+    bot->draw(draw_data);
+  };
+
   std::for_each(bots.begin(), bots.end(), draw_bot);
 
-  frontier_sched->draw(draw_data);
+  frontier_scheduler->draw(draw_data);
 }
 
 void CentralUnit::reset() {
@@ -240,15 +248,15 @@ void CentralUnit::reset() {
   phase = CentralPhase::Idle;
 
   occupation_grid = std::make_unique<OccupationGrid>();
-  frontier_sched = std::make_unique<DynamicScheduler>();
+  frontier_scheduler = std::make_unique<DynamicScheduler>();
 
   auto outer_wall = std::make_shared<FrontierRegion>();
   outer_wall->min = std::make_pair(0, 0);
   outer_wall->max = std::make_pair(MAP_HEIGHT, MAP_WIDTH);
-  root = frontier_sched->add_vertex(outer_wall, true);
+  root = frontier_scheduler->add_vertex(outer_wall, true);
 
-  for (ExplorationBot *bot : bots) {
-    bot->reset();
+  for (auto bot : bots) {
+    bot.reset();
   }
 
   physical_time.reset();

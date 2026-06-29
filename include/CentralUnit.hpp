@@ -5,6 +5,7 @@
 #include "Graph.hpp"
 #include "OccupationGrid.hpp"
 #include "Timer.hpp"
+#include "cgal_types.hpp"
 #include <memory>
 #include <vector>
 
@@ -17,7 +18,8 @@ enum class CentralPhase {
 class CentralUnit {
 public:
   CentralUnit();
-  void register_bot(ExplorationBot *bot);
+  void register_bot(const Robot::Point &start_pos,
+                    const Robot::Vector &start_dir, bool clockwise);
   void get_input_and_move();
   void update();
   void draw(const DrawData &draw_data);
@@ -27,11 +29,12 @@ public:
 
 private:
   CentralPhase phase = CentralPhase::Idle;
-  std::vector<ExplorationBot *> bots;
+  std::vector<std::shared_ptr<ExplorationBot>> bots;
 
   bool is_paused = false;
+
   std::unique_ptr<OccupationGrid> occupation_grid;
-  std::unique_ptr<DynamicScheduler> frontier_sched;
+  std::unique_ptr<DynamicScheduler> frontier_scheduler;
 
   vertex_t root;
 

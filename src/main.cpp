@@ -1,5 +1,4 @@
 #include "CentralUnit.hpp"
-#include "ExplorationBot.hpp"
 #include "raylib.h"
 #include <memory>
 
@@ -15,21 +14,11 @@ int main() {
 
   auto central_unit = std::make_unique<CentralUnit>();
 
-  auto bot1 = std::make_shared<ExplorationBot>(START_POSITION,
-                                               Robot::Vector(1, 0), true);
-  central_unit->register_bot(bot1.get());
-
-  auto bot2 = std::make_shared<ExplorationBot>(START_POSITION,
-                                               Robot::Vector(1, 0), false);
-  central_unit->register_bot(bot2.get());
-
-  auto bot3 = std::make_shared<ExplorationBot>(START_POSITION,
-                                               Robot::Vector(-1, 0), true);
-  central_unit->register_bot(bot3.get());
-
-  auto bot4 = std::make_shared<ExplorationBot>(START_POSITION,
-                                               Robot::Vector(-1, 0), false);
-  central_unit->register_bot(bot4.get());
+  const Robot::Point START_POSITION(3.0, 3.0);
+  central_unit->register_bot(START_POSITION, Robot::Vector(1, 0), true);
+  // central_unit->register_bot(START_POSITION, Robot::Vector(1, 0), false);
+  // central_unit->register_bot(START_POSITION, Robot::Vector(-1, 0), true);
+  // central_unit->register_bot(START_POSITION, Robot::Vector(-1, 0), false);
 
   while (!window.ShouldClose()) {
     central_unit->update();
