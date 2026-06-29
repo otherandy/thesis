@@ -140,12 +140,12 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
   }
 
   std::vector<Robot::Point> wall_points;
-  wall_points.reserve(64);
+  wall_points.reserve(LIDAR_SAMPLES / 2);
 
   // prev
   {
     std::size_t idx = ref;
-    for (std::size_t steps = 0; steps < LIDAR_SAMPLES; ++steps) {
+    for (std::size_t steps = 0; steps < LIDAR_SAMPLES / 4; ++steps) {
       idx = relative_index(idx, PREV_INDEX);
       if (idx == ref || readings[idx].distance >= LIDAR_RADIUS) {
         break;
@@ -160,7 +160,7 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
   // next
   {
     std::size_t idx = ref;
-    for (std::size_t steps = 0; steps < LIDAR_SAMPLES; ++steps) {
+    for (std::size_t steps = 0; steps < LIDAR_SAMPLES / 4; ++steps) {
       idx = relative_index(idx, NEXT_INDEX);
       if (idx == ref || readings[idx].distance >= LIDAR_RADIUS) {
         break;
