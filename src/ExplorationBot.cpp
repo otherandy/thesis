@@ -178,13 +178,13 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
                                        fitted_line, CGAL::Dimension_tag<0>());
   forward = fitted_line.to_vector();
 
-  Robot::Vector desired_unit = normalize_vector(preferred_direction);
-
-  if ((forward * desired_unit) < 0) {
+  if ((forward * heading_unit) < 0) {
     forward = -forward;
   }
 
-  if ((forward * heading_unit) < 0) {
+  Robot::Vector desired_unit = normalize_vector(preferred_direction);
+
+  if ((forward * desired_unit) < 0) {
     forward = -forward;
   }
 
@@ -290,5 +290,5 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
 void ExplorationBot::draw(const DrawData &draw_data) const {
   // draw_readings(draw_data);
   draw_body(draw_data);
-  // draw_lidar(draw_data);
+  draw_range(draw_data);
 }
