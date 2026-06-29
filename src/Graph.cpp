@@ -40,9 +40,9 @@ std::optional<vertex_t> DynamicScheduler::next(const std::string &strategy) {
   std::optional<vertex_t> vopt;
 
   if (strategy == "dfs") {
-    vopt = pop_bfs();
-  } else if (strategy == "bfs") {
     vopt = pop_dfs();
+  } else if (strategy == "bfs") {
+    vopt = pop_bfs();
   }
 
   if (!vopt.has_value()) {
@@ -59,9 +59,9 @@ std::optional<vertex_t> DynamicScheduler::help(const std::string &strategy) {
   std::optional<vertex_t> vopt;
 
   if (strategy == "dfs") {
-    vopt = pop_bfs_gray();
-  } else if (strategy == "bfs") {
     vopt = pop_dfs_gray();
+  } else if (strategy == "bfs") {
+    vopt = pop_bfs_gray();
   }
 
   if (!vopt.has_value()) {
