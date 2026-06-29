@@ -173,14 +173,10 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
   const Robot::Vector to_wall(cos(ref_r.angle), sin(ref_r.angle));
 
   Robot::Vector forward;
-  if (wall_points.size() < 2) {
-    forward = Robot::Vector(-to_wall.y(), to_wall.x());
-  } else {
-    CGAL::Line_2<Robot::Kernel> fitted_line;
-    CGAL::linear_least_squares_fitting_2(wall_points.begin(), wall_points.end(),
-                                         fitted_line, CGAL::Dimension_tag<0>());
-    forward = fitted_line.to_vector();
-  }
+  CGAL::Line_2<Robot::Kernel> fitted_line;
+  CGAL::linear_least_squares_fitting_2(wall_points.begin(), wall_points.end(),
+                                       fitted_line, CGAL::Dimension_tag<0>());
+  forward = fitted_line.to_vector();
 
   Robot::Vector desired_unit = normalize_vector(preferred_direction);
 

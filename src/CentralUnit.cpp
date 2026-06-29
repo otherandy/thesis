@@ -125,7 +125,8 @@ void CentralUnit::assign_frontier_regions() {
       bot->phase = ExplorationPhase::RegionAlignment;
     }
 
-    if (bot->phase == ExplorationPhase::RegionExploration) {
+    if (bot->phase == ExplorationPhase::RegionAlignment ||
+        bot->phase == ExplorationPhase::RegionExploration) {
       const auto tp = select_target(bot.get());
 
       if (!tp.has_value()) {
