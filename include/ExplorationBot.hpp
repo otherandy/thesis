@@ -14,6 +14,7 @@ enum class ExplorationPhase {
   WallDiscovery,
   WallAlignment,
   WallFollowing,
+  Idle,
   RegionDiscovery,
   RegionAlignment,
   RegionExploration,
@@ -22,7 +23,7 @@ enum class ExplorationPhase {
 
 class ExplorationBot : public Bot {
 public:
-  bool clockwise_following;
+  const bool clockwise_following;
 
   ExplorationBot(const Robot::Point &start_pos, const Robot::Vector &start_dir,
                  bool clockwise);

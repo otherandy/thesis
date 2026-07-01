@@ -101,17 +101,27 @@ void CentralUnit::assign_frontier_regions() {
   };
 
   for (auto bot : bots) {
+    if (bot->phase == ExplorationPhase::Idle) {
+      auto vopt = frontier_scheduler->next_or_help();
+      if (!vopt.has_value()) {
+        continue;
+      }
+
+      target_v = *vopt;
+      bot->target_vertex = target_v;
+      bot->target_point = select_target(bot.get()).value();
+      bot->started_surround = false;
+      bot->goal_distance = 0;
+      bot->phase = ExplorationPhase::RegionAlignment;
+    }
+
     if (bot->phase == ExplorationPhase::RegionDiscovery) {
       if (!ran_compute) {
         occupation_grid->compute_frontier_regions(frontier_scheduler.get());
-        auto vopt = frontier_scheduler->next();
-
+        auto vopt = frontier_scheduler->next_or_help();
         if (!vopt.has_value()) {
-          vopt = frontier_scheduler->help();
-
-          if (!vopt.has_value()) {
-            return;
-          }
+          bot->phase = ExplorationPhase::Idle;
+          continue;
         }
 
         target_v = *vopt;

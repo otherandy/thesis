@@ -71,6 +71,17 @@ std::optional<vertex_t> DynamicScheduler::help(const std::string &strategy) {
   return *vopt;
 }
 
+std::optional<vertex_t>
+DynamicScheduler::next_or_help(const std::string &strategy) {
+  auto vopt = next(strategy);
+
+  if (!vopt.has_value()) {
+    vopt = help(strategy);
+  }
+
+  return vopt;
+}
+
 VertexData DynamicScheduler::get_vertex_data(vertex_t v) {
   std::lock_guard<std::mutex> lg(mutex_);
   return g_[v];
