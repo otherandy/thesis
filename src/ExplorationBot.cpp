@@ -246,8 +246,15 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
 
   Robot::Vector desired_vector = target_point - rp;
 
-  if (path_blocked_to(desired_vector)) {
-    desired_vector = compute_wall_following_vector(grid, desired_vector);
+  const bool is_blocked = path_blocked_to(desired_vector);
+
+  if (is_blocked || (started_surround && distance > goal_distance)) {
+    if (!started_surround) {
+      goal_distance = distance;
+      started_surround = true;
+    }
+
+    desired_vector = compute_wall_following_vector(grid);
   }
 
   move(desired_vector);

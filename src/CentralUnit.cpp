@@ -122,6 +122,8 @@ void CentralUnit::assign_frontier_regions() {
 
       bot->target_vertex = target_v;
       bot->target_point = select_target(bot.get()).value();
+      bot->started_surround = false;
+      bot->goal_distance = 0;
       bot->phase = ExplorationPhase::RegionAlignment;
     }
 

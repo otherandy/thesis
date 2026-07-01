@@ -30,8 +30,12 @@ public:
   ExplorationPhase phase = ExplorationPhase::WallDiscovery;
 
   bool left_contact_point;
+
   vertex_t target_vertex;
   Robot::Point target_point;
+
+  bool started_surround;
+  double goal_distance;
 
   Robot::Point get_relative_position(const OccupationGrid *grid) const;
 
