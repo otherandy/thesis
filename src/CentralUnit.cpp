@@ -92,33 +92,22 @@ void CentralUnit::assign_frontier_regions() {
   auto select_target = [&](ExplorationBot *b) -> std::optional<Robot::Point> {
     auto vd = frontier_scheduler->get_vertex_data(b->target_vertex);
     auto *r = vd.region.get();
-    const auto grid = occupation_grid->get_data();
 
     const Robot::Point rp = b->get_relative_position(occupation_grid.get());
+    const auto grid = occupation_grid->get_data();
     const auto tp = r->get_closest_unexplored(*grid, rp);
 
     return tp;
   };
 
   for (auto bot : bots) {
-    if (bot->phase == ExplorationPhase::Idle) {
-      auto vopt = frontier_scheduler->next_or_help();
-      if (!vopt.has_value()) {
-        continue;
-      }
-
-      target_v = *vopt;
-      bot->target_vertex = target_v;
-      bot->target_point = select_target(bot.get()).value();
-      bot->started_surround = false;
-      bot->goal_distance = 0;
-      bot->phase = ExplorationPhase::RegionAlignment;
-    }
+    bool setup_alignment = false;
 
     if (bot->phase == ExplorationPhase::RegionDiscovery) {
       if (!ran_compute) {
         occupation_grid->compute_frontier_regions(frontier_scheduler.get());
-        auto vopt = frontier_scheduler->next_or_help();
+        auto vopt = frontier_scheduler->next();
+
         if (!vopt.has_value()) {
           bot->phase = ExplorationPhase::Idle;
           continue;
@@ -131,14 +120,35 @@ void CentralUnit::assign_frontier_regions() {
       }
 
       bot->target_vertex = target_v;
-      bot->target_point = select_target(bot.get()).value();
+      setup_alignment = true;
+    }
+
+    if (bot->phase == ExplorationPhase::Idle) {
+      auto vopt = frontier_scheduler->next_or_help();
+      if (!vopt.has_value()) {
+        continue;
+      }
+
+      bot->target_vertex = *vopt;
+      setup_alignment = true;
+    }
+
+    if (setup_alignment) {
+      const auto tp = select_target(bot.get());
+
+      if (!tp.has_value()) {
+        frontier_scheduler->done(bot->target_vertex);
+        bot->phase = ExplorationPhase::RegionDiscovery;
+        continue;
+      }
+
+      bot->target_point = tp.value();
       bot->started_surround = false;
       bot->goal_distance = 0;
       bot->phase = ExplorationPhase::RegionAlignment;
     }
 
-    if (bot->phase == ExplorationPhase::RegionAlignment ||
-        bot->phase == ExplorationPhase::RegionExploration) {
+    if (bot->phase == ExplorationPhase::RegionExploration) {
       const auto tp = select_target(bot.get());
 
       if (!tp.has_value()) {

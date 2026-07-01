@@ -34,7 +34,8 @@ protected:
 
   Robot::Point get_real_position() const { return real_position; }
 
-  void draw_body(const DrawData &draw_data) const;
+  void draw_body(const DrawData &draw_data,
+                 raylib::Color color = raylib::RED) const;
   void draw_range(const DrawData &draw_data) const;
   void draw_readings(const DrawData &draw_data) const;
   void draw_position_text() const;

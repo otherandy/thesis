@@ -296,6 +296,25 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
 
 void ExplorationBot::draw(const DrawData &draw_data) const {
   // draw_readings(draw_data);
-  draw_body(draw_data);
+
+  raylib::Color color;
+
+  if (phase == ExplorationPhase::WallDiscovery ||
+      phase == ExplorationPhase::WallAlignment ||
+      phase == ExplorationPhase::WallFollowing) {
+    color = raylib::RED;
+  } else if (phase == ExplorationPhase::Idle) {
+    color = raylib::GRAY;
+  } else if (phase == ExplorationPhase::RegionDiscovery) {
+    color = raylib::GREEN;
+  } else if (phase == ExplorationPhase::RegionAlignment) {
+    color = raylib::BLUE;
+  } else if (phase == ExplorationPhase::RegionExploration) {
+    color = raylib::VIOLET;
+  } else {
+    color = raylib::ORANGE;
+  }
+
+  draw_body(draw_data, color);
   draw_range(draw_data);
 }
