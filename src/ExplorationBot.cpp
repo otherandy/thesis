@@ -265,6 +265,10 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
     desired_vector = compute_wall_following_vector(grid);
   }
 
+  if (distance < goal_distance) {
+    goal_distance = distance;
+  }
+
   move(desired_vector);
 }
 

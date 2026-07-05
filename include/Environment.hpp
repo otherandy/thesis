@@ -117,7 +117,7 @@ enum class EnvironmentPreset {
 };
 
 // Change this single line to switch the environment before compiling.
-constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::LetterE;
+constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Mono;
 
 struct SelectedEnvironmentData {
   const EnvData *outer_data;
