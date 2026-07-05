@@ -79,15 +79,9 @@ void Bot::draw_readings(const DrawData &draw_data) const {
         pos_y + r.distance * draw_data.scale_factor * sin(r.angle);
 
     if (i == closest_wall_reading_index) {
-      DrawLineEx({pos_x, pos_y}, {end_x, end_y}, 5.0, RED);
+      DrawLineEx({pos_x, pos_y}, {end_x, end_y}, 5.0, raylib::RED);
     } else {
-      DrawLine(pos_x, pos_y, end_x, end_y, GRAY);
+      DrawLine(pos_x, pos_y, end_x, end_y, raylib::GRAY);
     }
   }
-}
-
-void Bot::draw_position_text() const {
-  std::string pos_text = "Pos: (" + std::to_string(real_position.x()) + ", " +
-                         std::to_string(real_position.y()) + ")";
-  DrawText(pos_text.c_str(), 10, GetScreenHeight() - 30, 20, BLACK);
 }

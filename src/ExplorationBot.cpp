@@ -26,6 +26,11 @@ void ExplorationBot::reset() {
   Bot::reset(start_point);
 }
 
+Robot::Vector ExplorationBot::move(const Robot::Vector &dir) {
+  direction = dir;
+  return Bot::move(dir);
+}
+
 void ExplorationBot::update_grid(OccupationGrid *grid) {
   const Robot::Point rp = get_relative_position(grid);
   grid->mark_cells(rp, readings);
@@ -95,8 +100,9 @@ void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
   move(Robot::Vector(cos(closest_reading.angle), sin(closest_reading.angle)));
 }
 
-Robot::Vector ExplorationBot::compute_wall_following_vector(
-    const OccupationGrid *grid, const Robot::Vector &preferred_direction) {
+Robot::Vector
+ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
+  const Robot::Point rp = get_relative_position(grid);
 
   auto cross_z = [&](const Robot::Vector &a, const Robot::Vector &b) -> double {
     return a.x() * b.y() - a.y() * b.x();
@@ -150,12 +156,12 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
       if (idx == ref || readings[idx].distance >= LIDAR_RADIUS) {
         break;
       }
-      wall_points.push_back(reading_index_to_point(idx, grid));
+      wall_points.push_back(point_at_reading(rp, readings[idx]));
     }
     std::reverse(wall_points.begin(), wall_points.end());
   }
 
-  wall_points.push_back(reading_index_to_point(ref, grid));
+  wall_points.push_back(point_at_reading(rp, readings[ref]));
 
   // next
   {
@@ -165,7 +171,7 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
       if (idx == ref || readings[idx].distance >= LIDAR_RADIUS) {
         break;
       }
-      wall_points.push_back(reading_index_to_point(idx, grid));
+      wall_points.push_back(point_at_reading(rp, readings[idx]));
     }
   }
 
@@ -181,14 +187,6 @@ Robot::Vector ExplorationBot::compute_wall_following_vector(
   if ((forward * heading_unit) < 0) {
     forward = -forward;
   }
-
-  Robot::Vector desired_unit = normalize_vector(preferred_direction);
-
-  if ((forward * desired_unit) < 0) {
-    forward = -forward;
-  }
-
-  direction = forward;
 
   double distance_error = ref_r.distance - DESIRED_WALL_DISTANCE;
   distance_error =
@@ -240,6 +238,8 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
   const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
 
   if (distance < SPEED * 2) {
+    started_surround = false;
+    goal_distance = 0;
     phase = ExplorationPhase::RegionExploration;
     return;
   }
@@ -260,18 +260,12 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
   move(desired_vector);
 }
 
-Robot::Point
-ExplorationBot::reading_index_to_point(std::size_t index,
-                                       const OccupationGrid *grid) const {
-  const Reading &r = readings[index];
-  const Robot::Point rp = get_relative_position(grid);
-  return point_at_reading(rp, r);
-}
-
 void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
+  const Robot::Point rp = get_relative_position(grid);
+
   if (closest_wall_reading_index) {
     const Robot::Point closest_point =
-        reading_index_to_point(*closest_wall_reading_index, grid);
+        point_at_reading(rp, readings[*closest_wall_reading_index]);
     const Index2D index =
         get_cell_index_from(closest_point.x(), closest_point.y());
 
@@ -284,14 +278,32 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
     }
   }
 
-  const Robot::Point rp = get_relative_position(grid);
+  const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
   Robot::Vector desired_vector = target_point - rp;
 
-  if (path_blocked_to(desired_vector)) {
-    desired_vector = compute_wall_following_vector(grid, desired_vector);
+  const bool is_blocked = path_blocked_to(desired_vector);
+
+  if (is_blocked || (started_surround && distance > goal_distance)) {
+    if (!started_surround) {
+      goal_distance = distance;
+      started_surround = true;
+    }
+
+    desired_vector = compute_wall_following_vector(grid);
   }
 
   move(desired_vector);
+}
+
+void ExplorationBot::draw_direction(const DrawData &draw_data) const {
+  const auto real = get_real_position();
+  float pos_x = real.x() * draw_data.scale_factor + draw_data.offset_x;
+  float pos_y = real.y() * draw_data.scale_factor + draw_data.offset_y;
+
+  float end_x = pos_x + direction.x() * draw_data.scale_factor;
+  float end_y = pos_y + direction.y() * draw_data.scale_factor;
+
+  DrawLine(pos_x, pos_y, end_x, end_y, raylib::GREEN);
 }
 
 void ExplorationBot::draw(const DrawData &draw_data) const {
@@ -316,5 +328,6 @@ void ExplorationBot::draw(const DrawData &draw_data) const {
   }
 
   draw_body(draw_data, color);
+  draw_direction(draw_data);
   draw_range(draw_data);
 }

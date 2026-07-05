@@ -23,13 +23,13 @@ struct Reading {
 class Bot {
 public:
   Bot(const Robot::Point &start_pos);
-  Robot::Vector move(const Robot::Vector &dir);
   void take_lidar_readings();
 
 protected:
   std::array<Reading, LIDAR_SAMPLES> readings;
   std::optional<std::size_t> closest_wall_reading_index;
 
+  Robot::Vector move(const Robot::Vector &dir);
   void reset(const Robot::Point &start_pos);
 
   Robot::Point get_real_position() const { return real_position; }
@@ -38,7 +38,6 @@ protected:
                  raylib::Color color = raylib::RED) const;
   void draw_range(const DrawData &draw_data) const;
   void draw_readings(const DrawData &draw_data) const;
-  void draw_position_text() const;
 
 private:
   Robot::Point real_position;

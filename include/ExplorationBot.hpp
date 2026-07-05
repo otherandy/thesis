@@ -40,6 +40,7 @@ public:
 
   Robot::Point get_relative_position(const OccupationGrid *grid) const;
 
+  Robot::Vector move(const Robot::Vector &dir);
   void reset();
   void update_grid(OccupationGrid *grid);
 
@@ -47,11 +48,6 @@ public:
 
   void phase1_wall_discovery();
   void phase2_wall_alignment(const OccupationGrid *grid);
-
-  Robot::Vector compute_wall_following_vector(
-      const OccupationGrid *grid,
-      const Robot::Vector &preferred_direction = Robot::Vector(0, 0));
-
   void phase3_wall_following(const OccupationGrid *grid);
   void phase5_region_alignment(const OccupationGrid *grid);
   void phase6_region_exploration(const OccupationGrid *grid);
@@ -65,10 +61,10 @@ private:
   Robot::Vector direction;
   Robot::Point contact_point;
 
+  Robot::Vector compute_wall_following_vector(const OccupationGrid *grid);
   bool path_blocked_to(const Robot::Vector &target) const;
 
-  Robot::Point reading_index_to_point(std::size_t index,
-                                      const OccupationGrid *grid) const;
+  void draw_direction(const DrawData &draw_data) const;
 };
 
 #endif
