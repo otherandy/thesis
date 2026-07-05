@@ -8,9 +8,9 @@
 #include <algorithm>
 #include <cmath>
 
-ExplorationBot::ExplorationBot(const Robot::Point &start_pos,
+ExplorationBot::ExplorationBot(std::size_t id, const Robot::Point &start_pos,
                                const Robot::Vector &start_dir, bool clockwise)
-    : Bot(start_pos), start_point(start_pos), start_direction(start_dir),
+    : Bot(id, start_pos), start_point(start_pos), start_direction(start_dir),
       direction(start_dir), clockwise_following(clockwise) {}
 
 Robot::Point

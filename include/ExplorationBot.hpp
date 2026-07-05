@@ -22,8 +22,8 @@ class ExplorationBot : public Bot {
 public:
   const bool clockwise_following;
 
-  ExplorationBot(const Robot::Point &start_pos, const Robot::Vector &start_dir,
-                 bool clockwise);
+  ExplorationBot(std::size_t id, const Robot::Point &start_pos,
+                 const Robot::Vector &start_dir, bool clockwise);
 
   ExplorationPhase phase = ExplorationPhase::WallDiscovery;
 

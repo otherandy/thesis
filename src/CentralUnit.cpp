@@ -13,11 +13,11 @@
 
 CentralUnit::CentralUnit() { reset(); }
 
-void CentralUnit::register_bot(const Robot::Point &start_pos,
+void CentralUnit::register_bot(std::size_t id, const Robot::Point &start_pos,
                                const Robot::Vector &start_dir, bool clockwise) {
 
-  auto bot = std::make_shared<ExplorationBot>(start_pos, start_dir, clockwise);
-  bots.push_back(std::move(bot));
+  bots.emplace_back(
+      std::make_shared<ExplorationBot>(id, start_pos, start_dir, clockwise));
 }
 
 void CentralUnit::get_input_and_move() {
@@ -80,6 +80,7 @@ void CentralUnit::check_collisions_during_wall() {
           bot1->clockwise_following != bot2->clockwise_following) {
         bot1->phase = ExplorationPhase::RegionDiscovery;
         bot2->phase = ExplorationPhase::RegionDiscovery;
+        break;
       }
     }
   }

@@ -2,7 +2,8 @@
 #include "Utils.hpp"
 #include <raylib-cpp.hpp>
 
-Bot::Bot(const Robot::Point &start_pos) : real_position(start_pos) {}
+Bot::Bot(std::size_t id, const Robot::Point &start_pos)
+    : id(id), real_position(start_pos) {}
 
 void Bot::reset(const Robot::Point &start_pos) { real_position = start_pos; }
 
@@ -55,9 +56,24 @@ void Bot::take_lidar_readings() {
 }
 
 void Bot::draw_body(const DrawData &draw_data, raylib::Color color) const {
-  DrawCircle(real_position.x() * draw_data.scale_factor + draw_data.offset_x,
-             real_position.y() * draw_data.scale_factor + draw_data.offset_y,
-             DRAWN_BODY_RADIUS, color);
+  int x = real_position.x() * draw_data.scale_factor + draw_data.offset_x;
+  int y = real_position.y() * draw_data.scale_factor + draw_data.offset_y;
+
+  DrawCircle(x, y, DRAWN_BODY_RADIUS, color);
+
+  if (id % 2 == 1) {
+    x = x - 10;
+  } else {
+    x = x + 10;
+  }
+
+  if (id % 4 == 1 || id % 4 == 2) {
+    y = y - 7;
+  } else {
+    y = y + 7;
+  }
+
+  DrawText(TextFormat("%zu", id), x, y, 10, BLACK);
 }
 
 void Bot::draw_range(const DrawData &draw_data) const {

@@ -18,7 +18,7 @@ enum class CentralPhase {
 class CentralUnit {
 public:
   CentralUnit();
-  void register_bot(const Robot::Point &start_pos,
+  void register_bot(std::size_t id, const Robot::Point &start_pos,
                     const Robot::Vector &start_dir, bool clockwise);
   void get_input_and_move();
   void update();

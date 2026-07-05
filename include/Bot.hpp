@@ -22,7 +22,9 @@ struct Reading {
 
 class Bot {
 public:
-  Bot(const Robot::Point &start_pos);
+  std::size_t id;
+
+  Bot(std::size_t id, const Robot::Point &start_pos);
   void take_lidar_readings();
 
 protected:
