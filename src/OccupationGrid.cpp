@@ -159,11 +159,11 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
     std::queue<Index2D> q;
     std::unordered_set<uint64_t> visited;
 
-    q.push({max_y, max_x});
-    visited.insert(key(max_y, max_x));
-
-    q.push({min_y, min_x});
-    visited.insert(key(min_y, min_x));
+    auto front = region.front()->index;
+    front.first = front.first - 1;
+    front.second = front.second - 1;
+    q.push({front.first, front.second});
+    visited.insert(key(front.first, front.second));
 
     static constexpr std::array<std::pair<int, int>, 4> directions{{
         {-1, 0}, // N
