@@ -20,6 +20,7 @@ public:
                   const std::array<Reading, LIDAR_SAMPLES> &readings);
 
   void compute_frontier_regions(DynamicScheduler *sched);
+  void compute_physical_obstacles(DynamicScheduler *sched);
 
   void draw(const DrawData &draw_data) const;
   void save_to_file(const std::string &filename) const;

@@ -284,7 +284,7 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
     const auto g = grid->get_data();
     const Cell *obstacle_cell = (*g)[index.first][index.second].get();
 
-    if (obstacle_cell->state == CellState::Unknown) {
+    if (obstacle_cell->state == CellState::Occupied && !obstacle_cell->frontier_id.has_value()) {
       phase = ExplorationPhase::WallAlignment;
       return;
     }

@@ -106,6 +106,7 @@ void CentralUnit::assign_frontier_regions() {
 
     if (bot->phase == ExplorationPhase::RegionDiscovery) {
       if (!ran_compute) {
+        occupation_grid->compute_physical_obstacles(physical_scheduler.get());
         occupation_grid->compute_frontier_regions(frontier_scheduler.get());
         auto vopt = frontier_scheduler->next();
 
@@ -273,6 +274,7 @@ void CentralUnit::reset() {
 
   occupation_grid = std::make_unique<OccupationGrid>();
   frontier_scheduler = std::make_unique<DynamicScheduler>();
+  physical_scheduler = std::make_unique<DynamicScheduler>();
 
   auto outer_wall = std::make_shared<FrontierRegion>();
   outer_wall->min = std::make_pair(0, 0);

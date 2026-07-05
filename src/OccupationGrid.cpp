@@ -332,6 +332,194 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
   }
 }
 
+void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
+  std::vector<std::shared_ptr<FrontierRegion>> regions;
+  std::unordered_set<Cell *> global_visited;
+
+  auto is_closed = [&](std::vector<Cell *> region, Index2D min,
+                       Index2D max) -> bool {
+    auto key = [](int y, int x) {
+      return (static_cast<uint64_t>(y) << 32) | static_cast<uint32_t>(x);
+    };
+
+    std::unordered_set<Cell *> region_set(region.begin(), region.end());
+
+    int min_y = min.first - 1;
+    int min_x = min.second - 1;
+    int max_y = max.first + 1;
+    int max_x = max.second + 1;
+
+    std::queue<Index2D> q;
+    std::unordered_set<uint64_t> visited;
+
+    auto front = region.front()->index;
+    front.first = front.first - 1;
+    front.second = front.second - 1;
+    q.push({front.first, front.second});
+    visited.insert(key(front.first, front.second));
+
+    static constexpr std::array<std::pair<int, int>, 4> directions{{
+        {-1, 0}, // N
+        {1, 0},  // S
+        {0, -1}, // W
+        {0, 1}   // E
+    }};
+
+    while (!q.empty()) {
+      auto [y, x] = q.front();
+      q.pop();
+
+      Cell *c = grid[y][x].get();
+
+      if (c->state != CellState::Unknown && c->state != CellState::Occupied) {
+        return false;
+      }
+
+      for (auto [dy, dx] : directions) {
+        int ny = y + dy;
+        int nx = x + dx;
+
+        if (ny < min_y || ny > max_y || nx < min_x || nx > max_x) {
+          continue;
+        }
+
+        Cell *neighbor = grid[ny][nx].get();
+
+        if (region_set.count(neighbor)) {
+          continue;
+        }
+
+        auto k = key(ny, nx);
+
+        if (visited.insert(k).second) {
+          q.push({ny, nx});
+        }
+      }
+    }
+
+    return true;
+  };
+
+  for (std::size_t y = grid_min.first; y <= grid_max.first; ++y) {
+    for (std::size_t x = grid_min.second; x <= grid_max.second; ++x) {
+      Cell *cell = grid[y][x].get();
+
+      if (cell->state != CellState::Occupied) {
+        continue;
+      }
+
+      if (cell->frontier_id.has_value()) {
+        continue;
+      }
+
+      if (global_visited.count(cell)) {
+        continue;
+      }
+
+      global_visited.insert(cell);
+
+      std::vector<Cell *> region_cells;
+
+      Index2D min = std::make_pair(y, x);
+      Index2D max = std::make_pair(y, x);
+
+      std::queue<Cell *> to_visit;
+      to_visit.push(cell);
+
+      while (!to_visit.empty()) {
+        auto current_cell = to_visit.front();
+        to_visit.pop();
+
+        region_cells.push_back(current_cell);
+
+        if (current_cell->index < min) {
+          min = current_cell->index;
+        }
+
+        if (current_cell->index.first > max.first) {
+          max.first = current_cell->index.first;
+        }
+
+        if (current_cell->index.second > max.second) {
+          max.second = current_cell->index.second;
+        }
+
+        auto neighbors = current_cell->get_neighbors(&grid);
+
+        for (Cell *neighbor : neighbors) {
+          if (neighbor->state != CellState::Occupied) {
+            continue;
+          }
+
+          if (global_visited.count(neighbor)) {
+            continue;
+          }
+
+          if (global_visited.insert(neighbor).second &&
+              !neighbor->frontier_id.has_value()) {
+            to_visit.push(neighbor);
+          }
+        }
+      }
+
+      if (is_closed(region_cells, min, max)) {
+        auto new_region = std::make_shared<FrontierRegion>();
+
+        for (auto c : region_cells) {
+          new_region->cells.push_back(c->index);
+        }
+
+        new_region->min = min;
+        new_region->max = max;
+        regions.push_back(std::move(new_region));
+      }
+    }
+  }
+
+  auto contains = [](const FrontierRegion &outer,
+                     const FrontierRegion &inner) -> bool {
+    return outer.min.first <= inner.min.first &&
+           outer.min.second <= inner.min.second &&
+           outer.max.first >= inner.max.first &&
+           outer.max.second >= inner.max.second;
+  };
+
+  const auto parents = sched->get_all_vertices();
+
+  for (auto child : regions) {
+    vertex_t id = sched->add_vertex(child);
+
+    for (auto idx : child->cells) {
+      Cell *cell = grid[idx.first][idx.second].get();
+      cell->frontier_id = id;
+    }
+
+    vertex_t parent_id = 0;
+    FrontierRegion *best_parent = nullptr;
+
+    for (auto v : parents) {
+      if (v == id) {
+        continue;
+      }
+
+      auto vd = sched->get_vertex_data(v);
+      auto candidate = vd.region;
+
+      if (!contains(*candidate, *child)) {
+        continue;
+      }
+
+      if (parent_id == 0 || best_parent == nullptr ||
+          candidate->cells.size() < best_parent->cells.size()) {
+        best_parent = candidate.get();
+        parent_id = v;
+      }
+    }
+
+    sched->add_edge(parent_id, id);
+  }
+}
+
 void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
   const Cell *cell = grid[index.first][index.second].get();
 
@@ -346,7 +534,7 @@ void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
     color = raylib::YELLOW;
     break;
   case CellState::Occupied:
-    color = raylib::BLACK;
+    color = cell->frontier_id.has_value() ? raylib::BLACK : raylib::GRAY;
     break;
   case CellState::Visited:
     color = raylib::RED;

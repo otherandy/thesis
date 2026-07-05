@@ -35,6 +35,7 @@ private:
 
   std::unique_ptr<OccupationGrid> occupation_grid;
   std::unique_ptr<DynamicScheduler> frontier_scheduler;
+  std::unique_ptr<DynamicScheduler> physical_scheduler;
 
   vertex_t root;
 
