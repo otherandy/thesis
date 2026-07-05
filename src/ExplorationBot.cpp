@@ -229,7 +229,7 @@ bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
   for (const auto &r : readings) {
     const double diff = std::fmod(r.angle - target_angle, 2.0 * M_PI);
 
-    if (std::abs(diff) > ANGLE_STEP * 16) {
+    if (std::abs(diff) > ANGLE_STEP * 20) {
       continue;
     }
 
