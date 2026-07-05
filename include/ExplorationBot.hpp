@@ -4,11 +4,8 @@
 #include "Bot.hpp"
 #include "OccupationGrid.hpp"
 
-#define NEXT_INDEX 1
-#define PREV_INDEX -1
-
 const double DESIRED_WALL_DISTANCE = SPEED * 2;
-const double WALL_DISTANCE_STRENGTH = 0.9;
+const double LIDAR_DISTANCE_THRESHOLD = SPEED;
 
 enum class ExplorationPhase {
   WallDiscovery,

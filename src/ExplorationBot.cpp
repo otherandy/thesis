@@ -104,12 +104,6 @@ Robot::Vector
 ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
   const Robot::Point rp = get_relative_position(grid);
 
-  auto cross_z = [&](const Robot::Vector &a, const Robot::Vector &b) -> double {
-    return a.x() * b.y() - a.y() * b.x();
-  };
-
-  Robot::Vector heading_unit = normalize_vector(direction);
-
   std::optional<std::size_t> side_ref = std::nullopt;
   double best_dist = std::numeric_limits<double>::infinity();
 
@@ -120,10 +114,11 @@ ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
     }
 
     const Robot::Vector to_hit(cos(r.angle), sin(r.angle));
-    const double side = cross_z(heading_unit, to_hit);
 
-    const bool on_right = (side < 0.0);
-    const bool on_left = (side > 0.0);
+    const double cross_z =
+        direction.x() * to_hit.y() - direction.y() * to_hit.x();
+    const bool on_right = (cross_z < 0.0);
+    const bool on_left = (cross_z > 0.0);
     const bool keep = clockwise_following ? on_right : on_left;
 
     if (!keep) {
@@ -136,55 +131,68 @@ ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
     }
   }
 
-  std::size_t ref;
+  std::size_t ref = closest_wall_reading_index.value();
   if (side_ref) {
     ref = *side_ref;
-  } else if (closest_wall_reading_index) {
-    ref = closest_wall_reading_index.value();
-  } else {
-    return direction;
   }
 
   std::vector<Robot::Point> wall_points;
   wall_points.reserve(LIDAR_SAMPLES / 2);
 
+  const int prev_index = clockwise_following ? 1 : -1;
+  const int next_index = clockwise_following ? -1 : 1;
+
   // prev
   {
     std::size_t idx = ref;
+    double last_d = readings[ref].distance;
     for (std::size_t steps = 0; steps < LIDAR_SAMPLES / 4; ++steps) {
-      idx = relative_index(idx, PREV_INDEX);
-      if (idx == ref || readings[idx].distance >= LIDAR_RADIUS) {
+      idx = relative_index(idx, prev_index);
+      const double d = readings[idx].distance;
+
+      if (idx == ref || d >= LIDAR_RADIUS ||
+          std::abs(d - last_d) > LIDAR_DISTANCE_THRESHOLD) {
         break;
       }
-      wall_points.push_back(point_at_reading(rp, readings[idx]));
+
+      last_d = d;
+      wall_points.emplace_back(point_at_reading(rp, readings[idx]));
     }
     std::reverse(wall_points.begin(), wall_points.end());
   }
 
-  wall_points.push_back(point_at_reading(rp, readings[ref]));
+  wall_points.emplace_back(point_at_reading(rp, readings[ref]));
 
   // next
   {
     std::size_t idx = ref;
+    double last_d = readings[ref].distance;
     for (std::size_t steps = 0; steps < LIDAR_SAMPLES / 4; ++steps) {
-      idx = relative_index(idx, NEXT_INDEX);
-      if (idx == ref || readings[idx].distance >= LIDAR_RADIUS) {
+      idx = relative_index(idx, next_index);
+      const double d = readings[idx].distance;
+
+      if (idx == ref || d >= LIDAR_RADIUS ||
+          std::abs(d - last_d) > LIDAR_DISTANCE_THRESHOLD) {
         break;
       }
-      wall_points.push_back(point_at_reading(rp, readings[idx]));
+
+      last_d = d;
+      wall_points.emplace_back(point_at_reading(rp, readings[idx]));
     }
   }
+
+  CGAL::Line_2<Robot::Kernel> fitted_line;
+  CGAL::linear_least_squares_fitting_2(wall_points.begin(), wall_points.end(),
+                                       fitted_line, CGAL::Dimension_tag<0>());
+  Robot::Vector forward = fitted_line.to_vector();
+  forward = normalize_vector(forward);
 
   const Reading &ref_r = readings[ref];
   const Robot::Vector to_wall(cos(ref_r.angle), sin(ref_r.angle));
 
-  Robot::Vector forward;
-  CGAL::Line_2<Robot::Kernel> fitted_line;
-  CGAL::linear_least_squares_fitting_2(wall_points.begin(), wall_points.end(),
-                                       fitted_line, CGAL::Dimension_tag<0>());
-  forward = fitted_line.to_vector();
+  const double cross_z = to_wall.x() * forward.y() - to_wall.y() * forward.x();
 
-  if ((forward * heading_unit) < 0) {
+  if (clockwise_following != (cross_z > 0.0)) {
     forward = -forward;
   }
 
