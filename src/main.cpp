@@ -3,7 +3,7 @@
 #include <memory>
 
 int main() {
-  const int WINDOW_WIDTH = 800;
+  const int WINDOW_WIDTH = 800 * 2;
   const int WINDOW_HEIGHT = 600;
   const int FRAME_RATE = 60;
   const std::string WINDOW_TITLE = "Exploration Bot Simulation";
@@ -26,14 +26,16 @@ int main() {
     window.BeginDrawing();
     window.ClearBackground(RAYWHITE);
 
-    const float scale_factor = calculate_scale_factor(window);
-    const auto [offset_x, offset_y] = calculate_offset(window, scale_factor);
+    int w = window.GetWidth() / 2;
+    int h = window.GetHeight();
+    const float scale_factor = calculate_scale_factor(w, h);
+    const auto [offset_x, offset_y] = calculate_offset(w, h, scale_factor);
 
-    DrawData draw_data{scale_factor, offset_x, offset_y, window.GetWidth(),
-                       window.GetHeight()};
+    DrawData draw_data{scale_factor, offset_x, offset_y, w, h};
 
     draw_environment(draw_data);
     central_unit->draw(draw_data);
+    central_unit->draw_graph(w, h);
 
     window.EndDrawing();
   }

@@ -1,7 +1,6 @@
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
-#include "DrawUtils.hpp"
 #include "FrontierRegion.hpp"
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/depth_first_search.hpp>
@@ -40,7 +39,7 @@ public:
   std::vector<vertex_t> get_all_vertices();
 
   void mark_layout_dirty() { layout_dirty_ = true; }
-  void draw(const DrawData &draw_data);
+  void draw(int screenW, int screenH);
   void ensure_layout(int screenW, int screenH);
 
   Graph &graph() { return g_; }

@@ -162,7 +162,8 @@ void DynamicScheduler::ensure_layout(int screenW, int screenH) {
 
   for (size_t i = 0; i < n; ++i) {
     float t = (n == 1) ? 0.0f : (2.0f * PI * (float)i / (float)n);
-    positions_[i] = {cx + radius * std::cos(t), cy + radius * std::sin(t)};
+    positions_[i] = {cx + radius * std::cos(t) + screenW,
+                     cy + radius * std::sin(t)};
   }
 
   layout_dirty_ = false;
@@ -180,8 +181,8 @@ static Color toRayColor(VertexData::Color c) {
   return raylib::RED;
 }
 
-void DynamicScheduler::draw(const DrawData &draw_data) {
-  ensure_layout(draw_data.screen_x, draw_data.screen_y);
+void DynamicScheduler::draw(int screenW, int screenH) {
+  ensure_layout(screenW, screenH);
 
   for (auto [ei, ei_end] = boost::edges(g_); ei != ei_end; ++ei) {
     const auto u = boost::source(*ei, g_);
@@ -191,15 +192,15 @@ void DynamicScheduler::draw(const DrawData &draw_data) {
       continue;
     }
 
-    Vector2 p1 = positions_[u];
-    Vector2 p2 = positions_[v];
+    raylib::Vector2 p1 = positions_[u];
+    raylib::Vector2 p2 = positions_[v];
 
     DrawLineV(p1, p2, Fade(BLUE, 0.6f));
   }
 
   for (auto [vi, vi_end] = boost::vertices(g_); vi != vi_end; ++vi) {
     const auto idx = (size_t)(*vi); // vecS => stable integer indices
-    const Vector2 p = positions_[idx];
+    const raylib::Vector2 p = positions_[idx];
 
     const auto data = g_[*vi];
     const float r = 14.0f;

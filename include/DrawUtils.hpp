@@ -10,24 +10,23 @@ struct DrawData {
   float scale_factor;
   float offset_x;
   float offset_y;
-  int screen_x;
-  int screen_y;
+  int screen_w;
+  int screen_h;
 };
 
-inline float calculate_scale_factor(const raylib::Window &window) {
-  const float padded_width = window.GetWidth() - 2.0f * WINDOW_PADDING;
-  const float padded_height = window.GetHeight() - 2.0f * WINDOW_PADDING;
+inline float calculate_scale_factor(const int w, const int h) {
+  const float padded_width = w - 2.0f * WINDOW_PADDING;
+  const float padded_height = h - 2.0f * WINDOW_PADDING;
 
   return std::min(padded_width / ENV_WIDTH, padded_height / ENV_HEIGHT);
 }
 
-inline std::pair<float, float> calculate_offset(const raylib::Window &window,
+inline std::pair<float, float> calculate_offset(const int w, const int h,
                                                 float scale_factor) {
   const float draw_width = ENV_WIDTH * scale_factor;
   const float draw_height = ENV_HEIGHT * scale_factor;
 
-  return std::make_pair((window.GetWidth() - draw_width) * 0.5f,
-                        (window.GetHeight() - draw_height) * 0.5f);
+  return std::make_pair((w - draw_width) * 0.5f, (h - draw_height) * 0.5f);
 }
 
 inline void draw_environment(const DrawData &draw_data) {

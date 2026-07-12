@@ -264,8 +264,10 @@ void CentralUnit::draw(const DrawData &draw_data) {
   };
 
   std::for_each(bots.begin(), bots.end(), draw_bot);
+}
 
-  frontier_scheduler->draw(draw_data);
+void CentralUnit::draw_graph(int screenW, int screenH) {
+  frontier_scheduler->draw(screenW, screenH);
 }
 
 void CentralUnit::reset() {

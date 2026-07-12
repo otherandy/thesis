@@ -23,6 +23,7 @@ public:
   void get_input_and_move();
   void update();
   void draw(const DrawData &draw_data);
+  void draw_graph(int screenW, int screenH);
   void reset();
   void report_time();
   void save_data();
