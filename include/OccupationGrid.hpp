@@ -32,6 +32,9 @@ private:
   Index2D grid_min = {MAP_HEIGHT, MAP_WIDTH};
   Index2D grid_max = {0, 0};
 
+  void remove_dead_frontier_cells();
+  void remove_dead_free_cells();
+
   bool mark_cell(Index2D index, CellState new_state);
   void draw_cell(Index2D index, const DrawData &draw_data) const;
 };

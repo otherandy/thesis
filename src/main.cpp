@@ -14,7 +14,7 @@ int main() {
 
   auto central_unit = std::make_unique<CentralUnit>();
 
-  const Robot::Point START_POSITION(3.0, 3.0);
+  const Robot::Point START_POSITION(9.0, 9.0);
   central_unit->register_bot(1, START_POSITION, Robot::Vector(1, 0), true);
   central_unit->register_bot(2, START_POSITION, Robot::Vector(1, 0), false);
   central_unit->register_bot(3, START_POSITION, Robot::Vector(-1, 0), true);
