@@ -43,7 +43,7 @@ public:
 
   void explore(const OccupationGrid *grid);
 
-  void phase1_wall_discovery();
+  void phase1_wall_discovery(const OccupationGrid *grid);
   void phase2_wall_alignment(const OccupationGrid *grid);
   void phase3_wall_following(const OccupationGrid *grid);
   void phase5_region_alignment(const OccupationGrid *grid);

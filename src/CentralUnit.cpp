@@ -159,6 +159,18 @@ void CentralUnit::assign_frontier_regions() {
   }
 }
 
+void CentralUnit::check_exterior() {
+  if (!occupation_grid->found_exterior) {
+    for (auto bot: bots) {
+      if (bot->phase != ExplorationPhase::Idle) {
+        continue;
+      }
+
+      bot->phase = ExplorationPhase::WallDiscovery;
+    }
+  }
+}
+
 void CentralUnit::run_exploration() {
   if (phase == CentralPhase::Complete) {
     total_time.pause();
@@ -172,6 +184,7 @@ void CentralUnit::run_exploration() {
   if (phase == CentralPhase::Explore) {
     check_collisions_during_wall();
     assign_frontier_regions();
+    check_exterior();
 
     std::vector<std::future<void>> jobs;
 

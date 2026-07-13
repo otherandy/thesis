@@ -43,6 +43,8 @@ private:
 
   void check_collisions_during_wall();
   void assign_frontier_regions();
+  void check_exterior();
+
   void run_exploration();
 };
 

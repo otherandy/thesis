@@ -43,7 +43,7 @@ void ExplorationBot::explore(const OccupationGrid *grid) {
   }
 
   if (phase == ExplorationPhase::WallDiscovery) {
-    phase1_wall_discovery();
+    phase1_wall_discovery(grid);
     return;
   }
 
@@ -68,9 +68,22 @@ void ExplorationBot::explore(const OccupationGrid *grid) {
   }
 }
 
-void ExplorationBot::phase1_wall_discovery() {
+void ExplorationBot::phase1_wall_discovery(const OccupationGrid *grid) {
+  const Robot::Point rp = get_relative_position(grid);
+  const auto g = grid->get_data();
+
   for (const Reading &r : readings) {
     if (r.distance < LIDAR_RADIUS) {
+      const Robot::Point p = point_at_reading(rp, r);
+      const Index2D index = get_cell_index_from(p.x(), p.y());
+      const Cell *obstacle_cell = (*g)[index.first][index.second].get();
+
+      if (obstacle_cell->state == CellState::Occupied &&
+          obstacle_cell->frontier_id.has_value()) {
+        direction = rp - p;
+        continue;
+      }
+
       phase = ExplorationPhase::WallAlignment;
       return;
     }
@@ -204,7 +217,6 @@ ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
 }
 
 void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
-
   const Robot::Point rp = get_relative_position(grid);
   const double distance = std::sqrt(CGAL::squared_distance(rp, contact_point));
 
@@ -284,7 +296,8 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
     const auto g = grid->get_data();
     const Cell *obstacle_cell = (*g)[index.first][index.second].get();
 
-    if (obstacle_cell->state == CellState::Occupied && !obstacle_cell->frontier_id.has_value()) {
+    if (obstacle_cell->state == CellState::Occupied &&
+        !obstacle_cell->frontier_id.has_value()) {
       phase = ExplorationPhase::WallAlignment;
       return;
     }

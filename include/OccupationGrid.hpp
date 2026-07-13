@@ -12,6 +12,7 @@ public:
   OccupationGrid();
 
   std::size_t frontier_cell_count = 0;
+  bool found_exterior = false;
 
   const auto get_data() const { return &grid; };
   const Robot::Point get_origin() const { return origin; };

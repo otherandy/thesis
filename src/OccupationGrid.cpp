@@ -460,6 +460,10 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
       }
     }
 
+    if (!found_exterior) {
+      found_exterior = first_state == CellState::Unknown;
+    }
+
     return true;
   };
 
