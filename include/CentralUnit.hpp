@@ -38,8 +38,6 @@ private:
   std::unique_ptr<DynamicScheduler> frontier_scheduler;
   std::unique_ptr<DynamicScheduler> physical_scheduler;
 
-  vertex_t root;
-
   Timer physical_time, virtual_time, alignment_time, exploration_time,
       total_time;
 

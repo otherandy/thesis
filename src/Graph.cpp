@@ -22,9 +22,7 @@ void DynamicScheduler::add_edge(vertex_t u, vertex_t v) {
   if (g_[v].color == VertexData::Color::White) {
     g_[v].color = VertexData::Color::Gray;
     dfs_stack_.push(v);
-    dfs_stack_gray_.push(v);
     bfs_queue_.push(v);
-    bfs_queue_gray_.push(v);
   }
 }
 
@@ -33,6 +31,11 @@ void DynamicScheduler::done(vertex_t v) {
   if (g_[v].color != VertexData::Color::Black) {
     g_[v].color = VertexData::Color::Black;
   }
+}
+
+bool DynamicScheduler::is_done(vertex_t v) {
+  std::lock_guard<std::mutex> lg(mutex_);
+  return g_[v].color == VertexData::Color::Black;
 }
 
 std::optional<vertex_t> DynamicScheduler::next(const std::string &strategy) {
@@ -51,24 +54,35 @@ std::optional<vertex_t> DynamicScheduler::next(const std::string &strategy) {
 
   vertex_t v = *vopt;
 
+  g_[v].workers++;
+
   return v;
 }
 
 std::optional<vertex_t> DynamicScheduler::help(const std::string &strategy) {
   std::lock_guard<std::mutex> lg(mutex_);
-  std::optional<vertex_t> vopt;
 
-  if (strategy == "dfs") {
-    vopt = pop_dfs_gray();
-  } else if (strategy == "bfs") {
-    vopt = pop_bfs_gray();
-  }
+  auto vertices = get_all_vertices();
+  vertices.erase(std::remove_if(vertices.begin(), vertices.end(),
+                                [this](vertex_t v) {
+                                  return g_[v].color != VertexData::Color::Gray;
+                                }),
+                 vertices.end());
 
-  if (!vopt.has_value()) {
+  if (vertices.empty()) {
     return std::nullopt;
   }
 
-  return *vopt;
+  auto compare = [&](vertex_t a, vertex_t b) {
+    return g_[a].workers < g_[b].workers;
+  };
+
+  std::sort(vertices.begin(), vertices.end(), compare);
+
+  vertex_t v = vertices.front();
+  g_[v].workers++;
+
+  return v;
 }
 
 std::optional<vertex_t>
@@ -117,32 +131,6 @@ std::optional<vertex_t> DynamicScheduler::pop_bfs() {
   return std::nullopt;
 }
 
-std::optional<vertex_t> DynamicScheduler::pop_dfs_gray() {
-  while (!dfs_stack_gray_.empty()) {
-    vertex_t v = dfs_stack_gray_.top();
-    if (g_[v].color == VertexData::Color::Black) {
-      dfs_stack_gray_.pop();
-    }
-    if (g_[v].color == VertexData::Color::Gray) {
-      return v;
-    }
-  }
-  return std::nullopt;
-}
-
-std::optional<vertex_t> DynamicScheduler::pop_bfs_gray() {
-  while (!bfs_queue_gray_.empty()) {
-    vertex_t v = bfs_queue_gray_.front();
-    if (g_[v].color == VertexData::Color::Black) {
-      bfs_queue_gray_.pop();
-    }
-    if (g_[v].color == VertexData::Color::Gray) {
-      return v;
-    }
-  }
-  return std::nullopt;
-}
-
 void DynamicScheduler::ensure_layout(int screenW, int screenH) {
   if (!layout_dirty_) {
     return;
@@ -174,9 +162,9 @@ static Color toRayColor(VertexData::Color c) {
   case VertexData::Color::White:
     return raylib::WHITE;
   case VertexData::Color::Gray:
-    return raylib::GRAY;
+    return raylib::YELLOW;
   case VertexData::Color::Black:
-    return raylib::DARKGRAY;
+    return raylib::GRAY;
   }
   return raylib::RED;
 }
@@ -210,5 +198,8 @@ void DynamicScheduler::draw(int screenW, int screenH) {
 
     DrawText(TextFormat("%zu", data.id), (int)(p.x - 10), (int)(p.y - 7), 10,
              BLACK);
+
+    DrawText(TextFormat("%zu", data.workers), (int)(p.x + 4), (int)(p.y + 1),
+             10, BLACK);
   }
 }

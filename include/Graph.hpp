@@ -12,6 +12,8 @@ struct VertexData {
   std::shared_ptr<FrontierRegion> region;
 
   enum class Color { White, Gray, Black } color = Color::White;
+
+  std::size_t workers = 0;
 };
 
 using Graph = boost::adjacency_list<boost::vecS,        // OutEdgeList
@@ -34,6 +36,7 @@ public:
   std::optional<vertex_t> help(const std::string &strategy = "dfs");
   std::optional<vertex_t> next_or_help(const std::string &strategy = "dfs");
   void done(vertex_t v);
+  bool is_done(vertex_t v);
 
   VertexData get_vertex_data(vertex_t v);
   std::vector<vertex_t> get_all_vertices();
@@ -49,16 +52,12 @@ private:
   bool layout_dirty_ = true;
 
   std::optional<vertex_t> pop_dfs();
-  std::optional<vertex_t> pop_dfs_gray();
   std::optional<vertex_t> pop_bfs();
-  std::optional<vertex_t> pop_bfs_gray();
 
   Graph g_;
   std::mutex mutex_;
   std::stack<vertex_t> dfs_stack_;
-  std::stack<vertex_t> dfs_stack_gray_;
   std::queue<vertex_t> bfs_queue_;
-  std::queue<vertex_t> bfs_queue_gray_;
   std::size_t time_;
   std::size_t next_id_ = 0;
 };

@@ -88,7 +88,6 @@ void CentralUnit::check_collisions_during_wall() {
 
 void CentralUnit::assign_frontier_regions() {
   bool ran_compute = false;
-  vertex_t target_v;
 
   auto select_target = [&](ExplorationBot *b) -> std::optional<Robot::Point> {
     auto vd = frontier_scheduler->get_vertex_data(b->target_vertex);
@@ -108,25 +107,21 @@ void CentralUnit::assign_frontier_regions() {
       if (!ran_compute) {
         occupation_grid->compute_physical_obstacles(physical_scheduler.get());
         occupation_grid->compute_frontier_regions(frontier_scheduler.get());
-        auto vopt = frontier_scheduler->next();
-
-        if (!vopt.has_value()) {
-          bot->phase = ExplorationPhase::Idle;
-          continue;
-        }
-
-        target_v = *vopt;
-
-        root = target_v;
         ran_compute = true;
       }
 
-      bot->target_vertex = target_v;
-      setup_alignment = true;
+      bot->phase = ExplorationPhase::Idle;
+    }
+
+    if (bot->phase == ExplorationPhase::RegionAlignment) {
+      if (frontier_scheduler->is_done(bot->target_vertex)) {
+        bot->phase = ExplorationPhase::Idle;
+      }
     }
 
     if (bot->phase == ExplorationPhase::Idle) {
       auto vopt = frontier_scheduler->next_or_help();
+
       if (!vopt.has_value()) {
         continue;
       }
@@ -281,7 +276,7 @@ void CentralUnit::reset() {
   auto outer_wall = std::make_shared<FrontierRegion>();
   outer_wall->min = std::make_pair(0, 0);
   outer_wall->max = std::make_pair(MAP_HEIGHT, MAP_WIDTH);
-  root = frontier_scheduler->add_vertex(outer_wall, true);
+  frontier_scheduler->add_vertex(outer_wall, true);
 
   for (auto bot : bots) {
     bot.reset();
