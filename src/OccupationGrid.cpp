@@ -27,7 +27,8 @@ OccupationGrid::OccupationGrid() {
   }
 }
 
-bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
+void OccupationGrid::mark_cell(Index2D index, CellState new_state,
+                               bool force_change) {
   if (index.first < grid_min.first) {
     grid_min.first = index.first;
   }
@@ -50,17 +51,30 @@ bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
     }
 
     cell->state = CellState::Visited;
-    return true;
+    return;
+  }
+
+  if (force_change) {
+    if (cell->state != CellState::Frontier &&
+        new_state == CellState::Frontier) {
+      frontier_cell_count++;
+    } else if (cell->state == CellState::Frontier &&
+               new_state != CellState::Frontier) {
+      frontier_cell_count--;
+    }
+
+    cell->state = new_state;
+    return;
   }
 
   // Don't overwrite Occupied or Visited states
   if (cell->state == CellState::Occupied || cell->state == CellState::Visited) {
-    return false;
+    return;
   }
 
   // Don't mark known cells as Frontier
   if (cell->state == CellState::Free && new_state == CellState::Frontier) {
-    return false;
+    return;
   }
 
   if (cell->state != CellState::Frontier && new_state == CellState::Frontier) {
@@ -71,53 +85,90 @@ bool OccupationGrid::mark_cell(Index2D index, CellState new_state) {
   }
 
   cell->state = new_state;
-  return true;
+  return;
 }
 
 void OccupationGrid::mark_cells(
     const Robot::Point &relative_position,
     const std::array<Reading, LIDAR_SAMPLES> &readings) {
-
-  static constexpr double steps_count = LIDAR_RADIUS / CELL_SIZE;
-
   const double rel_pos_x = relative_position.x();
   const double rel_pos_y = relative_position.y();
 
   const Index2D relative_cell_index = get_cell_index_from(rel_pos_x, rel_pos_y);
-
   mark_cell(relative_cell_index, CellState::Visited);
 
-  for (const Reading &r : readings) {
-    const double hit_x_rel = rel_pos_x + r.distance * cos(r.angle);
-    const double hit_y_rel = rel_pos_y + r.distance * sin(r.angle);
+  std::vector<Index2D> demoted_frontier_cells;
 
+  for (const Reading &r : readings) {
+    const double distance = std::min(r.distance, LIDAR_RADIUS);
+    const double hit_x_rel = rel_pos_x + distance * std::cos(r.angle);
+    const double hit_y_rel = rel_pos_y + distance * std::sin(r.angle);
     const Index2D hit_cell_index = get_cell_index_from(hit_x_rel, hit_y_rel);
 
-    const double step_x = (hit_x_rel - rel_pos_x) / steps_count;
-    const double step_y = (hit_y_rel - rel_pos_y) / steps_count;
+    mark_free_along_ray(rel_pos_x, rel_pos_y, hit_x_rel, hit_y_rel,
+                        hit_cell_index, demoted_frontier_cells);
 
-    double curr_x = rel_pos_x;
-    double curr_y = rel_pos_y;
-
-    for (std::size_t i = 0; i < steps_count; ++i) {
-      const Index2D curr_cell_index = get_cell_index_from(curr_x, curr_y);
-
-      if (curr_cell_index == hit_cell_index) {
-        break;
-      }
-
-      mark_cell(curr_cell_index, CellState::Free);
-      curr_x += step_x;
-      curr_y += step_y;
-    }
-
-    if (r.distance < LIDAR_RADIUS) {
-      mark_cell(hit_cell_index, CellState::Occupied);
-      continue;
-    }
-
-    mark_cell(hit_cell_index, CellState::Frontier);
+    mark_cell(hit_cell_index, r.distance < LIDAR_RADIUS ? CellState::Occupied
+                                                        : CellState::Frontier);
   }
+
+  for (const Index2D &idx : demoted_frontier_cells) {
+    if (has_unknown_neighbor(idx)) {
+      mark_cell(idx, CellState::Frontier, true);
+    }
+  }
+}
+
+void OccupationGrid::mark_free_along_ray(
+    double start_x, double start_y, double end_x, double end_y,
+    const Index2D &end_cell_index,
+    std::vector<Index2D> &demoted_frontier_cells) {
+  const double dx = end_x - start_x;
+  const double dy = end_y - start_y;
+  const double ray_length = std::hypot(dx, dy);
+
+  if (ray_length < std::numeric_limits<double>::epsilon()) {
+    return;
+  }
+
+  const auto steps_count = static_cast<std::size_t>(ray_length / CELL_SIZE) + 1;
+  const double step_x = dx / static_cast<double>(steps_count);
+  const double step_y = dy / static_cast<double>(steps_count);
+
+  double curr_x = start_x;
+  double curr_y = start_y;
+  for (std::size_t i = 0; i < steps_count; ++i) {
+    const Index2D curr_cell_index = get_cell_index_from(curr_x, curr_y);
+
+    if (curr_cell_index == end_cell_index) {
+      break;
+    }
+
+    const auto c = grid[curr_cell_index.first][curr_cell_index.second].get();
+
+    if (c->state == CellState::Frontier) {
+      demoted_frontier_cells.push_back(curr_cell_index);
+    }
+
+    mark_cell(curr_cell_index, CellState::Free);
+    curr_x += step_x;
+    curr_y += step_y;
+  }
+}
+
+bool OccupationGrid::has_unknown_neighbor(const Index2D &idx) {
+  for (auto [dy, dx] : directions) {
+    int ny = idx.first + dy;
+    int nx = idx.second + dx;
+
+    Cell *neighbor = grid[ny][nx].get();
+
+    if (neighbor->state == CellState::Unknown) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void OccupationGrid::remove_dead_frontier_cells() {
@@ -244,8 +295,12 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 
         region_cells.push_back(current_cell);
 
-        if (current_cell->index < min) {
-          min = current_cell->index;
+        if (current_cell->index.first < min.first) {
+          min.first = current_cell->index.first;
+        }
+
+        if (current_cell->index.second < min.second) {
+          min.second = current_cell->index.second;
         }
 
         if (current_cell->index.first > max.first) {
@@ -499,8 +554,12 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
 
         region_cells.push_back(current_cell);
 
-        if (current_cell->index < min) {
-          min = current_cell->index;
+        if (current_cell->index.first < min.first) {
+          min.first = current_cell->index.first;
+        }
+
+        if (current_cell->index.second < min.second) {
+          min.second = current_cell->index.second;
         }
 
         if (current_cell->index.first > max.first) {
@@ -577,7 +636,7 @@ void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
     color = raylib::YELLOW;
     break;
   case CellState::Occupied:
-    color = cell->frontier_id.has_value() ? raylib::BLACK : raylib::GRAY;
+    color = cell->frontier_id.has_value() ? raylib::BLACK : raylib::PURPLE;
     break;
   case CellState::Visited:
     color = raylib::RED;

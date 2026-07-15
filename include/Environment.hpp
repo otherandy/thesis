@@ -117,7 +117,8 @@ enum class EnvironmentPreset {
 };
 
 // Change this single line to switch the environment before compiling.
-constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Polygon2WithHoles;
+constexpr EnvironmentPreset SELECTED_ENVIRONMENT =
+    EnvironmentPreset::Polygon2WithHoles;
 
 struct SelectedEnvironmentData {
   const EnvData *outer_data;
@@ -296,5 +297,22 @@ inline bool point_in_environment(const Robot::Point &p) {
 
   return true;
 }
+
+inline std::vector<Robot::Segment> build_environment_segments() {
+  std::vector<Robot::Segment> segs;
+  auto add_polygon_edges = [&](const auto &poly) {
+    for (auto e = poly.edges_begin(); e != poly.edges_end(); ++e) {
+      segs.emplace_back(*e);
+    }
+  };
+  add_polygon_edges(ENVIRONMENT.outer_boundary());
+  for (auto h = ENVIRONMENT.holes_begin(); h != ENVIRONMENT.holes_end(); ++h) {
+    add_polygon_edges(*h);
+  }
+  return segs;
+}
+
+static std::vector<Robot::Segment> segments = build_environment_segments();
+static Robot::AABB_tree tree(segments.begin(), segments.end());
 
 #endif

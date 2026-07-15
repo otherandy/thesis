@@ -25,26 +25,28 @@ void Bot::take_lidar_readings() {
   closest_wall_reading_index = std::nullopt;
 
   for (int i = 0; i < LIDAR_SAMPLES; ++i) {
-    double angle = ANGLE_STEP * i - M_PI;
+    const double angle = ANGLE_STEP * i - M_PI;
     double distance = LIDAR_RADIUS;
 
-    // Binary search for wall intersection
-    double min_dist = LIDAR_RESOLUTION;
-    double max_dist = LIDAR_RADIUS;
+    Robot::Point origin(real_position.x(), real_position.y());
+    Robot::Point end(real_position.x() + LIDAR_RADIUS * cos(angle),
+                     real_position.y() + LIDAR_RADIUS * sin(angle));
 
-    while (max_dist - min_dist > LIDAR_RESOLUTION) {
-      const double mid_dist = (min_dist + max_dist) / 2.0;
-      const double sample_x = real_position.x() + mid_dist * cos(angle);
-      const double sample_y = real_position.y() + mid_dist * sin(angle);
+    Robot::Segment ray(origin, end);
+    std::vector<std::optional<
+        Robot::AABB_tree::Intersection_and_primitive_id<Robot::Segment>::Type>>
+        intersections;
 
-      if (point_in_environment(Robot::Point(sample_x, sample_y))) {
-        min_dist = mid_dist;
-      } else {
-        max_dist = mid_dist;
+    tree.all_intersections(ray, std::back_inserter(intersections));
+
+    for (auto &result : intersections) {
+      if (const auto *pt = std::get_if<Robot::Point>(&(result->first))) {
+        double d = std::sqrt(CGAL::squared_distance(origin, *pt));
+        if (d < distance) {
+          distance = d;
+        }
       }
     }
-
-    distance = max_dist;
 
     if (distance < LIDAR_RADIUS && distance < closest_distance) {
       closest_distance = distance;

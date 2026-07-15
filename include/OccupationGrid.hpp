@@ -36,7 +36,13 @@ private:
   void remove_dead_frontier_cells();
   void remove_dead_free_cells();
 
-  bool mark_cell(Index2D index, CellState new_state);
+  bool has_unknown_neighbor(const Index2D &idx);
+
+  void mark_free_along_ray(double start_x, double start_y, double end_x,
+                           double end_y, const Index2D &end_cell_index,
+                           std::vector<Index2D> &demoted_frontier_cells);
+  void mark_cell(Index2D index, CellState new_state, bool force_change = false);
+
   void draw_cell(Index2D index, const DrawData &draw_data) const;
 };
 
