@@ -40,6 +40,7 @@ public:
 
   VertexData get_vertex_data(vertex_t v);
   std::vector<vertex_t> get_all_vertices();
+  bool finished();
 
   void mark_layout_dirty() { layout_dirty_ = true; }
   void draw(int screenW, int screenH);

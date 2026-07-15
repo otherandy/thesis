@@ -109,6 +109,15 @@ std::vector<vertex_t> DynamicScheduler::get_all_vertices() {
   return out;
 }
 
+bool DynamicScheduler::finished() {
+  for (auto v : get_all_vertices()) {
+    if (g_[v].color == VertexData::Color::Gray) {
+      return false;
+    }
+  }
+  return true;
+}
+
 std::optional<vertex_t> DynamicScheduler::pop_dfs() {
   while (!dfs_stack_.empty()) {
     vertex_t v = dfs_stack_.top();

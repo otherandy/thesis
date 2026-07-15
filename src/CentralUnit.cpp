@@ -161,7 +161,7 @@ void CentralUnit::assign_frontier_regions() {
 
 void CentralUnit::check_exterior() {
   if (!occupation_grid->found_exterior) {
-    for (auto bot: bots) {
+    for (auto bot : bots) {
       if (bot->phase != ExplorationPhase::Idle) {
         continue;
       }
@@ -259,7 +259,8 @@ void CentralUnit::update() {
 
   run_exploration();
 
-  if (occupation_grid->frontier_cell_count == 0) {
+  if (occupation_grid->frontier_cell_count == 0 &&
+      frontier_scheduler->finished()) {
     phase = CentralPhase::Complete;
   }
 }
