@@ -101,6 +101,16 @@ constexpr EnvData MONO_DATA[] = {
     {1, 10},  {1, 9},   {0, 9},   {0, 8},   {1, 8},   {1, 7},   {0, 7},
 };
 
+constexpr EnvData ROOM_HOLE1_DATA[] = {{0, 5}, {4, 5}};
+constexpr EnvData ROOM_HOLE2_DATA[] = {{8, 0}, {8, 5}};
+constexpr EnvData ROOM_HOLE3_DATA[] = {
+    {10, 3},
+    {15, 3},
+    {15, 4},
+    {10, 4},
+};
+constexpr EnvData ROOM_HOLE4_DATA[] = {{9, 13}, {13, 13}, {11, 15}};
+
 enum class EnvironmentPreset {
   Polygon,
   Polygon2,
@@ -114,11 +124,11 @@ enum class EnvironmentPreset {
   Star,
   LetterE,
   Mono,
+  Room,
 };
 
 // Change this single line to switch the environment before compiling.
-constexpr EnvironmentPreset SELECTED_ENVIRONMENT =
-    EnvironmentPreset::Polygon2WithHoles;
+constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Room;
 
 struct SelectedEnvironmentData {
   const EnvData *outer_data;
@@ -145,6 +155,19 @@ constexpr const EnvData *POLYGON2_HOLE_DATA_LIST[] = {
 constexpr std::size_t POLYGON2_HOLE_SIZE_LIST[] = {
     sizeof(POLYGON2_HOLE1_DATA) / sizeof(POLYGON2_HOLE1_DATA[0]),
     sizeof(POLYGON2_HOLE2_DATA) / sizeof(POLYGON2_HOLE2_DATA[0]),
+};
+
+constexpr const EnvData *ROOM_HOLE_DATA_LIST[] = {
+    ROOM_HOLE1_DATA,
+    ROOM_HOLE2_DATA,
+    ROOM_HOLE3_DATA,
+    ROOM_HOLE4_DATA,
+};
+constexpr std::size_t ROOM_HOLE_SIZE_LIST[] = {
+    sizeof(ROOM_HOLE1_DATA) / sizeof(ROOM_HOLE1_DATA[0]),
+    sizeof(ROOM_HOLE2_DATA) / sizeof(ROOM_HOLE2_DATA[0]),
+    sizeof(ROOM_HOLE3_DATA) / sizeof(ROOM_HOLE3_DATA[0]),
+    sizeof(ROOM_HOLE4_DATA) / sizeof(ROOM_HOLE4_DATA[0]),
 };
 
 constexpr SelectedEnvironmentData get_selected_environment_data() {
@@ -195,6 +218,11 @@ constexpr SelectedEnvironmentData get_selected_environment_data() {
   case EnvironmentPreset::Mono:
     return {MONO_DATA, sizeof(MONO_DATA) / sizeof(MONO_DATA[0]), NO_HOLE_DATA,
             0};
+  case EnvironmentPreset::Room:
+    return {SQUARE2_ENV_DATA,
+            sizeof(SQUARE2_ENV_DATA) / sizeof(SQUARE2_ENV_DATA[0]),
+            ROOM_HOLE_DATA_LIST, ROOM_HOLE_SIZE_LIST,
+            sizeof(ROOM_HOLE_DATA_LIST) / sizeof(ROOM_HOLE_DATA_LIST[0])};
   }
 
   return {SQUARE_ENV_DATA, sizeof(SQUARE_ENV_DATA) / sizeof(SQUARE_ENV_DATA[0]),

@@ -115,6 +115,12 @@ void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
 
 Robot::Vector
 ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
+  if (!closest_wall_reading_index.has_value()) {
+    return -direction;
+  }
+
+  std::size_t ref = closest_wall_reading_index.value();
+
   const Robot::Point rp = get_relative_position(grid);
 
   std::optional<std::size_t> side_ref = std::nullopt;
@@ -144,7 +150,6 @@ ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
     }
   }
 
-  std::size_t ref = closest_wall_reading_index.value();
   if (side_ref) {
     ref = *side_ref;
   }
