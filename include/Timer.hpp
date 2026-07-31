@@ -5,7 +5,7 @@
 
 class Timer {
 private:
-  using Clock = std::chrono::steady_clock;
+  using Clock = std::chrono::high_resolution_clock;
 
   bool is_counting{false};
   std::chrono::time_point<Clock> last{Clock::now()};
@@ -30,9 +30,10 @@ public:
     }
   }
 
-  double get_time() const {
+  double get_time() {
     auto total = elapsed_time;
     if (is_counting) {
+      last = Clock::now();
       total += Clock::now() - last;
     }
     return std::chrono::duration<double>(total).count();

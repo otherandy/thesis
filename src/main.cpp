@@ -40,7 +40,5 @@ int main() {
     window.EndDrawing();
   }
 
-  central_unit->report_time();
-
   return 0;
 }

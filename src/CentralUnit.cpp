@@ -37,7 +37,6 @@ void CentralUnit::get_input_and_move() {
 
   if (IsKeyPressed(KEY_SPACE)) {
     phase = CentralPhase::Explore;
-    total_time.start();
   }
 
   if (IsKeyDown(KEY_UP)) {
@@ -173,7 +172,6 @@ void CentralUnit::check_exterior() {
 
 void CentralUnit::run_exploration() {
   if (phase == CentralPhase::Complete) {
-    total_time.pause();
     return;
   }
 
@@ -205,14 +203,15 @@ void CentralUnit::run_exploration() {
 void CentralUnit::update() {
   get_input_and_move();
 
-  if (is_paused) {
-    return;
-  }
-
   physical_time.pause();
   virtual_time.pause();
   alignment_time.pause();
   exploration_time.pause();
+  total_time.pause();
+
+  if (is_paused) {
+    return;
+  }
 
   if (phase != CentralPhase::Complete) {
     for (auto bot : bots) {
@@ -240,6 +239,7 @@ void CentralUnit::update() {
         exploration_time.start();
       }
     }
+    total_time.start();
   }
 
   std::vector<std::future<void>> update_jobs;
@@ -259,9 +259,11 @@ void CentralUnit::update() {
 
   run_exploration();
 
-  if (occupation_grid->frontier_cell_count == 0 &&
+  if (phase != CentralPhase::Complete &&
+      occupation_grid->frontier_cell_count == 0 &&
       frontier_scheduler->finished()) {
     phase = CentralPhase::Complete;
+    report_time();
   }
 }
 
@@ -309,7 +311,7 @@ void CentralUnit::report_time() {
   std::cout << "Alignment Time: " << alignment_time.get_time() << "s\n";
   std::cout << "Exploration Time: " << exploration_time.get_time() << "s\n";
 
-  std::cout << "Total Exploration Time: " << total_time.get_time() << "s\n";
+  std::cout << "Total Time: " << total_time.get_time() << "s\n";
 }
 
 void CentralUnit::save_data() {
