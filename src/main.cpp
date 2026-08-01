@@ -1,8 +1,9 @@
 #include "CentralUnit.hpp"
+#include "Environment.hpp"
 #include "raylib.h"
 #include <memory>
 
-int main() {
+int main(int argc, char **argv) {
   const int WINDOW_WIDTH = 800 * 2;
   const int WINDOW_HEIGHT = 600;
   const int FRAME_RATE = 60;
@@ -12,8 +13,11 @@ int main() {
   window.SetTargetFPS(FRAME_RATE);
   window.SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
+  EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Room;
+
   const Robot::Point START_POSITION(3.0, 3.0);
-  auto central_unit = std::make_unique<CentralUnit>(START_POSITION);
+  auto central_unit =
+      std::make_unique<CentralUnit>(SELECTED_ENVIRONMENT, START_POSITION);
 
   central_unit->register_bot(Robot::Vector(1, 0), true);
   central_unit->register_bot(Robot::Vector(1, 0), false);
@@ -33,7 +37,7 @@ int main() {
 
     DrawData draw_data{scale_factor, offset_x, offset_y, w, h};
 
-    draw_environment(draw_data);
+    central_unit->draw_environment(draw_data);
     central_unit->draw(draw_data);
     central_unit->draw_graph(w, h);
 

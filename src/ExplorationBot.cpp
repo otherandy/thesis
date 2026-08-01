@@ -9,9 +9,11 @@
 #include <cmath>
 
 ExplorationBot::ExplorationBot(std::size_t id, const Robot::Point &start_pos,
-                               const Robot::Vector &start_dir, bool clockwise)
-    : Bot(id, start_pos), start_point(start_pos), start_direction(start_dir),
-      direction(start_dir), clockwise_following(clockwise) {}
+                               const Robot::Vector &start_dir, bool clockwise,
+                               std::shared_ptr<Environment> env)
+    : Bot(id, start_pos, env), start_point(start_pos),
+      start_direction(start_dir), direction(start_dir),
+      clockwise_following(clockwise) {}
 
 Robot::Point
 ExplorationBot::get_relative_position(const OccupationGrid *grid) const {

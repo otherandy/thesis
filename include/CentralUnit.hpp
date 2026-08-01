@@ -1,6 +1,7 @@
 #ifndef CENTRALUNIT_HPP
 #define CENTRALUNIT_HPP
 
+#include "Environment.hpp"
 #include "ExplorationBot.hpp"
 #include "Graph.hpp"
 #include "OccupationGrid.hpp"
@@ -17,13 +18,20 @@ enum class CentralPhase {
 
 class CentralUnit {
 public:
-  CentralUnit(const Robot::Point &start_position);
+  CentralUnit(EnvironmentPreset selected_env,
+              const Robot::Point &start_position);
+
+  void reset(EnvironmentPreset selected_env,
+             const Robot::Point &start_position);
   void register_bot(const Robot::Vector &start_dir, bool clockwise);
-  void get_input_and_move();
+  void get_manual_input();
+  void sense();
   void update();
+
   void draw(const DrawData &draw_data);
   void draw_graph(int screenW, int screenH);
-  void reset(const Robot::Point &start_position);
+  void draw_environment(const DrawData &draw_data);
+
   void report_time();
   void save_data();
 
@@ -33,6 +41,7 @@ private:
 
   bool is_paused = false;
 
+  std::shared_ptr<Environment> environment;
   std::unique_ptr<OccupationGrid> occupation_grid;
   std::unique_ptr<DynamicScheduler> frontier_scheduler;
   std::unique_ptr<DynamicScheduler> physical_scheduler;

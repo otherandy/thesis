@@ -23,7 +23,8 @@ public:
   const bool clockwise_following;
 
   ExplorationBot(std::size_t id, const Robot::Point &start_pos,
-                 const Robot::Vector &start_dir, bool clockwise);
+                 const Robot::Vector &start_dir, bool clockwise,
+                 std::shared_ptr<Environment> env);
 
   ExplorationPhase phase = ExplorationPhase::WallDiscovery;
 

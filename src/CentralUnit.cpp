@@ -11,19 +11,46 @@
 #include <memory>
 #include <utility>
 
-CentralUnit::CentralUnit(const Robot::Point &start_position) {
-  reset(start_position);
+CentralUnit::CentralUnit(EnvironmentPreset selected_env,
+                         const Robot::Point &start_position) {
+  reset(selected_env, start_position);
+}
+
+void CentralUnit::reset(EnvironmentPreset selected_env,
+                        const Robot::Point &start_position) {
+  is_paused = false;
+  phase = CentralPhase::Idle;
+
+  environment = std::make_unique<Environment>(selected_env);
+  occupation_grid = std::make_unique<OccupationGrid>(start_position);
+  frontier_scheduler = std::make_unique<DynamicScheduler>();
+  physical_scheduler = std::make_unique<DynamicScheduler>();
+
+  auto outer_wall = std::make_shared<FrontierRegion>();
+  outer_wall->min = std::make_pair(0, 0);
+  outer_wall->max = std::make_pair(MAP_HEIGHT, MAP_WIDTH);
+  frontier_scheduler->add_vertex(outer_wall, true);
+
+  for (auto bot : bots) {
+    bot->reset();
+  }
+
+  physical_time.reset();
+  virtual_time.reset();
+  alignment_time.reset();
+  exploration_time.reset();
+  total_time.reset();
 }
 
 void CentralUnit::register_bot(const Robot::Vector &start_dir, bool clockwise) {
   const auto start_pos = occupation_grid->get_origin();
-  bots.emplace_back(std::make_shared<ExplorationBot>(bots.size(), start_pos,
-                                                     start_dir, clockwise));
+  bots.emplace_back(std::make_shared<ExplorationBot>(
+      bots.size() + 1, start_pos, start_dir, clockwise, environment));
 }
 
-void CentralUnit::get_input_and_move() {
+void CentralUnit::get_manual_input() {
   if (IsKeyPressed(KEY_R)) {
-    reset(occupation_grid->get_origin());
+    reset(environment->preset, occupation_grid->get_origin());
     return;
   }
 
@@ -201,8 +228,21 @@ void CentralUnit::run_exploration() {
   }
 }
 
+void CentralUnit::sense() {
+  std::vector<std::future<void>> update_jobs;
+
+  for (auto bot : bots) {
+    update_jobs.emplace_back(std::async(
+        std::launch::async, [bot = bot]() { bot->take_lidar_readings(); }));
+  }
+
+  for (auto &job : update_jobs) {
+    job.get();
+  }
+}
+
 void CentralUnit::update() {
-  get_input_and_move();
+  get_manual_input();
 
   physical_time.pause();
   virtual_time.pause();
@@ -243,16 +283,7 @@ void CentralUnit::update() {
     total_time.start();
   }
 
-  std::vector<std::future<void>> update_jobs;
-
-  for (auto bot : bots) {
-    update_jobs.emplace_back(std::async(
-        std::launch::async, [bot = bot]() { bot->take_lidar_readings(); }));
-  }
-
-  for (auto &job : update_jobs) {
-    job.get();
-  }
+  sense();
 
   for (auto bot : bots) {
     bot->update_grid(occupation_grid.get());
@@ -282,28 +313,8 @@ void CentralUnit::draw_graph(int screenW, int screenH) {
   frontier_scheduler->draw(screenW, screenH);
 }
 
-void CentralUnit::reset(const Robot::Point &start_position) {
-  is_paused = false;
-  phase = CentralPhase::Idle;
-
-  occupation_grid = std::make_unique<OccupationGrid>(start_position);
-  frontier_scheduler = std::make_unique<DynamicScheduler>();
-  physical_scheduler = std::make_unique<DynamicScheduler>();
-
-  auto outer_wall = std::make_shared<FrontierRegion>();
-  outer_wall->min = std::make_pair(0, 0);
-  outer_wall->max = std::make_pair(MAP_HEIGHT, MAP_WIDTH);
-  frontier_scheduler->add_vertex(outer_wall, true);
-
-  for (auto bot : bots) {
-    bot->reset();
-  }
-
-  physical_time.reset();
-  virtual_time.reset();
-  alignment_time.reset();
-  exploration_time.reset();
-  total_time.reset();
+void CentralUnit::draw_environment(const DrawData &draw_data) {
+  environment->draw(draw_data);
 }
 
 void CentralUnit::report_time() {

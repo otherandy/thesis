@@ -1,6 +1,7 @@
 #ifndef ENVIRONMENT_HPP
 #define ENVIRONMENT_HPP
 
+#include "DrawUtils.hpp"
 #include "cgal_types.hpp"
 #include <raylib-cpp.hpp>
 
@@ -24,9 +25,6 @@ enum class EnvironmentPreset {
   Mono,
   Room,
 };
-
-// Change this single line to switch the environment before compiling.
-constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Room;
 
 constexpr EnvData POLYGON_ENV_DATA[] = {
     {0, 0}, {8, 0}, {8, 6}, {12, 6}, {12, 12}, {4, 12}, {4, 6}, {0, 6},
@@ -173,8 +171,9 @@ struct SelectedEnvironmentData {
 constexpr const EnvData *NO_HOLE_DATA[] = {};
 constexpr std::size_t NO_HOLE_SIZES[] = {};
 
-constexpr SelectedEnvironmentData get_selected_environment_data() {
-  switch (SELECTED_ENVIRONMENT) {
+constexpr SelectedEnvironmentData
+get_selected_environment_data(EnvironmentPreset preset) {
+  switch (preset) {
   case EnvironmentPreset::Polygon:
     return {POLYGON_ENV_DATA,
             sizeof(POLYGON_ENV_DATA) / sizeof(POLYGON_ENV_DATA[0]),
@@ -232,103 +231,22 @@ constexpr SelectedEnvironmentData get_selected_environment_data() {
           NO_HOLE_DATA, NO_HOLE_SIZES, 0};
 }
 
-constexpr auto SELECTED_ENV_DATA = get_selected_environment_data();
+class Environment {
+public:
+  explicit Environment(EnvironmentPreset preset);
 
-constexpr auto get_bounds(const EnvData *data, std::size_t size) {
-  double xmin = data[0].first, xmax = xmin;
-  double ymin = data[0].second, ymax = ymin;
-  for (std::size_t i = 0; i < size; ++i) {
-    if (data[i].first < xmin) {
-      xmin = data[i].first;
-    }
-    if (data[i].first > xmax) {
-      xmax = data[i].first;
-    }
-    if (data[i].second < ymin) {
-      ymin = data[i].second;
-    }
-    if (data[i].second > ymax) {
-      ymax = data[i].second;
-    }
-  }
-  return std::make_tuple(xmin, xmax, ymin, ymax);
-}
+  EnvironmentPreset preset;
 
-// constexpr auto POLYGON_BOUNDS =
-//     get_bounds(SELECTED_ENV_DATA.outer_data, SELECTED_ENV_DATA.outer_size);
+  const Robot::PolygonWithHoles &get_geometry() const { return geometry_; }
+  const Robot::AABB_tree &get_tree() const { return tree_; }
 
-inline const Robot::PolygonWithHoles &get_environment() {
-  static Robot::PolygonWithHoles env;
-  static bool initialized = false;
+  bool contains(const Robot::Point &point) const;
+  void draw(const DrawData &draw_data);
 
-  if (!initialized) {
-    Robot::Polygon outer;
-    for (std::size_t i = 0; i < SELECTED_ENV_DATA.outer_size; ++i) {
-      const auto point = SELECTED_ENV_DATA.outer_data[i];
-      outer.push_back(Robot::Point(point.first, point.second));
-    }
-
-    if (outer.is_clockwise_oriented()) {
-      outer.reverse_orientation();
-    }
-
-    std::vector<Robot::Polygon> holes;
-    for (std::size_t hole_idx = 0; hole_idx < SELECTED_ENV_DATA.hole_count;
-         ++hole_idx) {
-      Robot::Polygon hole;
-      for (std::size_t i = 0; i < SELECTED_ENV_DATA.hole_size_list[hole_idx];
-           ++i) {
-        const auto point = SELECTED_ENV_DATA.hole_data_list[hole_idx][i];
-        hole.push_back(Robot::Point(point.first, point.second));
-      }
-
-      if (hole.is_counterclockwise_oriented()) {
-        hole.reverse_orientation();
-      }
-
-      holes.push_back(hole);
-    }
-
-    env = Robot::PolygonWithHoles(outer, holes.begin(), holes.end());
-    initialized = true;
-  }
-
-  return env;
-}
-
-inline const Robot::PolygonWithHoles &ENVIRONMENT = get_environment();
-
-inline bool point_in_environment(const Robot::Point &p) {
-  static const auto &ob = ENVIRONMENT.outer_boundary();
-
-  if (ob.bounded_side(p) != CGAL::ON_BOUNDED_SIDE) {
-    return false;
-  }
-
-  for (auto h = ENVIRONMENT.holes_begin(); h != ENVIRONMENT.holes_end(); ++h) {
-    if (h->bounded_side(p) != CGAL::ON_UNBOUNDED_SIDE) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-inline std::vector<Robot::Segment> build_environment_segments() {
-  std::vector<Robot::Segment> segs;
-  auto add_polygon_edges = [&](const auto &poly) {
-    for (auto e = poly.edges_begin(); e != poly.edges_end(); ++e) {
-      segs.emplace_back(*e);
-    }
-  };
-  add_polygon_edges(ENVIRONMENT.outer_boundary());
-  for (auto h = ENVIRONMENT.holes_begin(); h != ENVIRONMENT.holes_end(); ++h) {
-    add_polygon_edges(*h);
-  }
-  return segs;
-}
-
-static std::vector<Robot::Segment> segments = build_environment_segments();
-static Robot::AABB_tree tree(segments.begin(), segments.end());
+private:
+  Robot::PolygonWithHoles geometry_;
+  std::vector<Robot::Segment> segments_;
+  Robot::AABB_tree tree_;
+};
 
 #endif

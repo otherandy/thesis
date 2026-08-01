@@ -1,9 +1,11 @@
 #include "Bot.hpp"
 #include "Utils.hpp"
+#include <memory>
 #include <raylib-cpp.hpp>
 
-Bot::Bot(std::size_t id, const Robot::Point &start_pos)
-    : id(id), real_position(start_pos) {}
+Bot::Bot(std::size_t id, const Robot::Point &start_pos,
+         std::shared_ptr<Environment> env)
+    : id(id), real_position(start_pos), environment(env) {}
 
 void Bot::reset(const Robot::Point &start_pos) { real_position = start_pos; }
 
@@ -12,7 +14,7 @@ Robot::Vector Bot::move(const Robot::Vector &dir) {
   const Robot::Vector delta = normalize_vector(dir) * SPEED;
   const Robot::Point new_position = real_position + delta;
 
-  if (!point_in_environment(new_position)) {
+  if (!environment->contains(new_position)) {
     return Robot::Vector(0, 0);
   }
 
@@ -37,7 +39,8 @@ void Bot::take_lidar_readings() {
         Robot::AABB_tree::Intersection_and_primitive_id<Robot::Segment>::Type>>
         intersections;
 
-    tree.all_intersections(ray, std::back_inserter(intersections));
+    environment->get_tree().all_intersections(ray,
+                                          std::back_inserter(intersections));
 
     for (auto &result : intersections) {
       if (const auto *pt = std::get_if<Robot::Point>(&(result->first))) {

@@ -2,6 +2,7 @@
 #define BOT_HPP
 
 #include "DrawUtils.hpp"
+#include "Environment.hpp"
 #include <array>
 
 constexpr std::size_t LIDAR_SAMPLES = 360;
@@ -24,7 +25,8 @@ class Bot {
 public:
   std::size_t id;
 
-  Bot(std::size_t id, const Robot::Point &start_pos);
+  Bot(std::size_t id, const Robot::Point &start_pos,
+      std::shared_ptr<Environment> env);
   void take_lidar_readings();
 
 protected:
@@ -43,6 +45,7 @@ protected:
 
 private:
   Robot::Point real_position;
+  std::shared_ptr<Environment> environment;
 };
 
 #endif
