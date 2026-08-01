@@ -23,10 +23,10 @@ int main(int argc, char **argv) {
   auto central_unit =
       std::make_unique<CentralUnit>(selected_env, start_position);
 
-  central_unit->register_bot(Robot::Vector(1, 0), true);
-  central_unit->register_bot(Robot::Vector(1, 0), false);
-  central_unit->register_bot(Robot::Vector(-1, 0), true);
-  central_unit->register_bot(Robot::Vector(-1, 0), false);
+  central_unit->register_bot(Robot::Vector(1, 0));
+  central_unit->register_bot(Robot::Vector(1, 0));
+  central_unit->register_bot(Robot::Vector(-1, 0));
+  central_unit->register_bot(Robot::Vector(-1, 0));
 
   while (!window.ShouldClose()) {
     central_unit->update();
