@@ -6,6 +6,28 @@
 
 using EnvData = std::pair<double, double>;
 
+constexpr double ENV_WIDTH = 24;
+constexpr double ENV_HEIGHT = 24;
+
+enum class EnvironmentPreset {
+  Polygon,
+  Polygon2,
+  Polygon2WithHoles,
+  Square,
+  Triangle,
+  Custom,
+  Square2WithHole,
+  Corridor,
+  Legs,
+  Star,
+  LetterE,
+  Mono,
+  Room,
+};
+
+// Change this single line to switch the environment before compiling.
+constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Room;
+
 constexpr EnvData POLYGON_ENV_DATA[] = {
     {0, 0}, {8, 0}, {8, 6}, {12, 6}, {12, 12}, {4, 12}, {4, 6}, {0, 6},
 };
@@ -45,6 +67,13 @@ constexpr EnvData SQUARE2_HOLE_DATA[] = {
     {14, 6},
 };
 
+constexpr const EnvData *SQUARE2_HOLE_DATA_LIST[] = {
+    SQUARE2_HOLE_DATA,
+};
+constexpr std::size_t SQUARE2_HOLE_SIZE_LIST[] = {
+    sizeof(SQUARE2_HOLE_DATA) / sizeof(SQUARE2_HOLE_DATA[0]),
+};
+
 constexpr EnvData POLYGON2_HOLE1_DATA[] = {
     {4, 2},
     {4, 6},
@@ -57,6 +86,15 @@ constexpr EnvData POLYGON2_HOLE2_DATA[] = {
     {16, 22},
     {20, 22},
     {20, 18},
+};
+
+constexpr const EnvData *POLYGON2_HOLE_DATA_LIST[] = {
+    POLYGON2_HOLE1_DATA,
+    POLYGON2_HOLE2_DATA,
+};
+constexpr std::size_t POLYGON2_HOLE_SIZE_LIST[] = {
+    sizeof(POLYGON2_HOLE1_DATA) / sizeof(POLYGON2_HOLE1_DATA[0]),
+    sizeof(POLYGON2_HOLE2_DATA) / sizeof(POLYGON2_HOLE2_DATA[0]),
 };
 
 constexpr EnvData CORRIDOR_DATA[] = {
@@ -111,24 +149,18 @@ constexpr EnvData ROOM_HOLE3_DATA[] = {
 };
 constexpr EnvData ROOM_HOLE4_DATA[] = {{9, 13}, {13, 13}, {11, 15}};
 
-enum class EnvironmentPreset {
-  Polygon,
-  Polygon2,
-  Polygon2WithHoles,
-  Square,
-  Triangle,
-  Custom,
-  Square2WithHole,
-  Corridor,
-  Legs,
-  Star,
-  LetterE,
-  Mono,
-  Room,
+constexpr std::size_t ROOM_HOLE_SIZE_LIST[] = {
+    sizeof(ROOM_HOLE1_DATA) / sizeof(ROOM_HOLE1_DATA[0]),
+    sizeof(ROOM_HOLE2_DATA) / sizeof(ROOM_HOLE2_DATA[0]),
+    sizeof(ROOM_HOLE3_DATA) / sizeof(ROOM_HOLE3_DATA[0]),
+    sizeof(ROOM_HOLE4_DATA) / sizeof(ROOM_HOLE4_DATA[0]),
 };
-
-// Change this single line to switch the environment before compiling.
-constexpr EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Room;
+constexpr const EnvData *ROOM_HOLE_DATA_LIST[] = {
+    ROOM_HOLE1_DATA,
+    ROOM_HOLE2_DATA,
+    ROOM_HOLE3_DATA,
+    ROOM_HOLE4_DATA,
+};
 
 struct SelectedEnvironmentData {
   const EnvData *outer_data;
@@ -140,35 +172,6 @@ struct SelectedEnvironmentData {
 
 constexpr const EnvData *NO_HOLE_DATA[] = {};
 constexpr std::size_t NO_HOLE_SIZES[] = {};
-
-constexpr const EnvData *SQUARE2_HOLE_DATA_LIST[] = {
-    SQUARE2_HOLE_DATA,
-};
-constexpr std::size_t SQUARE2_HOLE_SIZE_LIST[] = {
-    sizeof(SQUARE2_HOLE_DATA) / sizeof(SQUARE2_HOLE_DATA[0]),
-};
-
-constexpr const EnvData *POLYGON2_HOLE_DATA_LIST[] = {
-    POLYGON2_HOLE1_DATA,
-    POLYGON2_HOLE2_DATA,
-};
-constexpr std::size_t POLYGON2_HOLE_SIZE_LIST[] = {
-    sizeof(POLYGON2_HOLE1_DATA) / sizeof(POLYGON2_HOLE1_DATA[0]),
-    sizeof(POLYGON2_HOLE2_DATA) / sizeof(POLYGON2_HOLE2_DATA[0]),
-};
-
-constexpr const EnvData *ROOM_HOLE_DATA_LIST[] = {
-    ROOM_HOLE1_DATA,
-    ROOM_HOLE2_DATA,
-    ROOM_HOLE3_DATA,
-    ROOM_HOLE4_DATA,
-};
-constexpr std::size_t ROOM_HOLE_SIZE_LIST[] = {
-    sizeof(ROOM_HOLE1_DATA) / sizeof(ROOM_HOLE1_DATA[0]),
-    sizeof(ROOM_HOLE2_DATA) / sizeof(ROOM_HOLE2_DATA[0]),
-    sizeof(ROOM_HOLE3_DATA) / sizeof(ROOM_HOLE3_DATA[0]),
-    sizeof(ROOM_HOLE4_DATA) / sizeof(ROOM_HOLE4_DATA[0]),
-};
 
 constexpr SelectedEnvironmentData get_selected_environment_data() {
   switch (SELECTED_ENVIRONMENT) {
@@ -251,23 +254,8 @@ constexpr auto get_bounds(const EnvData *data, std::size_t size) {
   return std::make_tuple(xmin, xmax, ymin, ymax);
 }
 
-constexpr auto POLYGON_BOUNDS =
-    get_bounds(SELECTED_ENV_DATA.outer_data, SELECTED_ENV_DATA.outer_size);
-
-constexpr double ENV_MIN_X = std::get<0>(POLYGON_BOUNDS);
-constexpr double ENV_MAX_X = std::get<1>(POLYGON_BOUNDS);
-constexpr double ENV_MIN_Y = std::get<2>(POLYGON_BOUNDS);
-constexpr double ENV_MAX_Y = std::get<3>(POLYGON_BOUNDS);
-
-constexpr double ENV_WIDTH = ENV_MAX_X - ENV_MIN_X;
-constexpr double ENV_HEIGHT = ENV_MAX_Y - ENV_MIN_Y;
-
-constexpr double ENV_CENTER_X = (ENV_MIN_X + ENV_MAX_X) * 0.5;
-constexpr double ENV_CENTER_Y = (ENV_MIN_Y + ENV_MAX_Y) * 0.5;
-
-inline Robot::Point environment_center() {
-  return Robot::Point(ENV_CENTER_X, ENV_CENTER_Y);
-}
+// constexpr auto POLYGON_BOUNDS =
+//     get_bounds(SELECTED_ENV_DATA.outer_data, SELECTED_ENV_DATA.outer_size);
 
 inline const Robot::PolygonWithHoles &get_environment() {
   static Robot::PolygonWithHoles env;

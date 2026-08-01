@@ -17,14 +17,13 @@ enum class CentralPhase {
 
 class CentralUnit {
 public:
-  CentralUnit();
-  void register_bot(std::size_t id, const Robot::Point &start_pos,
-                    const Robot::Vector &start_dir, bool clockwise);
+  CentralUnit(const Robot::Point &start_position);
+  void register_bot(const Robot::Vector &start_dir, bool clockwise);
   void get_input_and_move();
   void update();
   void draw(const DrawData &draw_data);
   void draw_graph(int screenW, int screenH);
-  void reset();
+  void reset(const Robot::Point &start_position);
   void report_time();
   void save_data();
 

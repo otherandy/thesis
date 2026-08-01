@@ -9,7 +9,7 @@
 
 class OccupationGrid {
 public:
-  OccupationGrid();
+  OccupationGrid(const Robot::Point &origin);
 
   std::size_t frontier_cell_count = 0;
   bool found_exterior = false;
@@ -27,7 +27,7 @@ public:
   void save_to_file(const std::string &filename) const;
 
 private:
-  const Robot::Point origin = environment_center();
+  const Robot::Point origin;
   Grid2D<std::unique_ptr<Cell>> grid;
 
   Index2D grid_min = {MAP_HEIGHT, MAP_WIDTH};

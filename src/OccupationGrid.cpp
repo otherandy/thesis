@@ -15,7 +15,7 @@ constexpr std::array<std::pair<int, int>, 4> directions{{
     {0, 1}   // E
 }};
 
-OccupationGrid::OccupationGrid() {
+OccupationGrid::OccupationGrid(const Robot::Point &origin) : origin(origin) {
   for (std::size_t y = 0; y < MAP_HEIGHT; ++y) {
     for (std::size_t x = 0; x < MAP_WIDTH; ++x) {
       const double cell_center_x = (x + 0.5) * CELL_SIZE - ENV_WIDTH;

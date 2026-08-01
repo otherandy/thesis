@@ -12,13 +12,13 @@ int main() {
   window.SetTargetFPS(FRAME_RATE);
   window.SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-  auto central_unit = std::make_unique<CentralUnit>();
-
   const Robot::Point START_POSITION(3.0, 3.0);
-  central_unit->register_bot(1, START_POSITION, Robot::Vector(1, 0), true);
-  central_unit->register_bot(2, START_POSITION, Robot::Vector(1, 0), false);
-  central_unit->register_bot(3, START_POSITION, Robot::Vector(-1, 0), true);
-  central_unit->register_bot(4, START_POSITION, Robot::Vector(-1, 0), false);
+  auto central_unit = std::make_unique<CentralUnit>(START_POSITION);
+
+  central_unit->register_bot(Robot::Vector(1, 0), true);
+  central_unit->register_bot(Robot::Vector(1, 0), false);
+  central_unit->register_bot(Robot::Vector(-1, 0), true);
+  central_unit->register_bot(Robot::Vector(-1, 0), false);
 
   while (!window.ShouldClose()) {
     central_unit->update();

@@ -11,18 +11,19 @@
 #include <memory>
 #include <utility>
 
-CentralUnit::CentralUnit() { reset(); }
+CentralUnit::CentralUnit(const Robot::Point &start_position) {
+  reset(start_position);
+}
 
-void CentralUnit::register_bot(std::size_t id, const Robot::Point &start_pos,
-                               const Robot::Vector &start_dir, bool clockwise) {
-
-  bots.emplace_back(
-      std::make_shared<ExplorationBot>(id, start_pos, start_dir, clockwise));
+void CentralUnit::register_bot(const Robot::Vector &start_dir, bool clockwise) {
+  const auto start_pos = occupation_grid->get_origin();
+  bots.emplace_back(std::make_shared<ExplorationBot>(bots.size(), start_pos,
+                                                     start_dir, clockwise));
 }
 
 void CentralUnit::get_input_and_move() {
   if (IsKeyPressed(KEY_R)) {
-    reset();
+    reset(occupation_grid->get_origin());
     return;
   }
 
@@ -281,11 +282,11 @@ void CentralUnit::draw_graph(int screenW, int screenH) {
   frontier_scheduler->draw(screenW, screenH);
 }
 
-void CentralUnit::reset() {
+void CentralUnit::reset(const Robot::Point &start_position) {
   is_paused = false;
   phase = CentralPhase::Idle;
 
-  occupation_grid = std::make_unique<OccupationGrid>();
+  occupation_grid = std::make_unique<OccupationGrid>(start_position);
   frontier_scheduler = std::make_unique<DynamicScheduler>();
   physical_scheduler = std::make_unique<DynamicScheduler>();
 
@@ -295,7 +296,7 @@ void CentralUnit::reset() {
   frontier_scheduler->add_vertex(outer_wall, true);
 
   for (auto bot : bots) {
-    bot.reset();
+    bot->reset();
   }
 
   physical_time.reset();
