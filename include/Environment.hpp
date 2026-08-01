@@ -139,8 +139,8 @@ constexpr EnvData MONO_DATA[] = {
     {1, 10},  {1, 9},   {0, 9},   {0, 8},   {1, 8},   {1, 7},   {0, 7},
 };
 
-constexpr EnvData ROOM_HOLE1_DATA[] = {{0, 5}, {4, 5}, {4, 5.05}, {0, 5.05}};
-constexpr EnvData ROOM_HOLE2_DATA[] = {{8, 0}, {8, 5}, {8.05, 5}, {8.05, 0}};
+constexpr EnvData ROOM_HOLE1_DATA[] = {{0, 5}, {4, 5}, {4, 5.1}, {0, 5.1}};
+constexpr EnvData ROOM_HOLE2_DATA[] = {{8, 0}, {8, 5}, {8.1, 5}, {8.1, 0}};
 constexpr EnvData ROOM_HOLE3_DATA[] = {
     {10, 3},
     {15, 3},

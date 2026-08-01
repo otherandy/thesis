@@ -38,6 +38,13 @@ int main(int argc, char **argv) {
     }
   }
 
+  if (argc >= 4) {
+    const std::string b = argv[3];
+    if (b == "test" || b == "start" || b == "true") {
+      central_unit->start();
+    }
+  }
+
   while (!window.ShouldClose()) {
     central_unit->update();
 

@@ -21,6 +21,8 @@ public:
   CentralUnit(EnvironmentPreset selected_env,
               const Robot::Point &start_position);
 
+  void start() { phase = CentralPhase::Explore; }
+
   void reset(EnvironmentPreset selected_env,
              const Robot::Point &start_position);
   void register_bot(const Robot::Vector &start_dir);
