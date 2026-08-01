@@ -334,5 +334,5 @@ void CentralUnit::report_time() {
 }
 
 void CentralUnit::save_data() {
-  occupation_grid->save_to_file("Testing/grid.csv");
+  occupation_grid->save_to_file("tests/grid.csv");
 }

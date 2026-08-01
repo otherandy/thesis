@@ -23,10 +23,20 @@ int main(int argc, char **argv) {
   auto central_unit =
       std::make_unique<CentralUnit>(selected_env, start_position);
 
-  central_unit->register_bot(Robot::Vector(1, 0));
-  central_unit->register_bot(Robot::Vector(1, 0));
-  central_unit->register_bot(Robot::Vector(-1, 0));
-  central_unit->register_bot(Robot::Vector(-1, 0));
+  unsigned long num_bots = 4;
+  Robot::Vector bot_direction = Robot::Vector(1, 0);
+
+  if (argc >= 3) {
+    num_bots = std::stoul(argv[2]);
+  }
+
+  for (std::size_t i = 0; i < num_bots; ++i) {
+    if (i + 1 % 4 > 2) {
+      central_unit->register_bot(-bot_direction);
+    } else {
+      central_unit->register_bot(bot_direction);
+    }
+  }
 
   while (!window.ShouldClose()) {
     central_unit->update();
