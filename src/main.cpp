@@ -13,11 +13,15 @@ int main(int argc, char **argv) {
   window.SetTargetFPS(FRAME_RATE);
   window.SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-  EnvironmentPreset SELECTED_ENVIRONMENT = EnvironmentPreset::Room;
+  EnvironmentPreset selected_env = EnvironmentPreset::Room;
+  Robot::Point start_position(3.0, 3.0);
 
-  const Robot::Point START_POSITION(3.0, 3.0);
+  if (argc >= 2) {
+    selected_env = parse_environment(argv[1]);
+  }
+
   auto central_unit =
-      std::make_unique<CentralUnit>(SELECTED_ENVIRONMENT, START_POSITION);
+      std::make_unique<CentralUnit>(selected_env, start_position);
 
   central_unit->register_bot(Robot::Vector(1, 0), true);
   central_unit->register_bot(Robot::Vector(1, 0), false);

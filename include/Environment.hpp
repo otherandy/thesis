@@ -26,6 +26,8 @@ enum class EnvironmentPreset {
   Room,
 };
 
+EnvironmentPreset parse_environment(const std::string &name);
+
 constexpr EnvData POLYGON_ENV_DATA[] = {
     {0, 0}, {8, 0}, {8, 6}, {12, 6}, {12, 12}, {4, 12}, {4, 6}, {0, 6},
 };

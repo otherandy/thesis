@@ -1,5 +1,49 @@
 #include "Environment.hpp"
 
+EnvironmentPreset parse_environment(const std::string &name) {
+  if (name == "polygon") {
+    return EnvironmentPreset::Polygon;
+  }
+  if (name == "polygon2") {
+    return EnvironmentPreset::Polygon2;
+  }
+  if (name == "polygon2withholes") {
+    return EnvironmentPreset::Polygon2WithHoles;
+  }
+  if (name == "square") {
+    return EnvironmentPreset::Square;
+  }
+  if (name == "triangle") {
+    return EnvironmentPreset::Triangle;
+  }
+  if (name == "custom") {
+    return EnvironmentPreset::Custom;
+  }
+  if (name == "square2withhole") {
+    return EnvironmentPreset::Square2WithHole;
+  }
+  if (name == "corridor") {
+    return EnvironmentPreset::Corridor;
+  }
+  if (name == "legs") {
+    return EnvironmentPreset::Legs;
+  }
+  if (name == "star") {
+    return EnvironmentPreset::Star;
+  }
+  if (name == "lettere") {
+    return EnvironmentPreset::LetterE;
+  }
+  if (name == "mono") {
+    return EnvironmentPreset::Mono;
+  }
+  if (name == "room") {
+    return EnvironmentPreset::Room;
+  }
+
+  throw std::invalid_argument("Unknown environment: " + name);
+}
+
 Environment::Environment(EnvironmentPreset preset) : preset(preset) {
   const auto env_data = get_selected_environment_data(preset);
 
