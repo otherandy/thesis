@@ -252,6 +252,10 @@ void CentralUnit::sense() {
   for (auto &job : update_jobs) {
     job.get();
   }
+
+  for (auto bot : bots) {
+    bot->update_grid(occupation_grid.get());
+  }
 }
 
 void CentralUnit::update() {
@@ -297,10 +301,6 @@ void CentralUnit::update() {
   }
 
   sense();
-
-  for (auto bot : bots) {
-    bot->update_grid(occupation_grid.get());
-  }
 
   run_exploration();
 
