@@ -196,6 +196,12 @@ void CentralUnit::assign_frontier_regions() {
 void CentralUnit::check_exterior() {
   if (!occupation_grid->found_exterior) {
     for (auto bot : bots) {
+      if (bot->phase == ExplorationPhase::WallFollowing) {
+        return;
+      }
+    }
+
+    for (auto bot : bots) {
       if (bot->phase != ExplorationPhase::Idle) {
         continue;
       }
