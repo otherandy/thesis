@@ -262,6 +262,23 @@ bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
 
 void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
   const Robot::Point rp = get_relative_position(grid);
+
+  if (closest_wall_reading_index) {
+    const Robot::Point closest_point =
+        point_at_reading(rp, readings[*closest_wall_reading_index]);
+    const Index2D index =
+        get_cell_index_from(closest_point.x(), closest_point.y());
+
+    const auto g = grid->get_data();
+    const Cell *obstacle_cell = (*g)[index.first][index.second].get();
+
+    if (obstacle_cell->state == CellState::Occupied &&
+        !obstacle_cell->frontier_id.has_value()) {
+      phase = ExplorationPhase::WallAlignment;
+      return;
+    }
+  }
+
   const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
 
   if (distance < SPEED * 2) {
