@@ -358,7 +358,7 @@ void CentralUnit::save_data(std::string filename, bool save_grid) {
   }
 
   if (first_time) {
-    f << "preset,bots,physical_time,virtual_time,alignment_time,exploration_"
+    f << "environment,bots,physical_time,virtual_time,alignment_time,exploration_"
          "time,total_time\n";
   }
 
