@@ -4,9 +4,11 @@
 #include "Graph.hpp"
 #include "Grid.hpp"
 #include "OccupationGrid.hpp"
+#include "Utils.hpp"
 #include <CGAL/number_utils.h>
 #include <algorithm>
 #include <boost/graph/depth_first_search.hpp>
+#include <filesystem>
 #include <future>
 #include <memory>
 #include <utility>
@@ -339,6 +341,35 @@ void CentralUnit::report_time() {
   std::cout << "Total Time: " << total_time.get_time() << "s\n";
 }
 
-void CentralUnit::save_data() {
-  occupation_grid->save_to_file("tests/grid.csv");
+void CentralUnit::save_data(std::string filename, bool save_grid) {
+  if (save_grid) {
+    occupation_grid->save_to_file("grid.csv");
+  }
+
+  ensure_parent_dir_exists(filename);
+
+  bool first_time = !std::filesystem::exists(filename);
+  std::ofstream f(filename, std::ios::app);
+
+  if (!f.is_open()) {
+    std::cerr << "ERROR: Failed to open " << filename << " for writing"
+              << std::endl;
+    return;
+  }
+
+  if (first_time) {
+    f << "preset,bots,physical_time,virtual_time,alignment_time,exploration_"
+         "time,total_time\n";
+  }
+
+  f << static_cast<int>(environment->preset) << ",";
+  f << bots.size() << ",";
+  f << physical_time.get_time() << ",";
+  f << virtual_time.get_time() << ",";
+  f << alignment_time.get_time() << ",";
+  f << exploration_time.get_time() << ",";
+  f << total_time.get_time() << "\n";
+
+  f.close();
+  std::cout << "INFO: Simulation data saved to " << filename << std::endl;
 }

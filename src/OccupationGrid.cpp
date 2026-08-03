@@ -671,7 +671,7 @@ void OccupationGrid::save_to_file(const std::string &filename) const {
   std::ofstream f(filename);
 
   if (!f.is_open()) {
-    std::cerr << "GRID: Failed to open " << filename << " for writing"
+    std::cerr << "ERROR: Failed to open " << filename << " for writing"
               << std::endl;
     return;
   }
@@ -684,5 +684,5 @@ void OccupationGrid::save_to_file(const std::string &filename) const {
   }
 
   f.close();
-  std::cout << "GRID: Occupation grid saved to " << filename << std::endl;
+  std::cout << "INFO: Occupation grid saved to " << filename << std::endl;
 }

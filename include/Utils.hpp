@@ -38,13 +38,13 @@ inline void ensure_parent_dir_exists(const std::string &filename) {
   const bool created = std::filesystem::create_directories(parent_dir, ec);
 
   if (ec) {
-    std::cerr << "BOT: Failed to create directory " << parent_dir.string()
+    std::cerr << "ERROR: Failed to create directory " << parent_dir.string()
               << " (" << ec.message() << ")" << std::endl;
     return;
   }
 
   if (created) {
-    std::cout << "BOT: Created directory " << parent_dir.string() << std::endl;
+    std::cout << "INFO: Created directory " << parent_dir.string() << std::endl;
   }
 }
 

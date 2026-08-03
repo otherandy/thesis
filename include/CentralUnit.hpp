@@ -21,7 +21,12 @@ public:
   CentralUnit(EnvironmentPreset selected_env,
               const Robot::Point &start_position);
 
-  void start() { phase = CentralPhase::Explore; }
+  void start_test() {
+    test_mode = true;
+    phase = CentralPhase::Explore;
+  }
+
+  bool test_finished() { return test_mode && phase == CentralPhase::Complete; }
 
   void reset(EnvironmentPreset selected_env,
              const Robot::Point &start_position);
@@ -35,13 +40,14 @@ public:
   void draw_environment(const DrawData &draw_data);
 
   void report_time();
-  void save_data();
+  void save_data(std::string filename, bool save_grid);
 
 private:
   CentralPhase phase = CentralPhase::Idle;
   std::vector<std::shared_ptr<ExplorationBot>> bots;
 
   bool is_paused = false;
+  bool test_mode = false;
 
   std::shared_ptr<Environment> environment;
   std::unique_ptr<OccupationGrid> occupation_grid;

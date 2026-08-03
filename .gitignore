@@ -65,7 +65,7 @@ vcpkg_installed/
 *.dwo
 
 # test output & cache
-tests/
+*.csv
 .cache/
 
 # Ignore CMake user-specific files

@@ -1,0 +1,14 @@
+import subprocess
+
+NUMBER_OF_TESTS = 10
+
+for i in range(NUMBER_OF_TESTS):
+    p = subprocess.Popen(
+        ["../build/ExplorationBot", "room", "4", "test"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+
+    p.wait()

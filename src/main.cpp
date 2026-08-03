@@ -39,10 +39,22 @@ int main(int argc, char **argv) {
   }
 
   if (argc >= 4) {
-    const std::string b = argv[3];
-    if (b == "test" || b == "start" || b == "true") {
-      central_unit->start();
+    const std::string s = argv[3];
+    if (s == "test") {
+      central_unit->start_test();
     }
+  }
+
+  std::string filename = "data.csv";
+  bool save_grid = false;
+
+  if (argc >= 5) {
+    filename = argv[4];
+  }
+
+  if (argc >= 6) {
+    const std::string s = argv[5];
+    save_grid = (s == "true");
   }
 
   while (!window.ShouldClose()) {
@@ -63,6 +75,11 @@ int main(int argc, char **argv) {
     central_unit->draw_graph(w, h);
 
     window.EndDrawing();
+
+    if (central_unit->test_finished()) {
+      central_unit->save_data(filename, save_grid);
+      break;
+    }
   }
 
   return 0;
