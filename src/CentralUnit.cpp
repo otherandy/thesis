@@ -123,6 +123,23 @@ void CentralUnit::check_collisions_during_wall() {
   }
 }
 
+void CentralUnit::mark_done_frontiers() {
+  auto vertices = frontier_scheduler->get_all_vertices();
+  const auto grid = occupation_grid->get_data();
+
+  for (auto v : vertices) {
+    if (frontier_scheduler->is_done(v)) {
+      continue;
+    }
+
+    auto vd = frontier_scheduler->get_vertex_data(v);
+
+    if (vd.region->is_done(*grid)) {
+      frontier_scheduler->mark_done(v);
+    }
+  }
+}
+
 void CentralUnit::assign_frontier_regions() {
   bool ran_compute = false;
 
@@ -142,6 +159,7 @@ void CentralUnit::assign_frontier_regions() {
 
     if (bot->phase == ExplorationPhase::RegionDiscovery) {
       if (!ran_compute) {
+        mark_done_frontiers();
         occupation_grid->compute_physical_obstacles(physical_scheduler.get());
         occupation_grid->compute_frontier_regions(frontier_scheduler.get());
         ran_compute = true;
@@ -173,7 +191,7 @@ void CentralUnit::assign_frontier_regions() {
       const auto tp = select_target(bot.get());
 
       if (!tp.has_value()) {
-        frontier_scheduler->done(bot->target_vertex);
+        frontier_scheduler->mark_done(bot->target_vertex);
         bot->phase = ExplorationPhase::RegionDiscovery;
         continue;
       }
@@ -188,7 +206,7 @@ void CentralUnit::assign_frontier_regions() {
       const auto tp = select_target(bot.get());
 
       if (!tp.has_value()) {
-        frontier_scheduler->done(bot->target_vertex);
+        frontier_scheduler->mark_done(bot->target_vertex);
         bot->phase = ExplorationPhase::RegionDiscovery;
         continue;
       }
@@ -361,8 +379,8 @@ void CentralUnit::save_data(std::string filename, bool save_grid) {
   }
 
   if (first_time) {
-    f << "environment,bots,physical_time,virtual_time,alignment_time,exploration_"
-         "time,total_time\n";
+    f << "environment,bots,physical_time,virtual_time,alignment_time,"
+         "exploration_time,total_time\n";
   }
 
   f << static_cast<int>(environment->preset) << ",";

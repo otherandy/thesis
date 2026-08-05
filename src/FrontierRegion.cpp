@@ -22,3 +22,15 @@ std::optional<Robot::Point> FrontierRegion::get_closest_unexplored(
 
   return closest_point;
 }
+
+bool FrontierRegion::is_done(const Grid2D<std::unique_ptr<Cell>> &grid) {
+  for (const Index2D idx : cells) {
+    const Cell *cell = grid[idx.first][idx.second].get();
+
+    if (cell->state == CellState::Frontier) {
+      return false;
+    }
+  }
+
+  return true;
+}

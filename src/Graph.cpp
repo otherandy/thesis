@@ -26,7 +26,7 @@ void DynamicScheduler::add_edge(vertex_t u, vertex_t v) {
   }
 }
 
-void DynamicScheduler::done(vertex_t v) {
+void DynamicScheduler::mark_done(vertex_t v) {
   std::lock_guard<std::mutex> lg(mutex_);
   if (g_[v].color != VertexData::Color::Black) {
     g_[v].color = VertexData::Color::Black;

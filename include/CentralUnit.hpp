@@ -59,6 +59,7 @@ private:
       total_time;
 
   void check_collisions_during_wall();
+  void mark_done_frontiers();
   void assign_frontier_regions();
   void check_exterior();
 
