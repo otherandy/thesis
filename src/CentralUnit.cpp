@@ -175,9 +175,10 @@ void CentralUnit::assign_frontier_regions() {
     }
 
     if (bot->phase == ExplorationPhase::Idle) {
-      const auto grid = occupation_grid->get_data();
-      const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
-      auto vopt = frontier_scheduler->closest(*grid, rp);
+      // const auto grid = occupation_grid->get_data();
+      // const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
+      // auto vopt = frontier_scheduler->closest(*grid, rp);
+      auto vopt = frontier_scheduler->next_or_help();
 
       if (!vopt.has_value()) {
         continue;
