@@ -17,6 +17,8 @@ public:
   const auto get_data() const { return &grid; };
   const Robot::Point get_origin() const { return origin; };
 
+  void enable_debug() { debug = true; }
+
   void mark_cells(const Robot::Point &relative_position,
                   const std::array<Reading, LIDAR_SAMPLES> &readings);
 
@@ -29,6 +31,8 @@ public:
 private:
   const Robot::Point origin;
   Grid2D<std::unique_ptr<Cell>> grid;
+
+  bool debug = false;
 
   Index2D grid_min = {MAP_HEIGHT, MAP_WIDTH};
   Index2D grid_max = {0, 0};

@@ -16,15 +16,18 @@ int main(int argc, char **argv) {
   EnvironmentPreset selected_env = EnvironmentPreset::Room;
   Robot::Point start_position(3.0, 3.0);
 
+  unsigned long num_bots = 4;
+  Robot::Vector bot_direction = Robot::Vector(1, 0);
+
+  std::string filename = "data.csv";
+  bool save_grid = false;
+
   if (argc >= 2) {
     selected_env = parse_environment(argv[1]);
   }
 
   auto central_unit =
       std::make_unique<CentralUnit>(selected_env, start_position);
-
-  unsigned long num_bots = 4;
-  Robot::Vector bot_direction = Robot::Vector(1, 0);
 
   if (argc >= 3) {
     num_bots = std::stoul(argv[2]);
@@ -45,16 +48,12 @@ int main(int argc, char **argv) {
     }
   }
 
-  std::string filename = "data.csv";
-  bool save_grid = false;
-
   if (argc >= 5) {
-    filename = argv[4];
-  }
-
-  if (argc >= 6) {
-    const std::string s = argv[5];
-    save_grid = (s == "true");
+    const std::string s = argv[4];
+    if (s == "debug") {
+      central_unit->enable_debug();
+      std::cout << "INFO: DEBUG ENABLED" << std::endl;
+    }
   }
 
   while (!window.ShouldClose()) {

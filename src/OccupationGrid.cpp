@@ -224,6 +224,15 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
     q.push({min_y, min_x});
     visited.insert(key(min_y, min_x));
 
+    q.push({min_y, max_x});
+    visited.insert(key(min_y, max_x));
+
+    q.push({max_y, min_x});
+    visited.insert(key(max_y, min_x));
+
+    q.push({max_y, max_x});
+    visited.insert(key(max_y, max_x));
+
     while (!q.empty()) {
       auto [y, x] = q.front();
       q.pop();
@@ -233,6 +242,8 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
       if (c->state == CellState::Unknown) {
         return false;
       }
+
+      c->debug_color = raylib::PINK;
 
       for (auto [dy, dx] : directions) {
         int ny = y + dy;
@@ -244,11 +255,9 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 
         Cell *neighbor = grid[ny][nx].get();
 
-        if (region_set.count(neighbor)) {
-          continue;
-        }
-
-        if (neighbor->state == CellState::Occupied) {
+        if (region_set.count(neighbor) ||
+            neighbor->state == CellState::Occupied ||
+            neighbor->state == CellState::Frontier) {
           continue;
         }
 
@@ -292,6 +301,8 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
       while (!to_visit.empty()) {
         auto current_cell = to_visit.front();
         to_visit.pop();
+
+        current_cell->debug_color = raylib::GREEN;
 
         region_cells.push_back(current_cell);
 
@@ -629,7 +640,7 @@ void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
     return;
   }
 
-  Color color;
+  raylib::Color color;
 
   switch (cell->state) {
   case CellState::Free:
@@ -646,6 +657,10 @@ void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {
     break;
   default:
     return;
+  }
+
+  if (debug && cell->debug_color.has_value()) {
+    color = *cell->debug_color;
   }
 
   const float screen_x =

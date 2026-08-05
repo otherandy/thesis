@@ -27,6 +27,7 @@ public:
   }
 
   bool test_finished() { return test_mode && phase == CentralPhase::Complete; }
+  void enable_debug() { occupation_grid->enable_debug(); }
 
   void reset(EnvironmentPreset selected_env,
              const Robot::Point &start_position);

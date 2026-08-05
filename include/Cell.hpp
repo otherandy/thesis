@@ -13,6 +13,7 @@ struct Cell {
   Robot::Point center;
   CellState state = CellState::Unknown;
   std::optional<std::size_t> frontier_id = std::nullopt;
+  std::optional<raylib::Color> debug_color = std::nullopt;
 
   std::array<Cell *, 8> get_neighbors(Grid2D<std::unique_ptr<Cell>> *grid);
 };
