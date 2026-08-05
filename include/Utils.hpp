@@ -5,6 +5,9 @@
 #include "cgal_types.hpp"
 #include <filesystem>
 
+#define NEXT_INDEX 1
+#define PREV_INDEX -1
+
 inline std::size_t relative_index(std::size_t index, int offset) {
   return (index + offset + LIDAR_SAMPLES) % LIDAR_SAMPLES;
 }

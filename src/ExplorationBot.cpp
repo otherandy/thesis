@@ -242,6 +242,10 @@ void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
 }
 
 bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
+  if (!closest_wall_reading_index.has_value()) {
+    return false;
+  }
+
   const double target_angle = std::atan2(target.y(), target.x());
   const double target_dist = std::sqrt(target.squared_length());
 
@@ -252,7 +256,8 @@ bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
       continue;
     }
 
-    if (r.distance < LIDAR_RADIUS && r.distance < target_dist) {
+    if (r.distance < LIDAR_RADIUS && r.distance < target_dist &&
+        r.distance <= readings[*closest_wall_reading_index].distance + DESIRED_WALL_DISTANCE / 2) {
       return true;
     }
   }
