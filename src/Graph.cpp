@@ -96,6 +96,37 @@ DynamicScheduler::next_or_help(const std::string &strategy) {
   return vopt;
 }
 
+std::optional<vertex_t>
+DynamicScheduler::closest(const Grid2D<std::unique_ptr<Cell>> &grid,
+                          const Robot::Point &position) {
+  std::lock_guard<std::mutex> lg(mutex_);
+  auto vertices = get_all_vertices();
+
+  if (vertices.empty()) {
+    return std::nullopt;
+  }
+
+  double closest_distance = std::numeric_limits<double>::max();
+  vertex_t closest_v;
+
+  for (auto v : vertices) {
+    auto vd = g_[v];
+    const auto c = vd.region->get_closest_unexplored(grid, position);
+
+    if (c.has_value()) {
+      const double d = CGAL::squared_distance(position, c.value());
+
+      if (d < closest_distance) {
+        closest_distance = d;
+        closest_v = v;
+      }
+    }
+  }
+
+  g_[closest_v].workers++;
+  return closest_v;
+}
+
 VertexData DynamicScheduler::get_vertex_data(vertex_t v) {
   std::lock_guard<std::mutex> lg(mutex_);
   return g_[v];

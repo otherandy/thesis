@@ -5,6 +5,7 @@
 #include "Grid.hpp"
 #include "OccupationGrid.hpp"
 #include "Utils.hpp"
+#include "cgal_types.hpp"
 #include <CGAL/number_utils.h>
 #include <algorithm>
 #include <boost/graph/depth_first_search.hpp>
@@ -156,7 +157,9 @@ void CentralUnit::assign_frontier_regions() {
     }
 
     if (bot->phase == ExplorationPhase::Idle) {
-      auto vopt = frontier_scheduler->next_or_help();
+      const auto grid = occupation_grid->get_data();
+      const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
+      auto vopt = frontier_scheduler->closest(*grid, rp);
 
       if (!vopt.has_value()) {
         continue;
