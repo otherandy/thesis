@@ -25,17 +25,32 @@ ExplorationBot::get_relative_position(const OccupationGrid *grid) const {
 void ExplorationBot::reset() {
   phase = ExplorationPhase::WallDiscovery;
   direction = start_direction;
+
+  physical_time.reset();
+  virtual_time.reset();
+  alignment_time.reset();
+  exploration_time.reset();
+
   Bot::reset(start_point);
 }
 
 Robot::Vector ExplorationBot::move(const Robot::Vector &dir) {
   direction = dir;
-  return Bot::move(dir);
+  Robot::Vector delta = Bot::move(dir);
+  distance_traveled += std::sqrt(delta.squared_length());
+  return delta;
 }
 
 void ExplorationBot::update_grid(OccupationGrid *grid) {
   const Robot::Point rp = get_relative_position(grid);
   grid->mark_cells(rp, readings);
+}
+
+void ExplorationBot::pause_timers() {
+  physical_time.pause();
+  virtual_time.pause();
+  alignment_time.pause();
+  exploration_time.pause();
 }
 
 void ExplorationBot::explore(const OccupationGrid *grid) {
@@ -71,6 +86,9 @@ void ExplorationBot::explore(const OccupationGrid *grid) {
 }
 
 void ExplorationBot::phase1_wall_discovery(const OccupationGrid *grid) {
+  physical_time.start();
+  alignment_time.start();
+
   const Robot::Point rp = get_relative_position(grid);
   const auto g = grid->get_data();
 
@@ -95,6 +113,9 @@ void ExplorationBot::phase1_wall_discovery(const OccupationGrid *grid) {
 }
 
 void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
+  physical_time.start();
+  alignment_time.start();
+
   const Reading &closest_reading = readings[closest_wall_reading_index.value()];
 
   if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
@@ -224,6 +245,9 @@ ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
 }
 
 void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
+  physical_time.start();
+  exploration_time.start();
+
   const Robot::Point rp = get_relative_position(grid);
   const double distance = std::sqrt(CGAL::squared_distance(rp, contact_point));
 
@@ -257,7 +281,8 @@ bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
     }
 
     if (r.distance < LIDAR_RADIUS && r.distance < target_dist &&
-        r.distance <= readings[*closest_wall_reading_index].distance + DESIRED_WALL_DISTANCE / 2) {
+        r.distance <= readings[*closest_wall_reading_index].distance +
+                          DESIRED_WALL_DISTANCE / 2) {
       return true;
     }
   }
@@ -266,6 +291,9 @@ bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
 }
 
 void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
+  virtual_time.start();
+  alignment_time.start();
+
   const Robot::Point rp = get_relative_position(grid);
 
   if (closest_wall_reading_index) {
@@ -314,6 +342,9 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
 }
 
 void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
+  virtual_time.start();
+  exploration_time.start();
+
   const Robot::Point rp = get_relative_position(grid);
 
   if (closest_wall_reading_index) {

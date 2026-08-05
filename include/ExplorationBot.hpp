@@ -3,6 +3,7 @@
 
 #include "Bot.hpp"
 #include "OccupationGrid.hpp"
+#include "Timer.hpp"
 
 const double DESIRED_WALL_DISTANCE = SPEED * 2;
 const double LIDAR_DISTANCE_THRESHOLD = SPEED;
@@ -36,11 +37,16 @@ public:
   bool started_surround;
   double goal_distance;
 
+  double distance_traveled = 0;
+  Timer physical_time, virtual_time, alignment_time, exploration_time;
+
   Robot::Point get_relative_position(const OccupationGrid *grid) const;
 
   Robot::Vector move(const Robot::Vector &dir);
   void reset();
   void update_grid(OccupationGrid *grid);
+
+  void pause_timers();
 
   void explore(const OccupationGrid *grid);
 

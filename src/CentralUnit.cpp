@@ -38,10 +38,6 @@ void CentralUnit::reset(EnvironmentPreset selected_env,
     bot->reset();
   }
 
-  physical_time.reset();
-  virtual_time.reset();
-  alignment_time.reset();
-  exploration_time.reset();
   total_time.reset();
 }
 
@@ -176,8 +172,9 @@ void CentralUnit::assign_frontier_regions() {
 
     if (bot->phase == ExplorationPhase::Idle) {
       // const auto grid = occupation_grid->get_data();
-      // const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
-      // auto vopt = frontier_scheduler->closest(*grid, rp);
+      // const Robot::Point rp =
+      // bot->get_relative_position(occupation_grid.get()); auto vopt =
+      // frontier_scheduler->closest(*grid, rp);
       auto vopt = frontier_scheduler->next_or_help();
 
       if (!vopt.has_value()) {
@@ -253,6 +250,7 @@ void CentralUnit::run_exploration() {
 
     for (auto bot : bots) {
       auto f = [bot = bot, grid = occupation_grid.get()]() {
+        bot->pause_timers();
         bot->explore(grid);
       };
 
@@ -285,10 +283,6 @@ void CentralUnit::sense() {
 void CentralUnit::update() {
   get_manual_input();
 
-  physical_time.pause();
-  virtual_time.pause();
-  alignment_time.pause();
-  exploration_time.pause();
   total_time.pause();
 
   if (is_paused) {
@@ -296,31 +290,6 @@ void CentralUnit::update() {
   }
 
   if (phase != CentralPhase::Complete) {
-    for (auto bot : bots) {
-      if (bot->phase == ExplorationPhase::WallDiscovery ||
-          bot->phase == ExplorationPhase::WallAlignment ||
-          bot->phase == ExplorationPhase::WallFollowing) {
-        physical_time.start();
-      }
-
-      if (bot->phase == ExplorationPhase::RegionDiscovery ||
-          bot->phase == ExplorationPhase::RegionAlignment ||
-          bot->phase == ExplorationPhase::RegionExploration) {
-        virtual_time.start();
-      }
-
-      if (bot->phase == ExplorationPhase::WallDiscovery ||
-          bot->phase == ExplorationPhase::WallAlignment ||
-          bot->phase == ExplorationPhase::RegionDiscovery ||
-          bot->phase == ExplorationPhase::RegionAlignment) {
-        alignment_time.start();
-      }
-
-      if (bot->phase == ExplorationPhase::WallFollowing ||
-          bot->phase == ExplorationPhase::RegionExploration) {
-        exploration_time.start();
-      }
-    }
     total_time.start();
   }
 
@@ -355,11 +324,6 @@ void CentralUnit::draw_environment(const DrawData &draw_data) {
 }
 
 void CentralUnit::report_time() {
-  std::cout << "Physical Time: " << physical_time.get_time() << "s\n";
-  std::cout << "Virtual Time: " << virtual_time.get_time() << "s\n";
-  std::cout << "Alignment Time: " << alignment_time.get_time() << "s\n";
-  std::cout << "Exploration Time: " << exploration_time.get_time() << "s\n";
-
   std::cout << "Total Time: " << total_time.get_time() << "s\n";
 }
 
@@ -380,17 +344,20 @@ void CentralUnit::save_data(std::string filename, bool save_grid) {
   }
 
   if (first_time) {
-    f << "environment,bots,physical_time,virtual_time,alignment_time,"
-         "exploration_time,total_time\n";
+    f << "environment,bots,total_time,"
+         "first_physical_time,first_virtual_time,"
+         "first_alignment_time,first_exploration_time,"
+         "first_distance_traveled\n";
   }
 
   f << static_cast<int>(environment->preset) << ",";
   f << bots.size() << ",";
-  f << physical_time.get_time() << ",";
-  f << virtual_time.get_time() << ",";
-  f << alignment_time.get_time() << ",";
-  f << exploration_time.get_time() << ",";
-  f << total_time.get_time() << "\n";
+  f << total_time.get_time() << ",";
+  f << bots.front()->physical_time.get_time() << ",";
+  f << bots.front()->virtual_time.get_time() << ",";
+  f << bots.front()->alignment_time.get_time() << ",";
+  f << bots.front()->exploration_time.get_time() << ",";
+  f << bots.front()->distance_traveled << "\n";
 
   f.close();
   std::cout << "INFO: Simulation data saved to " << filename << std::endl;

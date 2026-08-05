@@ -55,8 +55,7 @@ private:
   std::unique_ptr<DynamicScheduler> frontier_scheduler;
   std::unique_ptr<DynamicScheduler> physical_scheduler;
 
-  Timer physical_time, virtual_time, alignment_time, exploration_time,
-      total_time;
+  Timer total_time;
 
   void check_collisions_during_wall();
   void mark_done_frontiers();
