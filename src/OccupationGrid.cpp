@@ -221,17 +221,25 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
     std::queue<Index2D> q;
     std::unordered_set<uint64_t> visited;
 
-    q.push({min_y, min_x});
-    visited.insert(key(min_y, min_x));
+    if (grid[min_y][min_x].get()->state == CellState::Free) {
+      q.push({min_y, min_x});
+      visited.insert(key(min_y, min_x));
+    }
 
-    q.push({min_y, max_x});
-    visited.insert(key(min_y, max_x));
+    if (grid[min_y][max_x].get()->state == CellState::Free) {
+      q.push({min_y, max_x});
+      visited.insert(key(min_y, max_x));
+    }
 
-    q.push({max_y, min_x});
-    visited.insert(key(max_y, min_x));
+    if (grid[max_y][min_x].get()->state == CellState::Free) {
+      q.push({max_y, min_x});
+      visited.insert(key(max_y, min_x));
+    }
 
-    q.push({max_y, max_x});
-    visited.insert(key(max_y, max_x));
+    if (grid[max_y][max_x].get()->state == CellState::Free) {
+      q.push({max_y, max_x});
+      visited.insert(key(max_y, max_x));
+    }
 
     while (!q.empty()) {
       auto [y, x] = q.front();
