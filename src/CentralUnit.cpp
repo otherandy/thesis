@@ -9,7 +9,6 @@
 #include <CGAL/number_utils.h>
 #include <algorithm>
 #include <boost/graph/depth_first_search.hpp>
-#include <filesystem>
 #include <future>
 #include <memory>
 #include <utility>
@@ -327,14 +326,11 @@ void CentralUnit::report_time() {
   std::cout << "Total Time: " << total_time.get_time() << "s\n";
 }
 
-void CentralUnit::save_data(std::string filename, bool save_grid) {
-  if (save_grid) {
-    occupation_grid->save_to_file("grid.csv");
-  }
+void CentralUnit::save_data() {
+  std::string filename = "data/" + append_timestamp("", ".csv");
 
   ensure_parent_dir_exists(filename);
 
-  bool first_time = !std::filesystem::exists(filename);
   std::ofstream f(filename, std::ios::app);
 
   if (!f.is_open()) {
@@ -343,21 +339,24 @@ void CentralUnit::save_data(std::string filename, bool save_grid) {
     return;
   }
 
-  if (first_time) {
-    f << "environment,bots,total_time,"
-         "first_physical_time,first_virtual_time,"
-         "first_alignment_time,first_exploration_time,"
-         "first_distance_traveled\n";
-  }
-
+  f << "environment,robots,total_time\n";
   f << static_cast<int>(environment->preset) << ",";
   f << bots.size() << ",";
-  f << total_time.get_time() << ",";
-  f << bots.front()->physical_time.get_time() << ",";
-  f << bots.front()->virtual_time.get_time() << ",";
-  f << bots.front()->alignment_time.get_time() << ",";
-  f << bots.front()->exploration_time.get_time() << ",";
-  f << bots.front()->distance_traveled << "\n";
+  f << total_time.get_time() << "\n";
+
+  f << "id,"
+    << "physical_time,virtual_time,"
+    << "alignment_time,exploration_time,"
+    << "distance_traveled\n";
+
+  for (auto bot : bots) {
+    f << bot->id << ",";
+    f << bot->physical_time.get_time() << ",";
+    f << bot->virtual_time.get_time() << ",";
+    f << bot->alignment_time.get_time() << ",";
+    f << bot->exploration_time.get_time() << ",";
+    f << bot->distance_traveled << "\n";
+  }
 
   f.close();
   std::cout << "INFO: Simulation data saved to " << filename << std::endl;

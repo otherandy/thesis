@@ -56,4 +56,21 @@ inline Robot::Vector get_random_heading() {
   return Robot::Vector(cos(heading), sin(heading));
 }
 
+inline std::string append_timestamp(const std::string &prefix,
+                                    const std::string &suffix) {
+  auto now = std::chrono::system_clock::now();
+  std::time_t t = std::chrono::system_clock::to_time_t(now);
+
+  std::tm tm{};
+#if defined(_WIN32)
+  localtime_s(&tm, &t);
+#else
+  localtime_r(&t, &tm);
+#endif
+
+  std::ostringstream oss;
+  oss << prefix << std::put_time(&tm, "%Y%m%d_%H%M%S") << suffix;
+  return oss.str();
+}
+
 #endif

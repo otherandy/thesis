@@ -41,7 +41,7 @@ public:
   void draw_environment(const DrawData &draw_data);
 
   void report_time();
-  void save_data(std::string filename, bool save_grid);
+  void save_data();
 
 private:
   CentralPhase phase = CentralPhase::Idle;

@@ -1,19 +1,52 @@
 # %%
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv("tests/data.csv")
+data_dir = Path("tests/data")
+files = sorted(data_dir.glob("*.csv"))
 
-data_cols = [
+config_cols = [
+    "environment",
+    "robots",
     "total_time",
-    "first_physical_time",
-    "first_virtual_time",
-    "first_alignment_time",
-    "first_exploration_time",
-    "first_distance_traveled",
 ]
 
+robot_cols = [
+    "id",
+    "physical_time",
+    "virtual_time",
+    "alignment_time",
+    "exploration_time",
+    "distance_traveled",
+]
+
+total_time_df = pd.DataFrame(columns=config_cols)
+robots_df = pd.DataFrame(columns=["environment", "robots"] + robot_cols)
+
+for f in files:
+    tdf = pd.read_csv(f, nrows=1)
+    total_time_df = pd.concat([total_time_df, tdf]).reset_index(drop=True)
+
+    df = pd.read_csv(f, skiprows=2)
+
+    if df.shape[1] != len(robot_cols):
+        raise ValueError(f"{f} has {df.shape[1]} columns, expected {len(robot_cols)}")
+
+    df["environment"] = environment
+    df["robots"] = robots
+
+    robots_df = pd.concat([robots_df, df]).reset_index(drop=True)
+
+total_time_s = total_time_df.groupby(["environment", "robots"])["total_time"].mean().reset_index()
+
+robots_avg_df = robots_df.groupby(["environment", "robots", "id"]).mean().reset_index()
+
+robots_avg_df
+
+# %%
 avg_df = (
     df.groupby(["environment", "bots"], as_index=False)[data_cols]
     .mean()

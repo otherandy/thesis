@@ -19,9 +19,6 @@ int main(int argc, char **argv) {
   unsigned long num_bots = 4;
   Robot::Vector bot_direction = Robot::Vector(1, 0);
 
-  std::string filename = "data.csv";
-  bool save_grid = false;
-
   if (argc >= 2) {
     selected_env = parse_environment(argv[1]);
   }
@@ -76,7 +73,7 @@ int main(int argc, char **argv) {
     window.EndDrawing();
 
     if (central_unit->test_finished()) {
-      central_unit->save_data(filename, save_grid);
+      central_unit->save_data();
       break;
     }
   }
