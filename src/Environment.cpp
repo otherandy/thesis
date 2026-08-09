@@ -40,6 +40,9 @@ EnvironmentPreset parse_environment(const std::string &name) {
   if (name == "room") {
     return EnvironmentPreset::Room;
   }
+  if (name == "cross") {
+    return EnvironmentPreset::Cross;
+  }
 
   throw std::invalid_argument("Unknown environment: " + name);
 }

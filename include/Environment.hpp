@@ -24,6 +24,7 @@ enum class EnvironmentPreset {
   LetterE,
   Mono,
   Room,
+  Cross,
 };
 
 EnvironmentPreset parse_environment(const std::string &name);
@@ -162,6 +163,14 @@ constexpr const EnvData *ROOM_HOLE_DATA_LIST[] = {
     ROOM_HOLE4_DATA,
 };
 
+constexpr EnvData CROSS_ENV_DATA[] = {
+    {0, 0},   {5, 0},   {5, 4},   {9, 4},   {9, 8},   {12, 8},
+    {12, 4},  {16, 4},  {16, 0},  {21, 0},  {21, 5},  {17, 5},
+    {17, 9},  {14, 9},  {14, 12}, {17, 12}, {17, 16}, {21, 16},
+    {21, 21}, {16, 21}, {16, 17}, {12, 17}, {12, 13}, {9, 13},
+    {9, 17},  {5, 17},  {5, 21},  {0, 21},  {0, 16},  {4, 16},
+    {4, 12},  {7, 12},  {7, 9},   {4, 9},   {4, 5},   {0, 5}};
+
 struct SelectedEnvironmentData {
   const EnvData *outer_data;
   std::size_t outer_size;
@@ -227,6 +236,9 @@ get_selected_environment_data(EnvironmentPreset preset) {
             sizeof(SQUARE2_ENV_DATA) / sizeof(SQUARE2_ENV_DATA[0]),
             ROOM_HOLE_DATA_LIST, ROOM_HOLE_SIZE_LIST,
             sizeof(ROOM_HOLE_DATA_LIST) / sizeof(ROOM_HOLE_DATA_LIST[0])};
+  case EnvironmentPreset::Cross:
+    return {CROSS_ENV_DATA, sizeof(CROSS_ENV_DATA) / sizeof(CROSS_ENV_DATA[0]),
+            NO_HOLE_DATA, 0};
   }
 
   return {SQUARE_ENV_DATA, sizeof(SQUARE_ENV_DATA) / sizeof(SQUARE_ENV_DATA[0]),
