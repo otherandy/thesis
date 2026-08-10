@@ -1,7 +1,22 @@
 import subprocess
 
-ENVIRONMENTS = ["square"]
-NUMBER_OF_ROBOTS = [2, 4]
+ENVIRONMENTS = [
+    "polygon",
+    "polygon2",
+    "polygon2withholes",
+    "square",
+    "triangle",
+    "custom",
+    "square2withhole",
+    "corridor",
+    "legs",
+    "star",
+    "lettere",
+    "mono",
+    "room",
+    "cross",
+]
+NUMBER_OF_ROBOTS = [1, 2, 4]
 NUMBER_OF_TESTS = 2
 
 for env in ENVIRONMENTS:

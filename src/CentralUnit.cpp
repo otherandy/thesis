@@ -1,4 +1,5 @@
 #include "CentralUnit.hpp"
+#include "Environment.hpp"
 #include "ExplorationBot.hpp"
 #include "FrontierRegion.hpp"
 #include "Graph.hpp"
@@ -340,7 +341,7 @@ void CentralUnit::save_data() {
   }
 
   f << "environment,robots,total_time\n";
-  f << static_cast<int>(environment->preset) << ",";
+  f << get_environment_name(environment->preset) << ",";
   f << bots.size() << ",";
   f << total_time.get_time() << "\n";
 

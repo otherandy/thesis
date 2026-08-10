@@ -47,6 +47,41 @@ EnvironmentPreset parse_environment(const std::string &name) {
   throw std::invalid_argument("Unknown environment: " + name);
 }
 
+std::string get_environment_name(EnvironmentPreset preset) {
+  switch (preset) {
+  case EnvironmentPreset::Polygon:
+    return "Polygon";
+  case EnvironmentPreset::Polygon2:
+    return "Polygon2";
+  case EnvironmentPreset::Polygon2WithHoles:
+    return "Polygon2 With Holes";
+  case EnvironmentPreset::Square:
+    return "Square";
+  case EnvironmentPreset::Triangle:
+    return "Triangle";
+  case EnvironmentPreset::Custom:
+    return "Custom";
+  case EnvironmentPreset::Square2WithHole:
+    return "Square2 With Hole";
+  case EnvironmentPreset::Corridor:
+    return "Corridor";
+  case EnvironmentPreset::Legs:
+    return "Legs";
+  case EnvironmentPreset::Star:
+    return "Star";
+  case EnvironmentPreset::LetterE:
+    return "Letter E";
+  case EnvironmentPreset::Mono:
+    return "Mono";
+  case EnvironmentPreset::Room:
+    return "Room";
+  case EnvironmentPreset::Cross:
+    return "Cross";
+  }
+  throw std::invalid_argument("Unknown environment: " +
+                              std::to_string(static_cast<int>(preset)));
+}
+
 Environment::Environment(EnvironmentPreset preset) : preset(preset) {
   const auto env_data = get_selected_environment_data(preset);
 
