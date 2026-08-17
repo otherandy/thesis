@@ -16,8 +16,8 @@ ENVIRONMENTS = [
     "room",
     "cross",
 ]
-NUMBER_OF_ROBOTS = [1, 2, 4]
-NUMBER_OF_TESTS = 2
+NUMBER_OF_ROBOTS = [1, 2, 4, 8]
+NUMBER_OF_TESTS = 5
 
 for env in ENVIRONMENTS:
     for bots in NUMBER_OF_ROBOTS:

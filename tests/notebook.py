@@ -25,7 +25,7 @@ robot_cols = [
 ]
 
 total_time_df = pd.DataFrame(columns=config_cols)
-robots_df = pd.DataFrame(columns=["environment", "robots"] + robot_cols)
+robots_df = pd.DataFrame(columns=robot_cols)
 
 for f in files:
     tdf = pd.read_csv(f, nrows=1)
@@ -35,79 +35,70 @@ for f in files:
 
     df["environment"] = tdf["environment"].iloc[0]
     df["robots"] = tdf["robots"].iloc[0]
+    df["run"] = f.stem
 
     robots_df = pd.concat([robots_df, df]).reset_index(drop=True)
 
 total_time_s = (
-    total_time_df.groupby(["environment", "robots"])["total_time"].mean().reset_index()
+    total_time_df.groupby(["environment", "robots"])["total_time"]
+    .agg(mean="mean", std="std", n="count", median="median")
+    .reset_index()
 )
+# envs = total_time_s["environment"].unique()
 
 robots_df.head()
 
 # %% --- Total time ---
-envs = total_time_s["environment"].unique()
+env = "room"
 
-fig, axes = plt.subplots(
-    nrows=1,
-    ncols=len(envs),
-    figsize=(6.0 * len(envs), 4.5),
-    squeeze=False,
-)
-axes = axes[0]
+sub = total_time_s[total_time_s["environment"] == env].sort_values("robots")
 
-for ax, env in zip(axes, envs):
-    sub = total_time_s[total_time_s["environment"] == env].sort_values("robots")
+x = sub["robots"].to_numpy(dtype=int)
+y = sub["mean"].to_numpy(dtype=float)
+yerr = sub["std"].fillna(0).to_numpy(dtype=float)
 
-    x = sub["robots"].to_numpy(dtype=int)
-    y = sub["total_time"].to_numpy(dtype=float)
+fig, ax = plt.subplots(figsize=(6.0, 4.5))
+ax.bar(x, y, capsize=5, alpha=0.9)
 
-    ax.bar(x, y, alpha=0.9)
+for i, mean, std, n in zip(x, y, yerr, sub["n"]):
+    label = f"{mean:.2f} ± {std:.2f}" # "\nn={n}"
+    ax.annotate(label, xy=(i, mean + std), ha="center", va="bottom")
 
-    for i,j in zip(x,y):
-        ax.annotate(str(np.round(j, decimals=5)), xy=(i, j), ha="center", va="bottom")
+ax.set_title(f"Environment: {env}")
+ax.set_xlabel("Number of robots")
+ax.set_ylabel("Total time (s)")
+ax.set_xticks(x)
+ax.grid(True, axis="y", alpha=0.3)
 
-    ax.set_title(f"Environment: {env}")
-    ax.set_xlabel("Number of robots")
-    ax.set_ylabel("Total time (s)")
-    ax.set_xticks(x)
-    ax.grid(True, axis="y", alpha=0.3)
-
-plt.tight_layout()
+fig.tight_layout()
 plt.show()
 
-# %%
-metrics = [
-    "physical_time",
-    "virtual_time",
-    "alignment_time",
-    "exploration_time",
-    "distance_traveled",
-]
-
-plot_df = robots_df.melt(
-    id_vars=["environment", "robots", "id"],
-    value_vars=metrics,
-    var_name="metric",
-    value_name="value",
+# %% --- Distance Traveled ---
+distance_s = (
+    robots_df.groupby(["run", "environment", "robots"])["distance_traveled"]
+    .sum()
+    .groupby(["environment", "robots"])
+    .agg(mean="mean", std="std", n="count", median="median")
+    .reset_index()
 )
 
-g = sns.catplot(
-    data=plot_df,
-    kind="box",
-    x="robots",
-    y="value",
-    row="environment",
-    col="metric",
-    sharey=False,
-    height=3.2,
-    aspect=1.1,
-)
+sub = distance_s[distance_s["environment"] == env].sort_values("robots")
 
-g.set_axis_labels("Number of robots", "Value")
-g.set_titles(row_template="Environment: {row_name}", col_template="{col_name}")
+x = sub["robots"].to_numpy(dtype=int)
+y = sub["mean"].to_numpy(dtype=float)
 
-for ax in g.axes.flat:
-    ax.grid(True, axis="y", alpha=0.3)
+fig, ax = plt.subplots(figsize=(6.0, 4.5))
+ax.bar(x, y, capsize=5, alpha=0.9)
 
-plt.tight_layout()
+for i, mean in zip(x, y):
+    label = f"{mean:.2f}"
+    ax.annotate(label, xy=(i, mean), ha="center", va="bottom")
+
+ax.set_title(f"Environment: {env}")
+ax.set_xlabel("Number of robots")
+ax.set_ylabel("Distance traveled sum")
+ax.set_xticks(x)
+ax.grid(True, axis="y", alpha=0.3)
+
+fig.tight_layout()
 plt.show()
