@@ -30,4 +30,9 @@ for env in ENVIRONMENTS:
                 bufsize=1,
             )
 
-            p.wait()
+            try:
+                p.communicate(timeout=120)
+            except subprocess.TimeoutExpired:
+                print(f"Timed out: {env}, {bots} bots, test {i + 1}")
+                p.kill()
+                p.communicate()
