@@ -47,7 +47,7 @@ void CentralUnit::register_bot(const Robot::Vector &start_dir) {
   bool clockwise = true;
 
   if (!bots.empty()) {
-    clockwise = !bots.back()->clockwise_following;
+    clockwise = bots.size() % 3 == 0;
   }
 
   bots.emplace_back(std::make_shared<ExplorationBot>(

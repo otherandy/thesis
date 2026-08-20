@@ -17,7 +17,10 @@ int main(int argc, char **argv) {
   Robot::Point start_position(3.0, 3.0);
 
   unsigned long num_bots = 4;
-  Robot::Vector bot_direction = Robot::Vector(1, 0);
+  Robot::Vector EAST = Robot::Vector(1, 0);
+  Robot::Vector WEST = Robot::Vector(-1, 0);
+  Robot::Vector SOUTH = Robot::Vector(0, -1);
+  Robot::Vector NORTH = Robot::Vector(0, 1);
 
   if (argc >= 2) {
     selected_env = parse_environment(argv[1]);
@@ -31,10 +34,22 @@ int main(int argc, char **argv) {
   }
 
   for (std::size_t i = 0; i < num_bots; ++i) {
-    if (i + 1 % 4 > 2) {
-      central_unit->register_bot(-bot_direction);
+    if (i % 8 == 0) {
+      central_unit->register_bot(EAST);
+    } else if (i % 8 == 1) {
+      central_unit->register_bot(WEST);
+    } else if (i % 8 == 2) {
+      central_unit->register_bot(EAST);
+    } else if (i % 8 == 3) {
+      central_unit->register_bot(WEST);
+    } else if (i % 8 == 4) {
+      central_unit->register_bot(SOUTH);
+    } else if (i % 8 == 5) {
+      central_unit->register_bot(NORTH);
+    } else if (i % 8 == 6) {
+      central_unit->register_bot(SOUTH);
     } else {
-      central_unit->register_bot(bot_direction);
+      central_unit->register_bot(NORTH);
     }
   }
 
