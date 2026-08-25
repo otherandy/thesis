@@ -26,7 +26,7 @@ public:
   void compute_physical_obstacles(DynamicScheduler *sched);
 
   void draw(const DrawData &draw_data) const;
-  void save_to_file(const std::string &filename) const;
+  void save_to_file() const;
 
 private:
   const Robot::Point origin;

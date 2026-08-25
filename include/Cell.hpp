@@ -14,6 +14,7 @@ struct Cell {
   CellState state = CellState::Unknown;
   std::optional<std::size_t> frontier_id = std::nullopt;
   std::optional<raylib::Color> debug_color = std::nullopt;
+  std::size_t times_viewed = 0;
 
   std::array<Cell *, 8> get_neighbors(Grid2D<std::unique_ptr<Cell>> *grid);
 };

@@ -93,5 +93,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  central_unit->save_grid();
+
   return 0;
 }

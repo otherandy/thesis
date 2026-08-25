@@ -41,12 +41,14 @@ public:
   void draw_environment(const DrawData &draw_data);
 
   void report_time();
+  void save_grid();
   void save_data();
 
 private:
   CentralPhase phase = CentralPhase::Idle;
   std::vector<std::shared_ptr<ExplorationBot>> bots;
 
+  bool has_started = false;
   bool is_paused = false;
   bool test_mode = false;
 

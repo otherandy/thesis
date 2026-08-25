@@ -79,6 +79,8 @@ void OccupationGrid::mark_cell(Index2D index, CellState new_state,
     frontier_cell_count--;
   }
 
+  cell->times_viewed++;
+
   cell->state = new_state;
   return;
 }
@@ -198,7 +200,7 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
   std::vector<std::shared_ptr<FrontierRegion>> regions;
   std::unordered_set<Cell *> global_visited;
 
-  remove_dead_frontier_cells();
+  // remove_dead_frontier_cells();
 
   auto is_closed = [&](std::vector<Cell *> region, Index2D min,
                        Index2D max) -> bool {
@@ -684,7 +686,8 @@ void OccupationGrid::draw(const DrawData &draw_data) const {
   }
 }
 
-void OccupationGrid::save_to_file(const std::string &filename) const {
+void OccupationGrid::save_to_file() const {
+  const std::string filename = append_timestamp("grid", ".csv");
   ensure_parent_dir_exists(filename);
   std::ofstream f(filename);
 
@@ -694,9 +697,9 @@ void OccupationGrid::save_to_file(const std::string &filename) const {
     return;
   }
 
-  for (std::size_t y = 0; y < MAP_HEIGHT; ++y) {
-    for (std::size_t x = 0; x < MAP_WIDTH; ++x) {
-      f << static_cast<int>(grid[y][x]->state) << ",";
+  for (std::size_t y = grid_min.first; y <= grid_max.first; ++y) {
+    for (std::size_t x = grid_min.second; x <= grid_max.second; ++x) {
+      f << static_cast<int>(grid[y][x]->times_viewed) << ",";
     }
     f << "\n";
   }

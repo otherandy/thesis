@@ -242,6 +242,9 @@ void CentralUnit::run_exploration() {
   }
 
   if (phase == CentralPhase::Explore) {
+    has_started = true;
+
+    sense();
     check_collisions_during_wall();
     assign_frontier_regions();
     check_exterior();
@@ -293,11 +296,9 @@ void CentralUnit::update() {
     total_time.start();
   }
 
-  sense();
-
   run_exploration();
 
-  if (phase != CentralPhase::Complete &&
+  if (has_started && phase != CentralPhase::Complete &&
       occupation_grid->frontier_cell_count == 0 &&
       frontier_scheduler->finished()) {
     phase = CentralPhase::Complete;
@@ -326,6 +327,8 @@ void CentralUnit::draw_environment(const DrawData &draw_data) {
 void CentralUnit::report_time() {
   std::cout << "Total Time: " << total_time.get_time() << "s\n";
 }
+
+void CentralUnit::save_grid() { occupation_grid->save_to_file(); }
 
 void CentralUnit::save_data() {
   std::string filename = "data/" + append_timestamp("", ".csv");

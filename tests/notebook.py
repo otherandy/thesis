@@ -53,7 +53,7 @@ envs = total_time_s["environment"].unique()
 envs
 
 # %% --- Total time ---
-env = "cross"
+env = "Polygon2"
 
 sub = total_time_s[total_time_s["environment"] == env].sort_values("robots")
 
