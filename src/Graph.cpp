@@ -106,7 +106,7 @@ DynamicScheduler::closest(const Grid2D<std::unique_ptr<Cell>> &grid,
   }
 
   double closest_distance = std::numeric_limits<double>::max();
-  vertex_t closest_v;
+  std::optional<vertex_t> closest_v;
 
   for (auto v : vertices) {
     if (is_done(v)) {
@@ -126,8 +126,47 @@ DynamicScheduler::closest(const Grid2D<std::unique_ptr<Cell>> &grid,
     }
   }
 
-  g_[closest_v].workers++;
+  if (!closest_v.has_value()) {
+    return std::nullopt;
+  }
+
+  g_[*closest_v].workers++;
   return closest_v;
+}
+
+std::optional<vertex_t>
+DynamicScheduler::largest(const Grid2D<std::unique_ptr<Cell>> &grid) {
+  auto vertices = get_all_vertices();
+
+  if (vertices.empty()) {
+    return std::nullopt;
+  }
+
+  size_t largest_area = 0;
+  std::optional<vertex_t> biggest_v;
+
+  for (auto v : vertices) {
+    if (is_done(v)) {
+      continue;
+    }
+
+    auto vd = get_vertex_data(v);
+    const auto min = vd.region->min;
+    const auto max = vd.region->max;
+    const size_t area = (max.first - min.first) * (max.second - min.second);
+
+    if (area > largest_area) {
+      largest_area = area;
+      biggest_v = v;
+    }
+  }
+
+  if (!biggest_v.has_value()) {
+    return std::nullopt;
+  }
+
+  g_[*biggest_v].workers++;
+  return biggest_v;
 }
 
 VertexData DynamicScheduler::get_vertex_data(vertex_t v) {

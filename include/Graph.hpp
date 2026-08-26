@@ -37,6 +37,7 @@ public:
   std::optional<vertex_t> next_or_help(const std::string &strategy = "dfs");
   std::optional<vertex_t> closest(const Grid2D<std::unique_ptr<Cell>> &grid,
                                   const Robot::Point &position);
+  std::optional<vertex_t> largest(const Grid2D<std::unique_ptr<Cell>> &grid);
 
   void mark_done(vertex_t v);
   bool is_done(vertex_t v);
