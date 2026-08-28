@@ -40,7 +40,8 @@ private:
   void remove_dead_frontier_cells();
   void remove_dead_free_cells();
 
-  bool has_unknown_neighbor(const Index2D &idx);
+  bool has_neighbor_state(const Index2D &idx, CellState state);
+  Cell* find_reference(const Index2D &idx, CellState state);
 
   void mark_free_along_ray(double start_x, double start_y, double end_x,
                            double end_y, const Index2D &end_cell_index,

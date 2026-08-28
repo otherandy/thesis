@@ -62,6 +62,8 @@ void OccupationGrid::mark_cell(Index2D index, CellState new_state,
     return;
   }
 
+  cell->times_viewed++;
+
   // Don't overrite Visited cells with states other than Occupied
   if (cell->state == CellState::Visited && new_state != CellState::Occupied) {
     return;
@@ -78,8 +80,6 @@ void OccupationGrid::mark_cell(Index2D index, CellState new_state,
              new_state != CellState::Frontier) {
     frontier_cell_count--;
   }
-
-  cell->times_viewed++;
 
   cell->state = new_state;
   return;
@@ -110,7 +110,7 @@ void OccupationGrid::mark_cells(
   }
 
   for (const Index2D &idx : demoted_frontier_cells) {
-    if (has_unknown_neighbor(idx)) {
+    if (has_neighbor_state(idx, CellState::Unknown)) {
       mark_cell(idx, CellState::Frontier, true);
     }
   }
@@ -153,19 +153,32 @@ void OccupationGrid::mark_free_along_ray(
   }
 }
 
-bool OccupationGrid::has_unknown_neighbor(const Index2D &idx) {
+bool OccupationGrid::has_neighbor_state(const Index2D &idx, CellState state) {
   for (auto [dy, dx] : directions) {
     int ny = idx.first + dy;
     int nx = idx.second + dx;
 
     Cell *neighbor = grid[ny][nx].get();
 
-    if (neighbor->state == CellState::Unknown) {
+    if (neighbor->state == state) {
       return true;
     }
   }
 
   return false;
+}
+
+Cell *OccupationGrid::find_reference(const Index2D &idx, CellState state) {
+  Cell *start_cell = grid[idx.first][idx.second].get();
+  auto neighbors = start_cell->get_neighbors(&grid);
+
+  for (const auto n : neighbors) {
+    if (n->state == state) {
+      return n;
+    }
+  }
+
+  return nullptr;
 }
 
 void OccupationGrid::remove_dead_frontier_cells() {
@@ -260,6 +273,11 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 
         Cell *neighbor = grid[ny][nx].get();
 
+        if (region_set.count(neighbor) &&
+            has_neighbor_state(neighbor->index, CellState::Occupied)) {
+          return false;
+        }
+
         if (region_set.count(neighbor) ||
             neighbor->state == CellState::Occupied ||
             neighbor->state == CellState::Frontier) {
@@ -307,7 +325,7 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
         auto current_cell = to_visit.front();
         to_visit.pop();
 
-        current_cell->debug_color = raylib::GREEN;
+        // current_cell->debug_color = raylib::GREEN;
 
         region_cells.push_back(current_cell);
 
@@ -505,7 +523,7 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
 
       Cell *c = grid[y][x].get();
 
-      if (c->state != CellState::Occupied && is_not_first_state(c->state)) {
+      if (is_not_first_state(c->state)) {
         return false;
       }
 
@@ -519,7 +537,9 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
 
         Cell *neighbor = grid[ny][nx].get();
 
-        if (region_set.count(neighbor)) {
+        if (region_set.count(neighbor) ||
+            neighbor->state == CellState::Occupied ||
+            neighbor->state == CellState::Frontier) {
           continue;
         }
 
@@ -617,16 +637,6 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
       }
     }
   }
-
-  auto contains = [](const FrontierRegion &outer,
-                     const FrontierRegion &inner) -> bool {
-    return outer.min.first <= inner.min.first &&
-           outer.min.second <= inner.min.second &&
-           outer.max.first >= inner.max.first &&
-           outer.max.second >= inner.max.second;
-  };
-
-  const auto parents = sched->get_all_vertices();
 
   for (auto child : regions) {
     vertex_t id = sched->add_vertex(child);
