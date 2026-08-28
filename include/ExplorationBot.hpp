@@ -21,7 +21,7 @@ enum class ExplorationPhase {
 
 class ExplorationBot : public Bot {
 public:
-  const bool clockwise_following;
+  bool clockwise_following;
 
   ExplorationBot(std::size_t id, const Robot::Point &start_pos,
                  const Robot::Vector &start_dir, bool clockwise,

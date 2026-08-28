@@ -113,6 +113,8 @@ void CentralUnit::check_collisions_during_wall() {
           bot1->clockwise_following != bot2->clockwise_following) {
         bot1->phase = ExplorationPhase::RegionDiscovery;
         bot2->phase = ExplorationPhase::RegionDiscovery;
+        bot1->clockwise_following = !bot1->clockwise_following;
+        bot2->clockwise_following = !bot2->clockwise_following;
         break;
       }
     }
@@ -157,7 +159,10 @@ void CentralUnit::assign_frontier_regions() {
       if (!ran_compute) {
         mark_done_frontiers();
         occupation_grid->compute_physical_obstacles(physical_scheduler.get());
-        occupation_grid->compute_frontier_regions(frontier_scheduler.get());
+
+        if (occupation_grid->found_exterior) {
+          occupation_grid->compute_frontier_regions(frontier_scheduler.get());
+        }
         ran_compute = true;
       }
 

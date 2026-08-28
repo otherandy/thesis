@@ -325,7 +325,7 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
         auto current_cell = to_visit.front();
         to_visit.pop();
 
-        // current_cell->debug_color = raylib::GREEN;
+        current_cell->debug_color = raylib::GREEN;
 
         region_cells.push_back(current_cell);
 
