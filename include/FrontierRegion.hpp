@@ -20,7 +20,9 @@ struct FrontierRegion {
   get_closest_unexplored(const Grid2D<std::unique_ptr<Cell>> &grid,
                          const Robot::Point &pos) const;
 
-  bool is_done(const Grid2D<std::unique_ptr<Cell>> &grid);
+  double get_area() const;
+
+  bool is_done(const Grid2D<std::unique_ptr<Cell>> &grid) const;
 };
 
 #endif

@@ -3,9 +3,6 @@
 
 #include "FrontierRegion.hpp"
 #include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/depth_first_search.hpp>
-#include <queue>
-#include <stack>
 
 struct VertexData {
   std::size_t id;
@@ -32,12 +29,12 @@ public:
                       bool root = false);
   void add_edge(vertex_t u, vertex_t v);
 
-  std::optional<vertex_t> next(const std::string &strategy = "dfs");
-  std::optional<vertex_t> help(const std::string &strategy = "dfs");
-  std::optional<vertex_t> next_or_help(const std::string &strategy = "dfs");
+  std::optional<vertex_t> next();
+  std::optional<vertex_t> help();
+  std::optional<vertex_t> next_or_help();
   std::optional<vertex_t> closest(const Grid2D<std::unique_ptr<Cell>> &grid,
                                   const Robot::Point &position);
-  std::optional<vertex_t> largest(const Grid2D<std::unique_ptr<Cell>> &grid);
+  std::optional<vertex_t> largest_approx(const Grid2D<std::unique_ptr<Cell>> &grid);
 
   void mark_done(vertex_t v);
   bool is_done(vertex_t v);
@@ -56,13 +53,9 @@ private:
   std::vector<Vector2> positions_;
   bool layout_dirty_ = true;
 
-  std::optional<vertex_t> pop_dfs();
-  std::optional<vertex_t> pop_bfs();
-
   Graph g_;
   std::mutex mutex_;
-  std::stack<vertex_t> dfs_stack_;
-  std::queue<vertex_t> bfs_queue_;
+  std::vector<vertex_t> dfs_stack_;
   std::size_t time_;
   std::size_t next_id_ = 0;
 };

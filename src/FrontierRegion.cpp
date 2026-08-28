@@ -23,7 +23,11 @@ std::optional<Robot::Point> FrontierRegion::get_closest_unexplored(
   return closest_point;
 }
 
-bool FrontierRegion::is_done(const Grid2D<std::unique_ptr<Cell>> &grid) {
+double FrontierRegion::get_area() const {
+  return (max.first - min.first) * (max.second - min.second);
+}
+
+bool FrontierRegion::is_done(const Grid2D<std::unique_ptr<Cell>> &grid) const {
   for (const Index2D idx : cells) {
     const Cell *cell = grid[idx.first][idx.second].get();
 

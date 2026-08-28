@@ -1,4 +1,6 @@
 #include "Graph.hpp"
+#include <algorithm>
+#include <optional>
 
 vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region,
                                       bool root) {
@@ -21,8 +23,7 @@ void DynamicScheduler::add_edge(vertex_t u, vertex_t v) {
 
   if (g_[v].color == VertexData::Color::White) {
     g_[v].color = VertexData::Color::Gray;
-    dfs_stack_.push(v);
-    bfs_queue_.push(v);
+    dfs_stack_.emplace_back(v);
   }
 }
 
@@ -38,19 +39,34 @@ bool DynamicScheduler::is_done(vertex_t v) {
   return g_[v].color == VertexData::Color::Black;
 }
 
-std::optional<vertex_t> DynamicScheduler::next(const std::string &strategy) {
+std::optional<vertex_t> DynamicScheduler::next() {
   std::lock_guard<std::mutex> lg(mutex_);
   std::optional<vertex_t> vopt;
 
-  if (strategy == "dfs") {
-    vopt = pop_dfs();
-  } else if (strategy == "bfs") {
-    vopt = pop_bfs();
+  auto results(dfs_stack_);
+
+  auto compare = [&](vertex_t v1, vertex_t v2) {
+    auto v1d = get_vertex_data(v1);
+    const double area1 = v1d.region->get_area();
+
+    auto v2d = get_vertex_data(v2);
+    const double area2 = v2d.region->get_area();
+
+    return area1 > area2;
+  };
+
+  if (!results.empty()) {
+    std::sort(results.begin(), results.end(), compare);
+    vopt = results.front();
   }
 
   if (!vopt.has_value()) {
     return std::nullopt;
   }
+
+  dfs_stack_.erase(std::remove_if(dfs_stack_.begin(), dfs_stack_.end(),
+                                  [&](vertex_t v) { return v == *vopt; }),
+                   dfs_stack_.end());
 
   vertex_t v = *vopt;
 
@@ -59,7 +75,7 @@ std::optional<vertex_t> DynamicScheduler::next(const std::string &strategy) {
   return v;
 }
 
-std::optional<vertex_t> DynamicScheduler::help(const std::string &strategy) {
+std::optional<vertex_t> DynamicScheduler::help() {
   std::lock_guard<std::mutex> lg(mutex_);
 
   auto vertices = get_all_vertices();
@@ -85,12 +101,11 @@ std::optional<vertex_t> DynamicScheduler::help(const std::string &strategy) {
   return v;
 }
 
-std::optional<vertex_t>
-DynamicScheduler::next_or_help(const std::string &strategy) {
-  auto vopt = next(strategy);
+std::optional<vertex_t> DynamicScheduler::next_or_help() {
+  auto vopt = next();
 
   if (!vopt.has_value()) {
-    vopt = help(strategy);
+    vopt = help();
   }
 
   return vopt;
@@ -135,7 +150,7 @@ DynamicScheduler::closest(const Grid2D<std::unique_ptr<Cell>> &grid,
 }
 
 std::optional<vertex_t>
-DynamicScheduler::largest(const Grid2D<std::unique_ptr<Cell>> &grid) {
+DynamicScheduler::largest_approx(const Grid2D<std::unique_ptr<Cell>> &grid) {
   auto vertices = get_all_vertices();
 
   if (vertices.empty()) {
@@ -151,9 +166,7 @@ DynamicScheduler::largest(const Grid2D<std::unique_ptr<Cell>> &grid) {
     }
 
     auto vd = get_vertex_data(v);
-    const auto min = vd.region->min;
-    const auto max = vd.region->max;
-    const size_t area = (max.first - min.first) * (max.second - min.second);
+    const double area = vd.region->get_area();
 
     if (area > largest_area) {
       largest_area = area;
@@ -189,28 +202,6 @@ bool DynamicScheduler::finished() {
     }
   }
   return true;
-}
-
-std::optional<vertex_t> DynamicScheduler::pop_dfs() {
-  while (!dfs_stack_.empty()) {
-    vertex_t v = dfs_stack_.top();
-    dfs_stack_.pop();
-    if (g_[v].color == VertexData::Color::Gray) {
-      return v;
-    }
-  }
-  return std::nullopt;
-}
-
-std::optional<vertex_t> DynamicScheduler::pop_bfs() {
-  while (!bfs_queue_.empty()) {
-    vertex_t v = bfs_queue_.front();
-    bfs_queue_.pop();
-    if (g_[v].color == VertexData::Color::Gray) {
-      return v;
-    }
-  }
-  return std::nullopt;
 }
 
 void DynamicScheduler::ensure_layout(int screenW, int screenH) {
