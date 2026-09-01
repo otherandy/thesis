@@ -40,7 +40,6 @@ bool DynamicScheduler::is_done(vertex_t v) {
 }
 
 std::optional<vertex_t> DynamicScheduler::next() {
-  std::lock_guard<std::mutex> lg(mutex_);
   std::optional<vertex_t> vopt;
 
   auto results(dfs_stack_);

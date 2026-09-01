@@ -9,6 +9,6 @@
     "program": "$ZED_WORKTREE_ROOT/build/ExplorationBot",
     "request": "launch",
     "adapter": "CodeLLDB",
-    "args": ["room", "2"]
+    "args": ["room", "4"]
   }
 ]
