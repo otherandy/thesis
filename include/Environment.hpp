@@ -20,6 +20,7 @@ enum class EnvironmentPreset {
   Square2WithHole,
   Square4,
   Square4WithHoles,
+  Maze,
   Corridor,
   Legs,
   Star,
@@ -125,6 +126,33 @@ constexpr std::size_t SQUARE4_HOLE_SIZE_LIST[] = {
     sizeof(SQUARE4_HOLE10_DATA) / sizeof(SQUARE4_HOLE10_DATA[0]),
     sizeof(SQUARE4_HOLE11_DATA) / sizeof(SQUARE4_HOLE11_DATA[0]),
     sizeof(SQUARE4_HOLE12_DATA) / sizeof(SQUARE4_HOLE12_DATA[0]),
+};
+
+constexpr EnvData MAZE_HOLE1_DATA[] = {{5, 0}, {5, 2}, {6, 2}, {6, 0}};
+constexpr EnvData MAZE_HOLE2_DATA[] = {{8, 0}, {8, 4}, {5, 4},
+                                       {5, 5}, {9, 5}, {9, 0}};
+constexpr EnvData MAZE_HOLE3_DATA[] = {{2, 4},  {3, 4},  {3, 7},  {11, 7},
+                                       {11, 0}, {12, 0}, {12, 8}, {2, 8}};
+constexpr EnvData MAZE_HOLE4_DATA[] = {{18, 4}, {14, 4}, {14, 2}, {18, 2}};
+constexpr EnvData MAZE_HOLE5_DATA[] = {{17, 9}, {18, 9}, {18, 18}, {17, 18}};
+constexpr EnvData MAZE_HOLE6_DATA[] = {{2, 17}, {2, 18}, {15, 18}, {15, 7},
+                                       {18, 7}, {18, 6}, {14, 6},  {14, 17}};
+constexpr EnvData MAZE_HOLE7_DATA[] = {{0, 10}, {5, 10},  {5, 12},  {7, 12},
+                                       {7, 10}, {12, 10}, {12, 15}, {7, 15},
+                                       {7, 13}, {5, 13},  {5, 15},  {0, 15}};
+
+constexpr const EnvData *MAZE_HOLE_DATA_LIST[] = {
+    MAZE_HOLE1_DATA, MAZE_HOLE2_DATA, MAZE_HOLE3_DATA, MAZE_HOLE4_DATA,
+    MAZE_HOLE5_DATA, MAZE_HOLE6_DATA, MAZE_HOLE7_DATA,
+};
+constexpr std::size_t MAZE_HOLE_SIZE_LIST[] = {
+    sizeof(MAZE_HOLE1_DATA) / sizeof(MAZE_HOLE1_DATA[0]),
+    sizeof(MAZE_HOLE2_DATA) / sizeof(MAZE_HOLE2_DATA[0]),
+    sizeof(MAZE_HOLE3_DATA) / sizeof(MAZE_HOLE3_DATA[0]),
+    sizeof(MAZE_HOLE4_DATA) / sizeof(MAZE_HOLE4_DATA[0]),
+    sizeof(MAZE_HOLE5_DATA) / sizeof(MAZE_HOLE5_DATA[0]),
+    sizeof(MAZE_HOLE6_DATA) / sizeof(MAZE_HOLE6_DATA[0]),
+    sizeof(MAZE_HOLE7_DATA) / sizeof(MAZE_HOLE7_DATA[0]),
 };
 
 constexpr EnvData POLYGON2_HOLE1_DATA[] = {
@@ -277,6 +305,11 @@ get_selected_environment_data(EnvironmentPreset preset) {
             sizeof(SQUARE4_ENV_DATA) / sizeof(SQUARE4_ENV_DATA[0]),
             SQUARE4_HOLE_DATA_LIST, SQUARE4_HOLE_SIZE_LIST,
             sizeof(SQUARE4_HOLE_DATA_LIST) / sizeof(SQUARE4_HOLE_DATA_LIST[0])};
+  case EnvironmentPreset::Maze:
+    return {SQUARE2_ENV_DATA,
+            sizeof(SQUARE2_ENV_DATA) / sizeof(SQUARE2_ENV_DATA[0]),
+            MAZE_HOLE_DATA_LIST, MAZE_HOLE_SIZE_LIST,
+            sizeof(MAZE_HOLE_DATA_LIST) / sizeof(MAZE_HOLE_DATA_LIST[0])};
   case EnvironmentPreset::Corridor:
     return {CORRIDOR_DATA, sizeof(CORRIDOR_DATA) / sizeof(CORRIDOR_DATA[0]),
             NO_HOLE_DATA, 0};
