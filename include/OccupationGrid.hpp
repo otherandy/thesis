@@ -22,6 +22,7 @@ public:
   void mark_cells(const Robot::Point &relative_position,
                   const std::array<Reading, LIDAR_SAMPLES> &readings);
 
+  void clean_cells();
   void compute_frontier_regions(DynamicScheduler *sched);
   void compute_physical_obstacles(DynamicScheduler *sched);
 

@@ -165,6 +165,7 @@ void CentralUnit::assign_frontier_regions() {
     if (bot->phase == ExplorationPhase::RegionDiscovery) {
       if (!ran_compute) {
         mark_done_frontiers();
+        occupation_grid->clean_cells();
         occupation_grid->compute_physical_obstacles(physical_scheduler.get());
 
         if (occupation_grid->found_exterior) {

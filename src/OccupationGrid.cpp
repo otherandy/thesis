@@ -179,6 +179,11 @@ Cell *OccupationGrid::find_reference(const Index2D &idx, CellState state) {
   return nullptr;
 }
 
+void OccupationGrid::clean_cells() {
+  remove_dead_free_cells();
+  remove_dead_frontier_cells();
+}
+
 void OccupationGrid::remove_dead_frontier_cells() {
   for (std::size_t y = grid_min.first; y <= grid_max.first; ++y) {
     for (std::size_t x = grid_min.second; x <= grid_max.second; ++x) {
@@ -199,8 +204,6 @@ void OccupationGrid::remove_dead_frontier_cells() {
 void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
   std::vector<std::shared_ptr<FrontierRegion>> regions;
   std::unordered_set<Cell *> global_visited;
-
-  remove_dead_frontier_cells();
 
   auto is_closed = [&](std::vector<Cell *> region, Index2D min,
                        Index2D max) -> bool {
@@ -473,8 +476,6 @@ void OccupationGrid::remove_dead_free_cells() {
 void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
   std::vector<std::shared_ptr<FrontierRegion>> regions;
   std::unordered_set<Cell *> global_visited;
-
-  remove_dead_free_cells();
 
   auto is_closed = [&](std::vector<Cell *> region, Index2D min,
                        Index2D max) -> bool {
