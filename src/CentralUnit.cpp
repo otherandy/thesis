@@ -148,6 +148,10 @@ void CentralUnit::assign_frontier_regions() {
     auto vd = frontier_scheduler->get_vertex_data(b->target_vertex);
     auto *r = vd.region.get();
 
+    if (r->is_done(*occupation_grid->get_data())) {
+      return std::nullopt;
+    }
+
     const Robot::Point rp = b->get_relative_position(occupation_grid.get());
     const auto grid = occupation_grid->get_data();
     const auto tp = r->get_closest_unexplored(*grid, rp);
