@@ -525,8 +525,16 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
 
         Cell *neighbor = grid[ny][nx].get();
 
-        if (region_set.count(neighbor) ||
-            neighbor->state == CellState::Occupied ||
+        if (region_set.count(neighbor)) {
+          continue;
+        }
+
+        if (first_state == CellState::Unknown &&
+            neighbor->state == CellState::Frontier) {
+          return false;
+        }
+
+        if (neighbor->state == CellState::Occupied ||
             neighbor->state == CellState::Frontier) {
           continue;
         }
