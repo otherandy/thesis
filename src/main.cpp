@@ -4,8 +4,8 @@
 #include <memory>
 
 int main(int argc, char **argv) {
-  const int WINDOW_WIDTH = 800 * 2;
-  const int WINDOW_HEIGHT = 600;
+  const int WINDOW_WIDTH = 400 * 2;
+  const int WINDOW_HEIGHT = 300;
   const int FRAME_RATE = 60;
   const std::string WINDOW_TITLE = "Exploration Bot Simulation";
 

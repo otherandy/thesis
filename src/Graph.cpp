@@ -3,11 +3,16 @@
 #include <optional>
 
 vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region,
+                                      const Grid2D<std::unique_ptr<Cell>> &grid,
                                       bool root) {
   std::lock_guard<std::mutex> lg(mutex_);
 
+  const double area = region->get_area_slow(grid);
+
   vertex_t v = boost::add_vertex(
-      VertexData{next_id_++, std::move(region), VertexData::Color::White}, g_);
+      VertexData{next_id_++, std::move(region), VertexData::Color::White, area},
+      g_);
+
   layout_dirty_ = true;
 
   if (root) {
@@ -46,12 +51,9 @@ std::optional<vertex_t> DynamicScheduler::next() {
 
   auto compare = [&](vertex_t v1, vertex_t v2) {
     auto v1d = get_vertex_data(v1);
-    const double area1 = v1d.region->get_area();
-
     auto v2d = get_vertex_data(v2);
-    const double area2 = v2d.region->get_area();
 
-    return area1 > area2;
+    return v1d.area > v2d.area;
   };
 
   if (!results.empty()) {
@@ -271,7 +273,7 @@ void DynamicScheduler::draw(int screenW, int screenH) {
     DrawText(TextFormat("%zu", data.id), (int)(p.x - 10), (int)(p.y - 7), 10,
              BLACK);
 
-    DrawText(TextFormat("%zu", data.workers), (int)(p.x + 4), (int)(p.y + 1),
-             10, BLACK);
+    DrawText(TextFormat("%.2f", data.area), (int)(p.x + 4), (int)(p.y + 1), 10,
+             BLACK);
   }
 }

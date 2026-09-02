@@ -32,7 +32,10 @@ void CentralUnit::reset(EnvironmentPreset selected_env,
   auto outer_wall = std::make_shared<FrontierRegion>();
   outer_wall->min = std::make_pair(0, 0);
   outer_wall->max = std::make_pair(MAP_HEIGHT, MAP_WIDTH);
-  frontier_scheduler->add_vertex(outer_wall, true);
+  outer_wall->physical = true;
+
+  frontier_scheduler->add_vertex(outer_wall, *occupation_grid->get_data(),
+                                 true);
 
   for (auto bot : bots) {
     bot->reset();

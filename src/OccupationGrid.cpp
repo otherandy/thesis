@@ -154,13 +154,11 @@ void OccupationGrid::mark_free_along_ray(
 }
 
 bool OccupationGrid::has_neighbor_state(const Index2D &idx, CellState state) {
-  for (auto [dy, dx] : directions) {
-    int ny = idx.first + dy;
-    int nx = idx.second + dx;
+  Cell *start_cell = grid[idx.first][idx.second].get();
+  auto neighbors = start_cell->get_neighbors(&grid);
 
-    Cell *neighbor = grid[ny][nx].get();
-
-    if (neighbor->state == state) {
+  for (const auto n : neighbors) {
+    if (n->state == state) {
       return true;
     }
   }
@@ -206,6 +204,12 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 
   auto is_closed = [&](std::vector<Cell *> region, Index2D min,
                        Index2D max) -> bool {
+    for (Cell *cell : region) {
+      if (has_neighbor_state(cell->index, CellState::Occupied)) {
+        return false;
+      }
+    }
+
     auto key = [](int y, int x) {
       return (static_cast<uint64_t>(y) << 32) | static_cast<uint32_t>(x);
     };
@@ -262,14 +266,9 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 
         Cell *neighbor = grid[ny][nx].get();
 
-        if (region_set.count(neighbor) &&
-            has_neighbor_state(neighbor->index, CellState::Occupied)) {
-          return false;
-        }
-
         if (region_set.count(neighbor) ||
-            neighbor->state == CellState::Occupied ||
-            neighbor->state == CellState::Frontier) {
+            neighbor->state == CellState::Frontier ||
+            neighbor->state == CellState::Occupied) {
           continue;
         }
 
@@ -377,7 +376,7 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
   const auto parents = sched->get_all_vertices();
 
   for (auto child : regions) {
-    vertex_t id = sched->add_vertex(child);
+    vertex_t id = sched->add_vertex(child, *get_data());
 
     for (auto idx : child->cells) {
       Cell *cell = grid[idx.first][idx.second].get();
@@ -622,13 +621,14 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
 
         new_region->min = min;
         new_region->max = max;
+        new_region->physical = true;
         regions.push_back(std::move(new_region));
       }
     }
   }
 
   for (auto child : regions) {
-    vertex_t id = sched->add_vertex(child);
+    vertex_t id = sched->add_vertex(child, grid);
 
     for (auto idx : child->cells) {
       Cell *cell = grid[idx.first][idx.second].get();

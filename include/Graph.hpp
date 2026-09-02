@@ -10,6 +10,7 @@ struct VertexData {
 
   enum class Color { White, Gray, Black } color = Color::White;
 
+  double area = 0.0;
   std::size_t workers = 0;
 };
 
@@ -26,6 +27,7 @@ public:
   DynamicScheduler() {}
 
   vertex_t add_vertex(std::shared_ptr<FrontierRegion> region,
+                      const Grid2D<std::unique_ptr<Cell>> &grid,
                       bool root = false);
   void add_edge(vertex_t u, vertex_t v);
 
@@ -34,7 +36,8 @@ public:
   std::optional<vertex_t> next_or_help();
   std::optional<vertex_t> closest(const Grid2D<std::unique_ptr<Cell>> &grid,
                                   const Robot::Point &position);
-  std::optional<vertex_t> largest_approx(const Grid2D<std::unique_ptr<Cell>> &grid);
+  std::optional<vertex_t>
+  largest_approx(const Grid2D<std::unique_ptr<Cell>> &grid);
 
   void mark_done(vertex_t v);
   bool is_done(vertex_t v);
