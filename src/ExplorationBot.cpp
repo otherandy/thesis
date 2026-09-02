@@ -368,13 +368,8 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
 
   const bool is_blocked = path_blocked_to(desired_vector);
 
-  if (is_blocked || (started_surround && distance > goal_distance)) {
-    if (!started_surround) {
-      goal_distance = distance;
-      started_surround = true;
-    }
-
-    desired_vector = compute_wall_following_vector(grid);
+  if (is_blocked) {
+    phase = ExplorationPhase::RegionAlignment;
   }
 
   move(desired_vector);
