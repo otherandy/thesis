@@ -74,26 +74,28 @@ FrontierRegion::get_area_slow(const Grid2D<std::unique_ptr<Cell>> &grid) const {
     return (static_cast<uint64_t>(y) << 32) | static_cast<uint32_t>(x);
   };
 
-  std::queue<Index2D> q;
+  std::queue<Cell *> q;
   std::unordered_set<uint64_t> visited;
 
-  q.push(cells[0]);
-  visited.insert(key(cells[0].first, cells[0].second));
+  q.push(reference_cell);
+  visited.insert(
+      key(reference_cell->index.first, reference_cell->index.second));
 
   while (!q.empty()) {
-    const Index2D idx = q.front();
+    Cell *cell = q.front();
     q.pop();
 
-    Cell *cell = grid[idx.first][idx.second].get();
     area += CELL_SIZE;
 
     for (auto [dy, dx] : directions) {
-      int ny = idx.first + dy;
-      int nx = idx.second + dx;
+      int ny = cell->index.first + dy;
+      int nx = cell->index.second + dx;
+
+      Cell *neighbor = grid[ny][nx].get();
 
       if (visited.insert(key(ny, nx)).second &&
-          grid[ny][nx].get()->state == CellState::Unknown) {
-        q.push({ny, nx});
+          neighbor->state == CellState::Unknown) {
+        q.push(neighbor);
       }
     }
   }
