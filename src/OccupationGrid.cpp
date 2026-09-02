@@ -208,8 +208,12 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
   auto is_closed = [&](std::vector<Cell *> region, Index2D min,
                        Index2D max) -> bool {
     for (Cell *cell : region) {
-      if (has_neighbor_state(cell->index, CellState::Occupied)) {
-        return false;
+      auto neighbors = cell->get_neighbors(&grid);
+
+      for (const auto n : neighbors) {
+        if (n->frontier_id.has_value() || n->state == CellState::Occupied) {
+          return false;
+        }
       }
     }
 
