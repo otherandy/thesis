@@ -7,8 +7,8 @@
 
 using EnvData = std::pair<double, double>;
 
-constexpr double ENV_WIDTH = 24;
-constexpr double ENV_HEIGHT = 24;
+constexpr double ENV_WIDTH = 40;
+constexpr double ENV_HEIGHT = 40;
 
 enum class EnvironmentPreset {
   Polygon,
@@ -18,6 +18,8 @@ enum class EnvironmentPreset {
   Triangle,
   Custom,
   Square2WithHole,
+  Square4,
+  Square4WithHoles,
   Corridor,
   Legs,
   Star,
@@ -74,6 +76,55 @@ constexpr const EnvData *SQUARE2_HOLE_DATA_LIST[] = {
 };
 constexpr std::size_t SQUARE2_HOLE_SIZE_LIST[] = {
     sizeof(SQUARE2_HOLE_DATA) / sizeof(SQUARE2_HOLE_DATA[0]),
+};
+
+constexpr const EnvData SQUARE4_ENV_DATA[] = {
+    {0, 0},
+    {0, 40},
+    {40, 40},
+    {40, 0},
+};
+
+constexpr EnvData SQUARE4_HOLE1_DATA[] = {{6, 6}, {6, 11}, {7, 11}, {7, 6}};
+constexpr EnvData SQUARE4_HOLE2_DATA[] = {{6, 14}, {6, 19}, {7, 19}, {7, 14}};
+constexpr EnvData SQUARE4_HOLE3_DATA[] = {{6, 21}, {6, 26}, {7, 26}, {7, 21}};
+constexpr EnvData SQUARE4_HOLE4_DATA[] = {{6, 29}, {6, 34}, {7, 34}, {7, 29}};
+constexpr EnvData SQUARE4_HOLE5_DATA[] = {{13, 8}, {13, 9}, {14, 9}, {14, 8}};
+constexpr EnvData SQUARE4_HOLE6_DATA[] = {
+    {13, 16}, {13, 17}, {14, 17}, {14, 16}};
+constexpr EnvData SQUARE4_HOLE7_DATA[] = {
+    {13, 23}, {13, 24}, {14, 24}, {14, 23}};
+constexpr EnvData SQUARE4_HOLE8_DATA[] = {
+    {13, 31}, {13, 32}, {14, 32}, {14, 31}};
+constexpr EnvData SQUARE4_HOLE9_DATA[] = {{22, 10}, {23, 7}, {24, 7}, {25, 10}};
+constexpr EnvData SQUARE4_HOLE10_DATA[] = {
+    {22, 30}, {23, 33}, {24, 33}, {25, 30}};
+constexpr EnvData SQUARE4_HOLE11_DATA[] = {
+    {22, 18}, {23, 19}, {22, 20}, {23, 21}, {22, 22}, {23, 23}, {24, 23},
+    {25, 22}, {24, 21}, {25, 20}, {24, 19}, {25, 18}, {24, 17}, {23, 17}};
+constexpr EnvData SQUARE4_HOLE12_DATA[] = {
+    {31, 24}, {32, 26}, {30, 27}, {32, 27}, {33, 29},
+    {34, 27}, {36, 27}, {34, 26}, {35, 24}, {33, 25}};
+
+constexpr const EnvData *SQUARE4_HOLE_DATA_LIST[] = {
+    SQUARE4_HOLE1_DATA,  SQUARE4_HOLE2_DATA,  SQUARE4_HOLE3_DATA,
+    SQUARE4_HOLE4_DATA,  SQUARE4_HOLE5_DATA,  SQUARE4_HOLE6_DATA,
+    SQUARE4_HOLE7_DATA,  SQUARE4_HOLE8_DATA,  SQUARE4_HOLE9_DATA,
+    SQUARE4_HOLE10_DATA, SQUARE4_HOLE11_DATA, SQUARE4_HOLE12_DATA,
+};
+constexpr std::size_t SQUARE4_HOLE_SIZE_LIST[] = {
+    sizeof(SQUARE4_HOLE1_DATA) / sizeof(SQUARE4_HOLE1_DATA[0]),
+    sizeof(SQUARE4_HOLE2_DATA) / sizeof(SQUARE4_HOLE2_DATA[0]),
+    sizeof(SQUARE4_HOLE3_DATA) / sizeof(SQUARE4_HOLE3_DATA[0]),
+    sizeof(SQUARE4_HOLE4_DATA) / sizeof(SQUARE4_HOLE4_DATA[0]),
+    sizeof(SQUARE4_HOLE5_DATA) / sizeof(SQUARE4_HOLE5_DATA[0]),
+    sizeof(SQUARE4_HOLE6_DATA) / sizeof(SQUARE4_HOLE6_DATA[0]),
+    sizeof(SQUARE4_HOLE7_DATA) / sizeof(SQUARE4_HOLE7_DATA[0]),
+    sizeof(SQUARE4_HOLE8_DATA) / sizeof(SQUARE4_HOLE8_DATA[0]),
+    sizeof(SQUARE4_HOLE9_DATA) / sizeof(SQUARE4_HOLE9_DATA[0]),
+    sizeof(SQUARE4_HOLE10_DATA) / sizeof(SQUARE4_HOLE10_DATA[0]),
+    sizeof(SQUARE4_HOLE11_DATA) / sizeof(SQUARE4_HOLE11_DATA[0]),
+    sizeof(SQUARE4_HOLE12_DATA) / sizeof(SQUARE4_HOLE12_DATA[0]),
 };
 
 constexpr EnvData POLYGON2_HOLE1_DATA[] = {
@@ -217,6 +268,15 @@ get_selected_environment_data(EnvironmentPreset preset) {
             sizeof(SQUARE2_ENV_DATA) / sizeof(SQUARE2_ENV_DATA[0]),
             SQUARE2_HOLE_DATA_LIST, SQUARE2_HOLE_SIZE_LIST,
             sizeof(SQUARE2_HOLE_DATA_LIST) / sizeof(SQUARE2_HOLE_DATA_LIST[0])};
+  case EnvironmentPreset::Square4:
+    return {SQUARE4_ENV_DATA,
+            sizeof(SQUARE4_ENV_DATA) / sizeof(SQUARE4_ENV_DATA[0]),
+            NO_HOLE_DATA, 0};
+  case EnvironmentPreset::Square4WithHoles:
+    return {SQUARE4_ENV_DATA,
+            sizeof(SQUARE4_ENV_DATA) / sizeof(SQUARE4_ENV_DATA[0]),
+            SQUARE4_HOLE_DATA_LIST, SQUARE4_HOLE_SIZE_LIST,
+            sizeof(SQUARE4_HOLE_DATA_LIST) / sizeof(SQUARE4_HOLE_DATA_LIST[0])};
   case EnvironmentPreset::Corridor:
     return {CORRIDOR_DATA, sizeof(CORRIDOR_DATA) / sizeof(CORRIDOR_DATA[0]),
             NO_HOLE_DATA, 0};

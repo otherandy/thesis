@@ -22,6 +22,12 @@ EnvironmentPreset parse_environment(const std::string &name) {
   if (name == "square2withhole") {
     return EnvironmentPreset::Square2WithHole;
   }
+  if (name == "square4") {
+    return EnvironmentPreset::Square4;
+  }
+  if (name == "square4withholes") {
+    return EnvironmentPreset::Square4WithHoles;
+  }
   if (name == "corridor") {
     return EnvironmentPreset::Corridor;
   }
@@ -63,6 +69,10 @@ std::string get_environment_name(EnvironmentPreset preset) {
     return "Custom";
   case EnvironmentPreset::Square2WithHole:
     return "Square2 With Hole";
+  case EnvironmentPreset::Square4:
+    return "Square4";
+  case EnvironmentPreset::Square4WithHoles:
+    return "Square4 With Holes";
   case EnvironmentPreset::Corridor:
     return "Corridor";
   case EnvironmentPreset::Legs:
