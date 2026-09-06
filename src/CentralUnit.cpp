@@ -245,6 +245,21 @@ void CentralUnit::check_exterior() {
   }
 }
 
+bool CentralUnit::has_completed() {
+  if (frontier_scheduler->finished()) {
+    for (auto bot : bots) {
+      if (bot->phase != ExplorationPhase::Idle) {
+        return false;
+      }
+    }
+
+    phase = CentralPhase::Complete;
+    return true;
+  }
+
+  return false;
+}
+
 void CentralUnit::run_exploration() {
   if (phase == CentralPhase::Complete) {
     return;
@@ -255,8 +270,6 @@ void CentralUnit::run_exploration() {
   }
 
   if (phase == CentralPhase::Explore) {
-    has_started = true;
-
     sense();
     check_collisions_during_wall();
     assign_frontier_regions();
@@ -275,6 +288,10 @@ void CentralUnit::run_exploration() {
 
     for (auto &job : jobs) {
       job.get();
+    }
+
+    if (has_completed()) {
+      report_time();
     }
   }
 }
@@ -310,13 +327,6 @@ void CentralUnit::update() {
   }
 
   run_exploration();
-
-  if (has_started && phase != CentralPhase::Complete &&
-      occupation_grid->frontier_cell_count == 0 &&
-      frontier_scheduler->finished()) {
-    phase = CentralPhase::Complete;
-    report_time();
-  }
 }
 
 void CentralUnit::draw(const DrawData &draw_data) {

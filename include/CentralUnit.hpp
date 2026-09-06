@@ -48,7 +48,6 @@ private:
   CentralPhase phase = CentralPhase::Idle;
   std::vector<std::shared_ptr<ExplorationBot>> bots;
 
-  bool has_started = false;
   bool is_paused = false;
   bool test_mode = false;
 
@@ -63,6 +62,7 @@ private:
   void mark_done_frontiers();
   void assign_frontier_regions();
   void check_exterior();
+  bool has_completed();
 
   void run_exploration();
 };
