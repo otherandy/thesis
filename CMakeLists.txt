@@ -14,7 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(CGAL REQUIRED)
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
 
 if(TARGET Boost::headers)
   set(BOOST_TARGET Boost::headers)
@@ -76,6 +76,7 @@ target_link_libraries(
   PRIVATE
     CGAL::CGAL
     ${BOOST_TARGET}
+    Boost::program_options
     raylib
     raylib_cpp
 )

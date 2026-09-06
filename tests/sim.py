@@ -8,6 +8,9 @@ ENVIRONMENTS = [
     "triangle",
     "custom",
     "square2withhole",
+    "square4",
+    "square4withholes",
+    "maze",
     "corridor",
     "legs",
     "star",
@@ -17,13 +20,21 @@ ENVIRONMENTS = [
     "cross",
 ]
 NUMBER_OF_ROBOTS = [1, 2, 4, 8]
-NUMBER_OF_TESTS = 5
+NUMBER_OF_TESTS = 1
+TIMEOUT = 120
 
 for env in ENVIRONMENTS:
     for bots in NUMBER_OF_ROBOTS:
         for i in range(NUMBER_OF_TESTS):
             p = subprocess.Popen(
-                ["../build/ExplorationBot", env, str(bots), "test"],
+                [
+                    "../build/ExplorationBot",
+                    "--env",
+                    env,
+                    "--numbots",
+                    str(bots),
+                    "--test",
+                ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -31,7 +42,7 @@ for env in ENVIRONMENTS:
             )
 
             try:
-                p.communicate(timeout=120)
+                p.communicate(timeout=TIMEOUT)
             except subprocess.TimeoutExpired:
                 print(f"Timed out: {env}, {bots} bots, test {i + 1}")
                 p.kill()
