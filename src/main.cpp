@@ -34,7 +34,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  const int WINDOW_WIDTH = vm.count("width") ? vm["width"].as<int>() : 800 * 2;
+  const int WINDOW_WIDTH =
+      vm.count("width") ? vm["width"].as<int>() * 2 : 800 * 2;
   const int WINDOW_HEIGHT = vm.count("height") ? vm["height"].as<int>() : 600;
   const int FRAME_RATE = 60;
   const std::string WINDOW_TITLE = "Exploration Bot Simulation";

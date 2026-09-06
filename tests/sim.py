@@ -22,6 +22,8 @@ ENVIRONMENTS = [
 NUMBER_OF_ROBOTS = [1, 2, 4, 8]
 NUMBER_OF_TESTS = 1
 TIMEOUT = 120
+WIDTH = 400
+HEIGHT = 300
 
 for env in ENVIRONMENTS:
     for bots in NUMBER_OF_ROBOTS:
@@ -29,6 +31,10 @@ for env in ENVIRONMENTS:
             p = subprocess.Popen(
                 [
                     "../build/ExplorationBot",
+                    "--width",
+                    str(WIDTH),
+                    "--height",
+                    str(HEIGHT),
                     "--env",
                     env,
                     "--numbots",
