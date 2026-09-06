@@ -243,6 +243,8 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
       visited.insert(key(max_y, max_x));
     }
 
+    std::size_t unknown_found = 0;
+
     while (!q.empty()) {
       auto [y, x] = q.front();
       q.pop();
@@ -250,7 +252,11 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
       Cell *c = grid[y][x].get();
 
       if (c->state == CellState::Unknown) {
-        return false;
+        unknown_found++;
+
+        if (unknown_found > 1) {
+          return false;
+        }
       }
 
       c->debug_color = raylib::PINK;
