@@ -42,11 +42,10 @@ private:
   void remove_dead_free_cells();
 
   bool has_neighbor_state(const Index2D &idx, CellState state);
-  Cell* find_reference(const Index2D &idx, CellState state);
+  Cell *find_reference(const Index2D &idx, CellState state);
 
   void mark_free_along_ray(double start_x, double start_y, double end_x,
-                           double end_y, const Index2D &end_cell_index,
-                           std::vector<Index2D> &demoted_frontier_cells);
+                           double end_y, const Index2D &end_cell_index);
   void mark_cell(Index2D index, CellState new_state, bool force_change = false);
 
   void draw_cell(Index2D index, const DrawData &draw_data) const;

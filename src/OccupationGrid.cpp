@@ -44,19 +44,6 @@ void OccupationGrid::mark_cell(Index2D index, CellState new_state,
 
   Cell *cell = grid[index.first][index.second].get();
 
-  if (force_change) {
-    if (cell->state != CellState::Frontier &&
-        new_state == CellState::Frontier) {
-      frontier_cell_count++;
-    } else if (cell->state == CellState::Frontier &&
-               new_state != CellState::Frontier) {
-      frontier_cell_count--;
-    }
-
-    cell->state = new_state;
-    return;
-  }
-
   // Don't overwrite Occupied cells
   if (cell->state == CellState::Occupied) {
     return;
@@ -69,8 +56,9 @@ void OccupationGrid::mark_cell(Index2D index, CellState new_state,
     return;
   }
 
-  // Don't mark known cells as Frontier
-  if (cell->state == CellState::Free && new_state == CellState::Frontier) {
+  // Don't mark known cells as Frontier except when forced
+  if (cell->state == CellState::Free && new_state == CellState::Frontier &&
+      !force_change) {
     return;
   }
 
@@ -94,7 +82,7 @@ void OccupationGrid::mark_cells(
   const Index2D relative_cell_index = get_cell_index_from(rel_pos_x, rel_pos_y);
   mark_cell(relative_cell_index, CellState::Visited);
 
-  std::vector<Index2D> demoted_frontier_cells;
+  std::vector<Index2D> possible_frontier_cells;
 
   for (const Reading &r : readings) {
     const double distance = std::min(r.distance, LIDAR_RADIUS);
@@ -103,23 +91,25 @@ void OccupationGrid::mark_cells(
     const Index2D hit_cell_index = get_cell_index_from(hit_x_rel, hit_y_rel);
 
     mark_free_along_ray(rel_pos_x, rel_pos_y, hit_x_rel, hit_y_rel,
-                        hit_cell_index, demoted_frontier_cells);
+                        hit_cell_index);
 
-    mark_cell(hit_cell_index, r.distance < LIDAR_RADIUS ? CellState::Occupied
-                                                        : CellState::Frontier);
+    if (r.distance < LIDAR_RADIUS) {
+      mark_cell(hit_cell_index, CellState::Occupied);
+    } else {
+      possible_frontier_cells.push_back(hit_cell_index);
+    }
   }
 
-  for (const Index2D &idx : demoted_frontier_cells) {
+  for (const Index2D &idx : possible_frontier_cells) {
     if (has_neighbor_state(idx, CellState::Unknown)) {
       mark_cell(idx, CellState::Frontier, true);
     }
   }
 }
 
-void OccupationGrid::mark_free_along_ray(
-    double start_x, double start_y, double end_x, double end_y,
-    const Index2D &end_cell_index,
-    std::vector<Index2D> &demoted_frontier_cells) {
+void OccupationGrid::mark_free_along_ray(double start_x, double start_y,
+                                         double end_x, double end_y,
+                                         const Index2D &end_cell_index) {
   const double dx = end_x - start_x;
   const double dy = end_y - start_y;
   const double ray_length = std::hypot(dx, dy);
@@ -139,12 +129,6 @@ void OccupationGrid::mark_free_along_ray(
 
     if (curr_cell_index == end_cell_index) {
       break;
-    }
-
-    const auto c = grid[curr_cell_index.first][curr_cell_index.second].get();
-
-    if (c->state == CellState::Frontier) {
-      demoted_frontier_cells.push_back(curr_cell_index);
     }
 
     mark_cell(curr_cell_index, CellState::Free);
@@ -211,7 +195,11 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
       auto neighbors = cell->get_neighbors(&grid);
 
       for (const auto n : neighbors) {
-        if (n->frontier_id.has_value() || n->state == CellState::Occupied) {
+        if (n->state == CellState::Frontier && n->frontier_id.has_value()) {
+          return false;
+        }
+
+        if (n->state == CellState::Occupied) {
           return false;
         }
       }
@@ -231,22 +219,26 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
     std::queue<Index2D> q;
     std::unordered_set<uint64_t> visited;
 
-    if (grid[min_y][min_x].get()->state == CellState::Free) {
+    const Cell *minyminx = grid[min_y][min_x].get();
+    if (minyminx->state == CellState::Free) {
       q.push({min_y, min_x});
       visited.insert(key(min_y, min_x));
     }
 
-    if (grid[min_y][max_x].get()->state == CellState::Free) {
+    const Cell *minymaxx = grid[min_y][max_x].get();
+    if (minymaxx->state == CellState::Free) {
       q.push({min_y, max_x});
       visited.insert(key(min_y, max_x));
     }
 
-    if (grid[max_y][min_x].get()->state == CellState::Free) {
+    const Cell *maxyminx = grid[max_y][min_x].get();
+    if (maxyminx->state == CellState::Free) {
       q.push({max_y, min_x});
       visited.insert(key(max_y, min_x));
     }
 
-    if (grid[max_y][max_x].get()->state == CellState::Free) {
+    const Cell *maxymaxx = grid[max_y][max_x].get();
+    if (maxymaxx->state == CellState::Free) {
       q.push({max_y, max_x});
       visited.insert(key(max_y, max_x));
     }
@@ -273,9 +265,9 @@ void OccupationGrid::compute_frontier_regions(DynamicScheduler *sched) {
 
         Cell *neighbor = grid[ny][nx].get();
 
-        if (region_set.count(neighbor) ||
-            neighbor->state == CellState::Frontier ||
-            neighbor->state == CellState::Occupied) {
+        if (neighbor->state == CellState::Frontier ||
+            neighbor->state == CellState::Occupied ||
+            neighbor->state == CellState::Visited) {
           continue;
         }
 
