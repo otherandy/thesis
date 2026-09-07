@@ -18,10 +18,10 @@ int main(int argc, char **argv) {
   desc.add_options()("help", "display options")(
       "width", po::value<int>(), "set window width")("height", po::value<int>(),
                                                      "set window height")(
-      "env", po::value<std::string>(), "selected environment")(
-      "numbots", po::value<std::size_t>(), "number of robots")(
-      "startx", po::value<double>(), "robot starting x coordinate")(
-      "starty", po::value<double>(), "robot starting x coordinate")(
+      "env", po::value<std::string>(), "set environment")(
+      "numbots,n", po::value<std::size_t>(), "number of robots")(
+      "startx,x", po::value<double>(), "robot starting x coordinate")(
+      "starty,y", po::value<double>(), "robot starting x coordinate")(
       "test", "enable output of data files for tests")(
       "debug", "enable output of debug info");
 
