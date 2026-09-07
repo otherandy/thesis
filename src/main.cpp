@@ -25,7 +25,8 @@ int main(int argc, char **argv) {
       "starty,y", po::value<double>(), "robot starting x coordinate")(
       "strategy,s", po::value<std::string>(),
       "set strategy")("test", "enable output of data files for tests")(
-      "debug", "enable output of debug info");
+      "debug", "enable output of debug info")("output-grid",
+                                              "enable output of grid to file");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -138,7 +139,9 @@ int main(int argc, char **argv) {
     }
   }
 
-  // central_unit->save_grid();
+  if (vm.count("output-grid")) {
+    central_unit->save_grid();
+  }
 
   return 0;
 }
