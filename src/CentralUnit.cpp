@@ -15,14 +15,17 @@
 #include <utility>
 
 CentralUnit::CentralUnit(EnvironmentPreset selected_env,
-                         const Robot::Point &start_position) {
-  reset(selected_env, start_position);
+                         const Robot::Point &start_position,
+                         const std::string &strat) {
+  reset(selected_env, start_position, strat);
 }
 
 void CentralUnit::reset(EnvironmentPreset selected_env,
-                        const Robot::Point &start_position) {
+                        const Robot::Point &start_position,
+                        const std::string &strat) {
   is_paused = false;
   phase = CentralPhase::Idle;
+  strategy = strat;
 
   environment = std::make_unique<Environment>(selected_env);
   occupation_grid = std::make_unique<OccupationGrid>(start_position);
@@ -59,7 +62,7 @@ void CentralUnit::register_bot(const Robot::Vector &start_dir) {
 
 void CentralUnit::get_manual_input() {
   if (IsKeyPressed(KEY_R)) {
-    reset(environment->preset, occupation_grid->get_origin());
+    reset(environment->preset, occupation_grid->get_origin(), strategy);
     return;
   }
 
@@ -184,11 +187,10 @@ void CentralUnit::assign_frontier_regions() {
     }
 
     if (bot->phase == ExplorationPhase::Idle) {
-      // const auto grid = occupation_grid->get_data();
-      // const Robot::Point rp =
-      // bot->get_relative_position(occupation_grid.get()); auto vopt =
-      // frontier_scheduler->closest(*grid, rp);
-      auto vopt = frontier_scheduler->next_or_help(bot->target_vertex);
+      const auto grid = occupation_grid->get_data();
+      const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
+      auto vopt = frontier_scheduler->next_or_help(bot->target_vertex, *grid,
+                                                   rp, "closest");
 
       if (!vopt.has_value()) {
         continue;

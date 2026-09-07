@@ -40,7 +40,10 @@ bool DynamicScheduler::is_done(vertex_t v) {
   return g_[v].color == VertexData::Color::Black;
 }
 
-std::optional<vertex_t> DynamicScheduler::next(vertex_t v) {
+std::optional<vertex_t>
+DynamicScheduler::next(vertex_t v, const Grid2D<std::unique_ptr<Cell>> &grid,
+                       const Robot::Point &position,
+                       const std::string &strategy) {
   std::optional<vertex_t> vopt;
 
   std::vector<vertex_t> results = get_children(v);
@@ -60,13 +63,25 @@ std::optional<vertex_t> DynamicScheduler::next(vertex_t v) {
       return std::nullopt;
     }
 
-    return next(*parent);
+    return next(*parent, grid, position, strategy);
   }
 
   auto compare = [&](vertex_t v1, vertex_t v2) {
     auto v1d = get_vertex_data(v1);
     auto v2d = get_vertex_data(v2);
 
+    if (strategy == "smallest") {
+      return v1d.area < v2d.area;
+    }
+
+    if (strategy == "closest") {
+      const auto c1 = v1d.region->get_closest_unexplored(grid, position);
+      const auto c2 = v2d.region->get_closest_unexplored(grid, position);
+
+      return c1.has_value() && c2.has_value() ? c1.value() < c2.value() : false;
+    }
+
+    // largest
     return v1d.area > v2d.area;
   };
 
@@ -111,52 +126,16 @@ std::optional<vertex_t> DynamicScheduler::help() {
   return vr;
 }
 
-std::optional<vertex_t> DynamicScheduler::next_or_help(vertex_t v) {
-  auto vopt = next(v);
+std::optional<vertex_t> DynamicScheduler::next_or_help(
+    vertex_t v, const Grid2D<std::unique_ptr<Cell>> &grid,
+    const Robot::Point &position, const std::string &strategy) {
+  auto vopt = next(v, grid, position, strategy);
 
   if (!vopt.has_value()) {
     vopt = help();
   }
 
   return vopt;
-}
-
-std::optional<vertex_t>
-DynamicScheduler::closest(const Grid2D<std::unique_ptr<Cell>> &grid,
-                          const Robot::Point &position) {
-  auto vertices = get_all_vertices();
-
-  if (vertices.empty()) {
-    return std::nullopt;
-  }
-
-  double closest_distance = std::numeric_limits<double>::max();
-  std::optional<vertex_t> closest_v;
-
-  for (auto v : vertices) {
-    if (is_done(v)) {
-      continue;
-    }
-
-    auto vd = get_vertex_data(v);
-    const auto c = vd.region->get_closest_unexplored(grid, position);
-
-    if (c.has_value()) {
-      const double d = CGAL::squared_distance(position, c.value());
-
-      if (d < closest_distance) {
-        closest_distance = d;
-        closest_v = v;
-      }
-    }
-  }
-
-  if (!closest_v.has_value()) {
-    return std::nullopt;
-  }
-
-  g_[*closest_v].workers++;
-  return closest_v;
 }
 
 VertexData DynamicScheduler::get_vertex_data(vertex_t v) {

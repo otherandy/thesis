@@ -32,11 +32,15 @@ public:
                       bool root = false);
   void add_edge(vertex_t u, vertex_t v);
 
-  std::optional<vertex_t> next(vertex_t v);
+  std::optional<vertex_t> next(vertex_t v,
+                               const Grid2D<std::unique_ptr<Cell>> &grid,
+                               const Robot::Point &position,
+                               const std::string &strategy);
   std::optional<vertex_t> help();
-  std::optional<vertex_t> next_or_help(vertex_t v);
-  std::optional<vertex_t> closest(const Grid2D<std::unique_ptr<Cell>> &grid,
-                                  const Robot::Point &position);
+  std::optional<vertex_t>
+  next_or_help(vertex_t v, const Grid2D<std::unique_ptr<Cell>> &grid,
+               const Robot::Point &position,
+               const std::string &strategy = "largest");
 
   void mark_done(vertex_t v);
   bool is_done(vertex_t v);

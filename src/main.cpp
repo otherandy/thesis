@@ -23,7 +23,8 @@ int main(int argc, char **argv) {
       "numbots,n", po::value<std::size_t>(), "number of robots")(
       "startx,x", po::value<double>(), "robot starting x coordinate")(
       "starty,y", po::value<double>(), "robot starting x coordinate")(
-      "test", "enable output of data files for tests")(
+      "strategy,s", po::value<std::string>(),
+      "set strategy")("test", "enable output of data files for tests")(
       "debug", "enable output of debug info");
 
   po::variables_map vm;
@@ -66,8 +67,18 @@ int main(int argc, char **argv) {
         Robot::Point(start_position.x(), vm["starty"].as<double>());
   }
 
+  std::string strategy = "";
+  if (vm.count("strategy")) {
+    strategy = vm["strategy"].as<std::string>();
+
+    if (strategy != "largest" && strategy != "smallest" &&
+        strategy != "closest") {
+      throw std::invalid_argument("Invalid strategy: " + strategy);
+    }
+  }
+
   auto central_unit =
-      std::make_unique<CentralUnit>(selected_env, start_position);
+      std::make_unique<CentralUnit>(selected_env, start_position, strategy);
 
   for (std::size_t i = 0; i < num_bots; ++i) {
     if (i % 8 == 0) {

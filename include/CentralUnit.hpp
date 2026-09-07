@@ -19,7 +19,7 @@ enum class CentralPhase {
 class CentralUnit {
 public:
   CentralUnit(EnvironmentPreset selected_env,
-              const Robot::Point &start_position);
+              const Robot::Point &start_position, const std::string &strat);
 
   void start_test() {
     test_mode = true;
@@ -29,8 +29,9 @@ public:
   bool test_finished() { return test_mode && phase == CentralPhase::Complete; }
   void enable_debug() { occupation_grid->enable_debug(); }
 
-  void reset(EnvironmentPreset selected_env,
-             const Robot::Point &start_position);
+  void reset(EnvironmentPreset selected_env, const Robot::Point &start_position,
+             const std::string &strat);
+
   void register_bot(const Robot::Vector &start_dir);
   void get_manual_input();
   void sense();
@@ -48,6 +49,7 @@ private:
   CentralPhase phase = CentralPhase::Idle;
   std::vector<std::shared_ptr<ExplorationBot>> bots;
 
+  std::string strategy;
   bool is_paused = false;
   bool test_mode = false;
 
