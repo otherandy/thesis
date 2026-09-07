@@ -10,7 +10,7 @@ struct VertexData {
 
   enum class Color { White, Gray, Black } color = Color::White;
 
-  double area = 0.0;
+  std::size_t area = 0;
   std::optional<std::size_t> parent;
   std::size_t workers = 0;
 };
@@ -37,8 +37,6 @@ public:
   std::optional<vertex_t> next_or_help(vertex_t v);
   std::optional<vertex_t> closest(const Grid2D<std::unique_ptr<Cell>> &grid,
                                   const Robot::Point &position);
-  std::optional<vertex_t>
-  largest_approx(const Grid2D<std::unique_ptr<Cell>> &grid);
 
   void mark_done(vertex_t v);
   bool is_done(vertex_t v);

@@ -7,7 +7,7 @@ vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region,
                                       bool root) {
   std::lock_guard<std::mutex> lg(mutex_);
 
-  const double area = region->get_area_slow(grid);
+  const std::size_t area = region->get_area_slow(grid);
 
   vertex_t v = boost::add_vertex(
       VertexData{next_id_++, std::move(region), VertexData::Color::White, area},
@@ -164,39 +164,6 @@ DynamicScheduler::closest(const Grid2D<std::unique_ptr<Cell>> &grid,
   return closest_v;
 }
 
-std::optional<vertex_t>
-DynamicScheduler::largest_approx(const Grid2D<std::unique_ptr<Cell>> &grid) {
-  auto vertices = get_all_vertices();
-
-  if (vertices.empty()) {
-    return std::nullopt;
-  }
-
-  size_t largest_area = 0;
-  std::optional<vertex_t> biggest_v;
-
-  for (auto v : vertices) {
-    if (is_done(v)) {
-      continue;
-    }
-
-    auto vd = get_vertex_data(v);
-    const double area = vd.region->get_area();
-
-    if (area > largest_area) {
-      largest_area = area;
-      biggest_v = v;
-    }
-  }
-
-  if (!biggest_v.has_value()) {
-    return std::nullopt;
-  }
-
-  g_[*biggest_v].workers++;
-  return biggest_v;
-}
-
 VertexData DynamicScheduler::get_vertex_data(vertex_t v) {
   std::lock_guard<std::mutex> lg(mutex_);
   return g_[v];
@@ -285,7 +252,7 @@ void DynamicScheduler::draw(int screenW, int screenH) {
   }
 
   for (auto [vi, vi_end] = boost::vertices(g_); vi != vi_end; ++vi) {
-    const auto idx = (size_t)(*vi); // vecS => stable integer indices
+    const auto idx = (size_t)(*vi);
     const raylib::Vector2 p = positions_[idx];
 
     const auto data = g_[*vi];
@@ -297,7 +264,7 @@ void DynamicScheduler::draw(int screenW, int screenH) {
     DrawText(TextFormat("%zu", data.id), (int)(p.x - 10), (int)(p.y - 7), 10,
              BLACK);
 
-    DrawText(TextFormat("%.2f", data.area), (int)(p.x + 4), (int)(p.y + 1), 10,
+    DrawText(TextFormat("%zu", data.area), (int)(p.x + 4), (int)(p.y + 1), 10,
              BLACK);
   }
 }

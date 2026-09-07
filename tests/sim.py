@@ -8,7 +8,6 @@ ENVIRONMENTS = [
     "triangle",
     "custom",
     "square2withhole",
-    "square4",
     "square4withholes",
     "maze",
     "corridor",

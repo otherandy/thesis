@@ -33,11 +33,11 @@ std::optional<Robot::Point> FrontierRegion::get_closest_unexplored(
   return closest_point;
 }
 
-double FrontierRegion::get_area() const {
+std::size_t FrontierRegion::get_area() const {
   return (max.first - min.first) * (max.second - min.second);
 }
 
-double
+std::size_t
 FrontierRegion::get_area_slow(const Grid2D<std::unique_ptr<Cell>> &grid) const {
   if (physical) {
     return get_area();
@@ -68,7 +68,7 @@ FrontierRegion::get_area_slow(const Grid2D<std::unique_ptr<Cell>> &grid) const {
     return 0;
   }
 
-  double area = 0;
+  std::size_t area = 0;
 
   auto key = [](int y, int x) {
     return (static_cast<uint64_t>(y) << 32) | static_cast<uint32_t>(x);
@@ -85,7 +85,7 @@ FrontierRegion::get_area_slow(const Grid2D<std::unique_ptr<Cell>> &grid) const {
     Cell *cell = q.front();
     q.pop();
 
-    area += CELL_SIZE;
+    area += 1;
 
     for (auto [dy, dx] : directions) {
       int ny = cell->index.first + dy;
