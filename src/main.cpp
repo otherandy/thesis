@@ -15,10 +15,11 @@ const Robot::Vector NORTH = Robot::Vector(0, 1);
 int main(int argc, char **argv) {
   po::options_description desc("Available arguments");
 
-  desc.add_options()("help", "display options")(
-      "width", po::value<int>(), "set window width")("height", po::value<int>(),
-                                                     "set window height")(
-      "env", po::value<std::string>(), "set environment")(
+  desc.add_options()("help", "display options and exit")(
+      "width,w", po::value<int>(),
+      "set window width")("height,h", po::value<int>(), "set window height")(
+      "no-graph", "disable graph visualization")(
+      "env,e", po::value<std::string>(), "set environment")(
       "numbots,n", po::value<std::size_t>(), "number of robots")(
       "startx,x", po::value<double>(), "robot starting x coordinate")(
       "starty,y", po::value<double>(), "robot starting x coordinate")(
@@ -34,8 +35,10 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  const bool no_graph = vm.count("no-graph");
+  const int width_mult = no_graph ? 1 : 2;
   const int WINDOW_WIDTH =
-      vm.count("width") ? vm["width"].as<int>() * 2 : 800 * 2;
+      vm.count("width") ? vm["width"].as<int>() * width_mult : 800 * width_mult;
   const int WINDOW_HEIGHT = vm.count("height") ? vm["height"].as<int>() : 600;
   const int FRAME_RATE = 60;
   const std::string WINDOW_TITLE = "Exploration Bot Simulation";
@@ -102,7 +105,7 @@ int main(int argc, char **argv) {
     window.BeginDrawing();
     window.ClearBackground(RAYWHITE);
 
-    int w = window.GetWidth() / 2;
+    int w = no_graph ? window.GetWidth() : window.GetWidth() / 2;
     int h = window.GetHeight();
     const float scale_factor = calculate_scale_factor(w, h);
     const auto [offset_x, offset_y] = calculate_offset(w, h, scale_factor);
@@ -111,7 +114,10 @@ int main(int argc, char **argv) {
 
     central_unit->draw_environment(draw_data);
     central_unit->draw(draw_data);
-    central_unit->draw_graph(w, h);
+
+    if (!no_graph) {
+      central_unit->draw_graph(w, h);
+    }
 
     window.EndDrawing();
 
