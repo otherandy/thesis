@@ -31,7 +31,7 @@ public:
 
   bool left_contact_point;
 
-  vertex_t target_vertex;
+  vertex_t target_vertex = 0;
   Robot::Point target_point;
 
   bool started_surround;

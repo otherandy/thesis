@@ -11,6 +11,7 @@ struct VertexData {
   enum class Color { White, Gray, Black } color = Color::White;
 
   double area = 0.0;
+  std::optional<std::size_t> parent;
   std::size_t workers = 0;
 };
 
@@ -31,9 +32,9 @@ public:
                       bool root = false);
   void add_edge(vertex_t u, vertex_t v);
 
-  std::optional<vertex_t> next();
+  std::optional<vertex_t> next(vertex_t v);
   std::optional<vertex_t> help();
-  std::optional<vertex_t> next_or_help();
+  std::optional<vertex_t> next_or_help(vertex_t v);
   std::optional<vertex_t> closest(const Grid2D<std::unique_ptr<Cell>> &grid,
                                   const Robot::Point &position);
   std::optional<vertex_t>
@@ -56,9 +57,10 @@ private:
   std::vector<Vector2> positions_;
   bool layout_dirty_ = true;
 
+  std::vector<vertex_t> get_children(vertex_t v);
+
   Graph g_;
   std::mutex mutex_;
-  std::vector<vertex_t> dfs_stack_;
   std::size_t time_;
   std::size_t next_id_ = 0;
 };
