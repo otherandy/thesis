@@ -697,7 +697,7 @@ void OccupationGrid::draw(const DrawData &draw_data) const {
 }
 
 void OccupationGrid::save_to_file() const {
-  const std::string filename = append_timestamp("grid", ".csv");
+  const std::string filename = append_timestamp("data/", "grid.csv");
   ensure_parent_dir_exists(filename);
   std::ofstream f(filename);
 

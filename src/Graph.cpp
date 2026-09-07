@@ -1,4 +1,5 @@
 #include "Graph.hpp"
+#include "Utils.hpp"
 #include <algorithm>
 #include <optional>
 
@@ -240,5 +241,32 @@ void DynamicScheduler::draw(int screenW, int screenH) {
 
     DrawText(TextFormat("%zu", data.area), (int)(p.x + 4), (int)(p.y + 1), 10,
              BLACK);
+  }
+}
+
+void DynamicScheduler::save_to_file() {
+  std::string filename = append_timestamp("data/", "graph.csv");
+  ensure_parent_dir_exists(filename);
+  std::ofstream f(filename, std::ios::app);
+
+  if (!f.is_open()) {
+    std::cerr << "ERROR: Failed to open " << filename << " for writing"
+              << std::endl;
+    return;
+  }
+
+  f << "vertices,edges\n";
+  f << boost::num_vertices(g_) << "," << boost::num_edges(g_) << "\n";
+
+  for (auto [vi, vi_end] = boost::vertices(g_); vi != vi_end; ++vi) {
+    const auto idx = (size_t)(*vi);
+    const auto data = g_[*vi];
+    f << data.id << "," << data.area << "\n";
+  }
+
+  for (auto [ei, ei_end] = boost::edges(g_); ei != ei_end; ++ei) {
+    const auto u = boost::source(*ei, g_);
+    const auto v = boost::target(*ei, g_);
+    f << (size_t)u << "," << (size_t)v << "\n";
   }
 }

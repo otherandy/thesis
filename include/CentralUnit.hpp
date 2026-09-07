@@ -43,6 +43,7 @@ public:
 
   void report_time();
   void save_grid();
+  void save_graph();
   void save_data();
 
 private:

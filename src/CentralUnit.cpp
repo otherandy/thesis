@@ -355,11 +355,11 @@ void CentralUnit::report_time() {
 
 void CentralUnit::save_grid() { occupation_grid->save_to_file(); }
 
+void CentralUnit::save_graph() { frontier_scheduler->save_to_file(); }
+
 void CentralUnit::save_data() {
-  std::string filename = "data/" + append_timestamp("", ".csv");
-
+  std::string filename = append_timestamp("data/", "bots.csv");
   ensure_parent_dir_exists(filename);
-
   std::ofstream f(filename, std::ios::app);
 
   if (!f.is_open()) {

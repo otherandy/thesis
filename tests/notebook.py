@@ -7,7 +7,7 @@ import pandas as pd
 import seaborn as sns
 
 data_dir = Path("tests/data")
-files = sorted(data_dir.glob("*.csv"))
+files = sorted(data_dir.glob("*bots.csv"))
 
 config_cols = [
     "environment",

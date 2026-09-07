@@ -24,9 +24,11 @@ int main(int argc, char **argv) {
       "startx,x", po::value<double>(), "robot starting x coordinate")(
       "starty,y", po::value<double>(), "robot starting x coordinate")(
       "strategy,s", po::value<std::string>(),
-      "set strategy")("test", "enable output of data files for tests")(
-      "debug", "enable output of debug info")("output-grid",
-                                              "enable output of grid to file");
+      "set strategy")("test", "close program on completion")(
+      "debug", "enable output of debug info")("output-data",
+                                              "enable output of data to file")(
+      "output-grid", "enable output of grid to file")(
+      "output-graph", "enable output of graph to file");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -134,13 +136,20 @@ int main(int argc, char **argv) {
     window.EndDrawing();
 
     if (central_unit->test_finished()) {
-      central_unit->save_data();
       break;
     }
   }
 
+  if (vm.count("output-data")) {
+    central_unit->save_data();
+  }
+
   if (vm.count("output-grid")) {
     central_unit->save_grid();
+  }
+
+  if (vm.count("output-graph")) {
+    central_unit->save_graph();
   }
 
   return 0;

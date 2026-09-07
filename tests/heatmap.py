@@ -6,8 +6,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-data_dir = Path("tests")
-files = sorted(data_dir.glob("grid*.csv"))
+data_dir = Path("tests/data")
+files = sorted(data_dir.glob("*grid.csv"))
 
 for f in files:
     df = pd.read_csv(f)
