@@ -26,10 +26,6 @@ void DynamicScheduler::add_edge(vertex_t u, vertex_t v) {
   std::lock_guard<std::mutex> lg(mutex_);
   boost::add_edge(u, v, g_);
   g_[v].parent = u;
-
-  if (g_[v].color == VertexData::Color::White) {
-    g_[v].color = VertexData::Color::Gray;
-  }
 }
 
 void DynamicScheduler::mark_done(vertex_t v) {
@@ -49,13 +45,13 @@ std::optional<vertex_t> DynamicScheduler::next(vertex_t v) {
 
   std::vector<vertex_t> results = get_children(v);
 
-  auto filter = [&](vertex_t v) {
-    return g_[v].color != VertexData::Color::Gray;
+  auto filter1 = [&](vertex_t v) {
+    return g_[v].color != VertexData::Color::White;
   };
 
-  auto it = std::remove_if(results.begin(), results.end(), filter);
+  auto it1 = std::remove_if(results.begin(), results.end(), filter1);
 
-  results.erase(it, results.end());
+  results.erase(it1, results.end());
 
   if (results.empty()) {
     std::optional<std::size_t> parent = g_[v].parent;
@@ -74,16 +70,15 @@ std::optional<vertex_t> DynamicScheduler::next(vertex_t v) {
     return v1d.area > v2d.area;
   };
 
-  if (!results.empty()) {
-    std::sort(results.begin(), results.end(), compare);
-    vopt = results.front();
-  }
+  std::sort(results.begin(), results.end(), compare);
+  vopt = results.front();
 
   if (!vopt.has_value()) {
     return std::nullopt;
   }
 
   vertex_t vr = *vopt;
+  g_[vr].color = VertexData::Color::Gray;
   g_[vr].workers++;
 
   return vr;
