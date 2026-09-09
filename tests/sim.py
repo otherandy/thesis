@@ -14,14 +14,6 @@ ENVIRONMENTS = [
         [[3, 3], [12, 12], [17, 13], [13, 15]],
     ],
     [
-        "square",
-        [[3, 3], [5, 5], [5, 9.6]],
-    ],
-    [
-        "custom",
-        [[3, 3], [5, 5], [9, 9], [12, 9.2]],
-    ],
-    [
         "square2withhole",
         [[3, 3], [5.2, 10], [16, 16]],
     ],
@@ -63,7 +55,7 @@ ENVIRONMENTS = [
     ],
 ]
 ROBOTS = [1, 2, 4, 8, 16]
-RADIUS = [0.5, 1, 1.5, 2]
+RADIUS = [0.5, 1, 2, 4]
 STRATEGIES = ["largest", "smallest", "closest"]
 REPEATS = 10
 TIMEOUT = 240
@@ -71,8 +63,8 @@ WIDTH = 400
 HEIGHT = 300
 
 for env, positions in ENVIRONMENTS:
-    for pos in positions:
-        for bots in ROBOTS:
+    for bots in ROBOTS:
+        for pos in positions:
             for rad in RADIUS:
                 for strat in STRATEGIES:
                     for i in range(REPEATS):
