@@ -75,7 +75,7 @@ void OccupationGrid::mark_cell(Index2D index, CellState new_state,
 
 void OccupationGrid::mark_cells(
     const Robot::Point &relative_position,
-    const std::array<Reading, LIDAR_SAMPLES> &readings) {
+    const std::array<Reading, LIDAR_SAMPLES> &readings, double radius) {
   const double rel_pos_x = relative_position.x();
   const double rel_pos_y = relative_position.y();
 
@@ -85,7 +85,7 @@ void OccupationGrid::mark_cells(
   std::vector<Index2D> possible_frontier_cells;
 
   for (const Reading &r : readings) {
-    const double distance = std::min(r.distance, LIDAR_RADIUS);
+    const double distance = std::min(r.distance, radius);
     const double hit_x_rel = rel_pos_x + distance * std::cos(r.angle);
     const double hit_y_rel = rel_pos_y + distance * std::sin(r.angle);
     const Index2D hit_cell_index = get_cell_index_from(hit_x_rel, hit_y_rel);
@@ -93,7 +93,7 @@ void OccupationGrid::mark_cells(
     mark_free_along_ray(rel_pos_x, rel_pos_y, hit_x_rel, hit_y_rel,
                         hit_cell_index);
 
-    if (r.distance < LIDAR_RADIUS) {
+    if (r.distance < radius) {
       mark_cell(hit_cell_index, CellState::Occupied);
     } else {
       possible_frontier_cells.push_back(hit_cell_index);

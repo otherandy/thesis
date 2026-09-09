@@ -47,7 +47,7 @@ void CentralUnit::reset(EnvironmentPreset selected_env,
   total_time.reset();
 }
 
-void CentralUnit::register_bot(const Robot::Vector &start_dir) {
+void CentralUnit::register_bot(const Robot::Vector &start_dir, double radius) {
   const auto start_pos = occupation_grid->get_origin();
 
   bool clockwise = true;
@@ -57,7 +57,7 @@ void CentralUnit::register_bot(const Robot::Vector &start_dir) {
   }
 
   bots.emplace_back(std::make_shared<ExplorationBot>(
-      bots.size() + 1, start_pos, start_dir, clockwise, environment));
+      bots.size() + 1, start_pos, start_dir, radius, clockwise, environment));
 }
 
 void CentralUnit::get_manual_input() {

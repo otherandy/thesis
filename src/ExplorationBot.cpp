@@ -9,9 +9,9 @@
 #include <cmath>
 
 ExplorationBot::ExplorationBot(std::size_t id, const Robot::Point &start_pos,
-                               const Robot::Vector &start_dir, bool clockwise,
-                               std::shared_ptr<Environment> env)
-    : Bot(id, start_pos, env), start_point(start_pos),
+                               const Robot::Vector &start_dir, double radius,
+                               bool clockwise, std::shared_ptr<Environment> env)
+    : Bot(id, radius, start_pos, env), start_point(start_pos),
       start_direction(start_dir), direction(start_dir),
       clockwise_following(clockwise) {}
 
@@ -43,7 +43,7 @@ Robot::Vector ExplorationBot::move(const Robot::Vector &dir) {
 
 void ExplorationBot::update_grid(OccupationGrid *grid) {
   const Robot::Point rp = get_relative_position(grid);
-  grid->mark_cells(rp, readings);
+  grid->mark_cells(rp, readings, radius);
 }
 
 void ExplorationBot::pause_timers() {
@@ -93,7 +93,7 @@ void ExplorationBot::phase1_wall_discovery(const OccupationGrid *grid) {
   const auto g = grid->get_data();
 
   for (const Reading &r : readings) {
-    if (r.distance < LIDAR_RADIUS) {
+    if (r.distance < radius) {
       const Robot::Point p = point_at_reading(rp, r);
       const Index2D index = get_cell_index_from(p.x(), p.y());
       const Cell *obstacle_cell = (*g)[index.first][index.second].get();
@@ -151,7 +151,7 @@ ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
 
   for (std::size_t i = 0; i < LIDAR_SAMPLES; ++i) {
     const Reading &r = readings[i];
-    if (r.distance >= LIDAR_RADIUS) {
+    if (r.distance >= radius) {
       continue;
     }
 
@@ -191,7 +191,7 @@ ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
       idx = relative_index(idx, prev_index);
       const double d = readings[idx].distance;
 
-      if (idx == ref || d >= LIDAR_RADIUS ||
+      if (idx == ref || d >= radius ||
           std::abs(d - last_d) > LIDAR_DISTANCE_THRESHOLD) {
         break;
       }
@@ -212,7 +212,7 @@ ExplorationBot::compute_wall_following_vector(const OccupationGrid *grid) {
       idx = relative_index(idx, next_index);
       const double d = readings[idx].distance;
 
-      if (idx == ref || d >= LIDAR_RADIUS ||
+      if (idx == ref || d >= radius ||
           std::abs(d - last_d) > LIDAR_DISTANCE_THRESHOLD) {
         break;
       }
@@ -280,7 +280,7 @@ bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
       continue;
     }
 
-    if (r.distance < LIDAR_RADIUS && r.distance < target_dist &&
+    if (r.distance < radius && r.distance < target_dist &&
         r.distance <= readings[*closest_wall_reading_index].distance +
                           DESIRED_WALL_DISTANCE / 2) {
       return true;

@@ -6,9 +6,6 @@
 #include <array>
 
 constexpr std::size_t LIDAR_SAMPLES = 360;
-
-constexpr double LIDAR_RADIUS = 1.5;
-constexpr double LIDAR_RESOLUTION = LIDAR_RADIUS / 1000.0;
 const double ANGLE_STEP = 2.0 * M_PI / LIDAR_SAMPLES;
 
 const float DRAWN_BODY_RADIUS = 5.0;
@@ -25,7 +22,9 @@ class Bot {
 public:
   std::size_t id;
 
-  Bot(std::size_t id, const Robot::Point &start_pos,
+  const double radius = 1.5;
+
+  Bot(std::size_t id, double radius, const Robot::Point &start_pos,
       std::shared_ptr<Environment> env);
   void take_lidar_readings();
 

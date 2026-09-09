@@ -3,9 +3,9 @@
 #include <memory>
 #include <raylib-cpp.hpp>
 
-Bot::Bot(std::size_t id, const Robot::Point &start_pos,
+Bot::Bot(std::size_t id, double radius, const Robot::Point &start_pos,
          std::shared_ptr<Environment> env)
-    : id(id), real_position(start_pos), environment(env) {}
+    : id(id), radius(radius), real_position(start_pos), environment(env) {}
 
 void Bot::reset(const Robot::Point &start_pos) { real_position = start_pos; }
 
@@ -28,19 +28,19 @@ void Bot::take_lidar_readings() {
 
   for (int i = 0; i < LIDAR_SAMPLES; ++i) {
     const double angle = ANGLE_STEP * i - M_PI;
-    double distance = LIDAR_RADIUS;
+    double distance = radius;
 
     Robot::Point origin(real_position.x(), real_position.y());
-    Robot::Point end(real_position.x() + LIDAR_RADIUS * cos(angle),
-                     real_position.y() + LIDAR_RADIUS * sin(angle));
+    Robot::Point end(real_position.x() + radius * cos(angle),
+                     real_position.y() + radius * sin(angle));
 
     Robot::Segment ray(origin, end);
     std::vector<std::optional<
         Robot::AABB_tree::Intersection_and_primitive_id<Robot::Segment>::Type>>
         intersections;
 
-    environment->get_tree().all_intersections(ray,
-                                          std::back_inserter(intersections));
+    environment->get_tree().all_intersections(
+        ray, std::back_inserter(intersections));
 
     for (auto &result : intersections) {
       if (const auto *pt = std::get_if<Robot::Point>(&(result->first))) {
@@ -51,7 +51,7 @@ void Bot::take_lidar_readings() {
       }
     }
 
-    if (distance < LIDAR_RADIUS && distance < closest_distance) {
+    if (distance < radius && distance < closest_distance) {
       closest_distance = distance;
       closest_wall_reading_index = i;
     }
@@ -85,7 +85,7 @@ void Bot::draw_range(const DrawData &draw_data) const {
   DrawCircleLines(
       real_position.x() * draw_data.scale_factor + draw_data.offset_x,
       real_position.y() * draw_data.scale_factor + draw_data.offset_y,
-      LIDAR_RADIUS * draw_data.scale_factor, raylib::BLUE);
+      radius * draw_data.scale_factor, raylib::BLUE);
 }
 
 void Bot::draw_readings(const DrawData &draw_data) const {

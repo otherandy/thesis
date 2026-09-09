@@ -32,7 +32,7 @@ public:
   void reset(EnvironmentPreset selected_env, const Robot::Point &start_position,
              const std::string &strat);
 
-  void register_bot(const Robot::Vector &start_dir);
+  void register_bot(const Robot::Vector &start_dir, double radius);
   void get_manual_input();
   void sense();
   void update();

@@ -21,14 +21,16 @@ int main(int argc, char **argv) {
       "no-graph", "disable graph visualization")(
       "env,e", po::value<std::string>(), "set environment")(
       "numbots,n", po::value<std::size_t>(), "number of robots")(
+      "radius,r", po::value<double>(), "set robot lidar radius")(
       "startx,x", po::value<double>(), "robot starting x coordinate")(
       "starty,y", po::value<double>(), "robot starting x coordinate")(
       "strategy,s", po::value<std::string>(),
-      "set strategy")("test", "close program on completion")(
+      "set node selection strategy")("test", "close program on completion")(
       "debug", "enable output of debug info")("output-data",
                                               "enable output of data to file")(
-      "output-grid", "enable output of grid to file")(
-      "output-graph", "enable output of graph to file");
+      "output-grid", "enable output of the grid heatmap to file")(
+      "output-graph", "enable output of the final graph to file")(
+      "output-all", "enable output of everything to file");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -55,6 +57,7 @@ int main(int argc, char **argv) {
   Robot::Point start_position(3.0, 3.0);
   std::size_t num_bots =
       vm.count("numbots") ? vm["numbots"].as<std::size_t>() : 4;
+  double radius = vm.count("radius") ? vm["radius"].as<double>() : 1.0;
 
   if (vm.count("env")) {
     selected_env = parse_environment(vm["env"].as<std::string>());
@@ -85,21 +88,21 @@ int main(int argc, char **argv) {
 
   for (std::size_t i = 0; i < num_bots; ++i) {
     if (i % 8 == 0) {
-      central_unit->register_bot(EAST);
+      central_unit->register_bot(EAST, radius);
     } else if (i % 8 == 1) {
-      central_unit->register_bot(WEST);
+      central_unit->register_bot(WEST, radius);
     } else if (i % 8 == 2) {
-      central_unit->register_bot(EAST);
+      central_unit->register_bot(EAST, radius);
     } else if (i % 8 == 3) {
-      central_unit->register_bot(WEST);
+      central_unit->register_bot(WEST, radius);
     } else if (i % 8 == 4) {
-      central_unit->register_bot(SOUTH);
+      central_unit->register_bot(SOUTH, radius);
     } else if (i % 8 == 5) {
-      central_unit->register_bot(NORTH);
+      central_unit->register_bot(NORTH, radius);
     } else if (i % 8 == 6) {
-      central_unit->register_bot(SOUTH);
+      central_unit->register_bot(SOUTH, radius);
     } else {
-      central_unit->register_bot(NORTH);
+      central_unit->register_bot(NORTH, radius);
     }
   }
 
@@ -140,15 +143,15 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (vm.count("output-data")) {
+  if (vm.count("output-data") || vm.count("output-all")) {
     central_unit->save_data();
   }
 
-  if (vm.count("output-grid")) {
+  if (vm.count("output-grid") || vm.count("output-all")) {
     central_unit->save_grid();
   }
 
-  if (vm.count("output-graph")) {
+  if (vm.count("output-graph") || vm.count("output-all")) {
     central_unit->save_graph();
   }
 

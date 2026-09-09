@@ -20,7 +20,8 @@ public:
   void enable_debug() { debug = true; }
 
   void mark_cells(const Robot::Point &relative_position,
-                  const std::array<Reading, LIDAR_SAMPLES> &readings);
+                  const std::array<Reading, LIDAR_SAMPLES> &readings,
+                  double radius);
 
   void clean_cells();
   void compute_frontier_regions(DynamicScheduler *sched);
