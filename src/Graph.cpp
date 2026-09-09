@@ -244,8 +244,8 @@ void DynamicScheduler::draw(int screenW, int screenH) {
   }
 }
 
-void DynamicScheduler::save_to_file() {
-  std::string filename = append_timestamp("data/", "graph.csv");
+void DynamicScheduler::save_to_file() const {
+  const std::string filename = append_timestamp("data/", "_graph.csv");
   ensure_parent_dir_exists(filename);
   std::ofstream f(filename, std::ios::app);
 

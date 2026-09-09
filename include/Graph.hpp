@@ -53,7 +53,7 @@ public:
   void draw(int screenW, int screenH);
   void ensure_layout(int screenW, int screenH);
 
-  void save_to_file();
+  void save_to_file() const;
 
   Graph &graph() { return g_; }
 

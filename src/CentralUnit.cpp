@@ -358,7 +358,7 @@ void CentralUnit::save_grid() { occupation_grid->save_to_file(); }
 void CentralUnit::save_graph() { frontier_scheduler->save_to_file(); }
 
 void CentralUnit::save_data() {
-  std::string filename = append_timestamp("data/", "bots.csv");
+  const std::string filename = append_timestamp("data/", "_bots.csv");
   ensure_parent_dir_exists(filename);
   std::ofstream f(filename, std::ios::app);
 
@@ -368,9 +368,15 @@ void CentralUnit::save_data() {
     return;
   }
 
-  f << "environment,robots,total_time\n";
-  f << get_environment_name(environment->preset) << ",";
+  const std::string env_name = get_environment_name(environment->preset);
+
+  f << "environment,robots,radius,start_x,start_y,strategy,total_time\n";
+  f << env_name << ",";
   f << bots.size() << ",";
+  f << bots.front()->radius << ",";
+  f << bots.front()->start_point.x() << ",";
+  f << bots.front()->start_point.y() << ",";
+  f << strategy << ",";
   f << total_time.get_time() << "\n";
 
   f << "id,"

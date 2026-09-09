@@ -12,6 +12,10 @@ files = sorted(data_dir.glob("*bots.csv"))
 config_cols = [
     "environment",
     "robots",
+    "radius",
+    "start_x",
+    "start_y",
+    "strategy",
     "total_time",
 ]
 

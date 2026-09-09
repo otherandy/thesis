@@ -29,11 +29,11 @@ public:
 
   ExplorationPhase phase = ExplorationPhase::WallDiscovery;
 
-  bool left_contact_point;
+  const Robot::Point start_point;
 
+  bool left_contact_point;
   vertex_t target_vertex = 0;
   Robot::Point target_point;
-
   bool started_surround;
   double goal_distance;
 
@@ -59,7 +59,6 @@ public:
   void draw(const DrawData &draw_data) const;
 
 private:
-  const Robot::Point start_point;
   const Robot::Vector start_direction;
 
   Robot::Vector direction;
