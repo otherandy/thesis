@@ -190,7 +190,7 @@ void CentralUnit::assign_frontier_regions() {
       const auto grid = occupation_grid->get_data();
       const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
       auto vopt = frontier_scheduler->next_or_help(bot->target_vertex, *grid,
-                                                   rp, "closest");
+                                                   rp, strategy);
 
       if (!vopt.has_value()) {
         continue;

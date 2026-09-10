@@ -85,9 +85,8 @@ void OccupationGrid::mark_cells(
   std::vector<Index2D> possible_frontier_cells;
 
   for (const Reading &r : readings) {
-    const double distance = std::min(r.distance, radius);
-    const double hit_x_rel = rel_pos_x + distance * std::cos(r.angle);
-    const double hit_y_rel = rel_pos_y + distance * std::sin(r.angle);
+    const double hit_x_rel = rel_pos_x + r.distance * std::cos(r.angle);
+    const double hit_y_rel = rel_pos_y + r.distance * std::sin(r.angle);
     const Index2D hit_cell_index = get_cell_index_from(hit_x_rel, hit_y_rel);
 
     mark_free_along_ray(rel_pos_x, rel_pos_y, hit_x_rel, hit_y_rel,
@@ -101,7 +100,7 @@ void OccupationGrid::mark_cells(
   }
 
   for (const Index2D &idx : possible_frontier_cells) {
-    if (has_neighbor_state(idx, CellState::Unknown)) {
+    if (has_neighbor_state(idx, CellState::Unknown, false)) {
       mark_cell(idx, CellState::Frontier, true);
     }
   }
@@ -137,8 +136,25 @@ void OccupationGrid::mark_free_along_ray(double start_x, double start_y,
   }
 }
 
-bool OccupationGrid::has_neighbor_state(const Index2D &idx, CellState state) {
+bool OccupationGrid::has_neighbor_state(const Index2D &idx, CellState state,
+                                        bool include_corners) {
   Cell *start_cell = grid[idx.first][idx.second].get();
+
+  if (!include_corners) {
+    for (const auto &[dy, dx] : directions) {
+      int ny = idx.first + dy;
+      int nx = idx.second + dx;
+
+      const auto neighbor = grid[ny][nx].get();
+
+      if (neighbor->state == state) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   auto neighbors = start_cell->get_neighbors(&grid);
 
   for (const auto n : neighbors) {
@@ -481,6 +497,22 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
 
   auto is_closed = [&](std::vector<Cell *> region, Index2D min,
                        Index2D max) -> bool {
+    bool result = true;
+
+    for (Cell *cell : region) {
+      auto neighbors = cell->get_neighbors(&grid);
+
+      for (const auto n : neighbors) {
+        if (n->state == CellState::Frontier) {
+          result = false;
+        }
+      }
+    }
+
+    if (found_exterior) {
+      return result;
+    }
+
     auto key = [](int y, int x) {
       return (static_cast<uint64_t>(y) << 32) | static_cast<uint32_t>(x);
     };
@@ -498,24 +530,14 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
     q.push({min_y, min_x});
     visited.insert(key(min_y, min_x));
 
-    CellState first_state = grid[min_y][min_x].get()->state;
-
-    auto is_not_first_state = [first_state](CellState state) {
-      if (first_state != CellState::Unknown) {
-        return state != CellState::Free && state != CellState::Visited;
-      }
-
-      return state != CellState::Unknown;
-    };
-
     while (!q.empty()) {
       auto [y, x] = q.front();
       q.pop();
 
       Cell *c = grid[y][x].get();
 
-      if (is_not_first_state(c->state)) {
-        return false;
+      if (c->state == CellState::Free) {
+        return result;
       }
 
       for (auto [dy, dx] : directions) {
@@ -532,16 +554,6 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
           continue;
         }
 
-        if (first_state == CellState::Unknown &&
-            neighbor->state == CellState::Frontier) {
-          return false;
-        }
-
-        if (neighbor->state == CellState::Occupied ||
-            neighbor->state == CellState::Frontier) {
-          continue;
-        }
-
         auto k = key(ny, nx);
 
         if (visited.insert(k).second) {
@@ -550,11 +562,9 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
       }
     }
 
-    if (!found_exterior) {
-      found_exterior = first_state == CellState::Unknown;
-    }
+    found_exterior = true;
 
-    return true;
+    return result;
   };
 
   for (std::size_t y = grid_min.first; y <= grid_max.first; ++y) {
@@ -694,6 +704,11 @@ void OccupationGrid::draw(const DrawData &draw_data) const {
       draw_cell({y, x}, draw_data);
     }
   }
+}
+
+void OccupationGrid::draw_info(const DrawData &draw_data) const {
+  const std::string info = "FE: " + std::to_string(found_exterior);
+  raylib::DrawText(info.c_str(), 10, 10, 20, raylib::BLACK);
 }
 
 void OccupationGrid::save_to_file() const {

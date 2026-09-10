@@ -3,7 +3,7 @@
 
 #include "Environment.hpp"
 
-constexpr double CELL_SIZE = 0.05;
+constexpr double CELL_SIZE = 0.1;
 constexpr double INV_CELL_SIZE = 1.0 / CELL_SIZE;
 constexpr std::size_t MAP_WIDTH = (ENV_WIDTH * 2.0 / CELL_SIZE);
 constexpr std::size_t MAP_HEIGHT = (ENV_HEIGHT * 2.0 / CELL_SIZE);

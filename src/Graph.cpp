@@ -8,7 +8,7 @@ vertex_t DynamicScheduler::add_vertex(std::shared_ptr<FrontierRegion> region,
                                       bool root) {
   std::lock_guard<std::mutex> lg(mutex_);
 
-  const std::size_t area = region->get_area_slow(grid);
+  const std::size_t area = region->get_area();
 
   vertex_t v = boost::add_vertex(
       VertexData{next_id_++, std::move(region), VertexData::Color::White, area},

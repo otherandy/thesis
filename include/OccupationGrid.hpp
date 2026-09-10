@@ -28,6 +28,7 @@ public:
   void compute_physical_obstacles(DynamicScheduler *sched);
 
   void draw(const DrawData &draw_data) const;
+  void draw_info(const DrawData &draw_data) const;
   void save_to_file() const;
 
 private:
@@ -42,7 +43,7 @@ private:
   void remove_dead_frontier_cells();
   void remove_dead_free_cells();
 
-  bool has_neighbor_state(const Index2D &idx, CellState state);
+  bool has_neighbor_state(const Index2D &idx, CellState state, bool include_corners = true);
   Cell *find_reference(const Index2D &idx, CellState state);
 
   void mark_free_along_ray(double start_x, double start_y, double end_x,

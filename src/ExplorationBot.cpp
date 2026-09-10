@@ -117,6 +117,17 @@ void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
   alignment_time.start();
 
   const Reading &closest_reading = readings[closest_wall_reading_index.value()];
+  const Robot::Point rp = get_relative_position(grid);
+  const Robot::Point p = point_at_reading(rp, closest_reading);
+  const Index2D index = get_cell_index_from(p.x(), p.y());
+  const auto g = grid->get_data();
+  const Cell *obstacle_cell = (*g)[index.first][index.second].get();
+
+  if (obstacle_cell->state == CellState::Occupied &&
+      obstacle_cell->frontier_id.has_value()) {
+    direction = rp - p;
+    return;
+  }
 
   if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
     const Robot::Vector to_wall =
