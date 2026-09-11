@@ -11,8 +11,8 @@ class OccupationGrid {
 public:
   OccupationGrid(const Robot::Point &origin);
 
-  std::size_t frontier_cell_count = 0;
   bool found_exterior = false;
+  std::size_t frontier_cell_count = 0;
 
   const auto get_data() const { return &grid; };
   const Robot::Point get_origin() const { return origin; };
@@ -26,6 +26,7 @@ public:
   void clean_cells();
   void compute_frontier_regions(DynamicScheduler *sched);
   void compute_physical_obstacles(DynamicScheduler *sched);
+  bool unmarked_obstacles_exist();
 
   void draw(const DrawData &draw_data) const;
   void draw_info(const DrawData &draw_data) const;
@@ -43,7 +44,8 @@ private:
   void remove_dead_frontier_cells();
   void remove_dead_free_cells();
 
-  bool has_neighbor_state(const Index2D &idx, CellState state, bool include_corners = true);
+  bool has_neighbor_state(const Index2D &idx, CellState state,
+                          bool include_corners = true);
   Cell *find_reference(const Index2D &idx, CellState state);
 
   void mark_free_along_ray(double start_x, double start_y, double end_x,

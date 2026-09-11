@@ -244,6 +244,28 @@ void CentralUnit::check_exterior() {
 
       bot->phase = ExplorationPhase::WallDiscovery;
     }
+
+    return;
+  }
+
+  if (occupation_grid->unmarked_obstacles_exist()) {
+    for (auto bot : bots) {
+      if (bot->phase != ExplorationPhase::Idle) {
+        return;
+      }
+    }
+
+    for (auto bot : bots) {
+      bot->phase = ExplorationPhase::WallDiscovery;
+    }
+
+    return;
+  } else {
+    for (auto bot : bots) {
+      if (bot->phase == ExplorationPhase::WallDiscovery) {
+        bot->phase = ExplorationPhase::Idle;
+      }
+    }
   }
 }
 

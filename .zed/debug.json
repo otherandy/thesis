@@ -9,6 +9,6 @@
     "program": "$ZED_WORKTREE_ROOT/build/ExplorationBot",
     "request": "launch",
     "adapter": "CodeLLDB",
-    "args": ["-e", "polygon2withholes", "-n", "1"]
+    "args": ["-e", "room", "-n", "4", "-r", "4"]
   }
 ]

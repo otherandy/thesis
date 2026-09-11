@@ -89,21 +89,19 @@ void ExplorationBot::phase1_wall_discovery(const OccupationGrid *grid) {
   physical_time.start();
   alignment_time.start();
 
-  const Robot::Point rp = get_relative_position(grid);
-  const auto g = grid->get_data();
+  if (closest_wall_reading_index.has_value()) {
+    const Reading &closest_reading = readings[*closest_wall_reading_index];
+    const Robot::Point rp = get_relative_position(grid);
+    const Robot::Point p = point_at_reading(rp, closest_reading);
+    const Index2D index = get_cell_index_from(p.x(), p.y());
+    const auto g = grid->get_data();
+    const Cell *obstacle_cell = (*g)[index.first][index.second].get();
 
-  for (const Reading &r : readings) {
-    if (r.distance < radius) {
-      const Robot::Point p = point_at_reading(rp, r);
-      const Index2D index = get_cell_index_from(p.x(), p.y());
-      const Cell *obstacle_cell = (*g)[index.first][index.second].get();
-
-      if (obstacle_cell->state == CellState::Occupied &&
-          obstacle_cell->frontier_id.has_value()) {
-        direction = rp - p;
-        continue;
-      }
-
+    if (obstacle_cell->state == CellState::Occupied &&
+        obstacle_cell->frontier_id.has_value()) {
+      direction = rp - p;
+    } else {
+      target_point = p;
       phase = ExplorationPhase::WallAlignment;
       return;
     }
@@ -116,35 +114,29 @@ void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
   physical_time.start();
   alignment_time.start();
 
-  const Reading &closest_reading = readings[closest_wall_reading_index.value()];
+  if (closest_wall_reading_index.has_value()) {
+    const Reading &closest_reading = readings[*closest_wall_reading_index];
+
+    if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
+      const Robot::Vector to_wall =
+          Robot::Vector(cos(closest_reading.angle), sin(closest_reading.angle));
+
+      const Robot::Vector tangent_right(-to_wall.y(), to_wall.x());
+      const Robot::Vector tangent_left(to_wall.y(), -to_wall.x());
+      direction = clockwise_following ? tangent_right : tangent_left;
+
+      left_contact_point = false;
+      contact_point = get_relative_position(grid);
+
+      phase = ExplorationPhase::WallFollowing;
+      return;
+    }
+  }
+
   const Robot::Point rp = get_relative_position(grid);
-  const Robot::Point p = point_at_reading(rp, closest_reading);
-  const Index2D index = get_cell_index_from(p.x(), p.y());
-  const auto g = grid->get_data();
-  const Cell *obstacle_cell = (*g)[index.first][index.second].get();
+  Robot::Vector desired_vector = target_point - rp;
 
-  if (obstacle_cell->state == CellState::Occupied &&
-      obstacle_cell->frontier_id.has_value()) {
-    direction = rp - p;
-    return;
-  }
-
-  if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
-    const Robot::Vector to_wall =
-        Robot::Vector(cos(closest_reading.angle), sin(closest_reading.angle));
-
-    const Robot::Vector tangent_right(-to_wall.y(), to_wall.x());
-    const Robot::Vector tangent_left(to_wall.y(), -to_wall.x());
-    direction = clockwise_following ? tangent_right : tangent_left;
-
-    left_contact_point = false;
-    contact_point = get_relative_position(grid);
-
-    phase = ExplorationPhase::WallFollowing;
-    return;
-  }
-
-  move(Robot::Vector(cos(closest_reading.angle), sin(closest_reading.angle)));
+  move(desired_vector);
 }
 
 Robot::Vector
@@ -307,9 +299,9 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
 
   const Robot::Point rp = get_relative_position(grid);
 
-  if (closest_wall_reading_index) {
-    const Robot::Point closest_point =
-        point_at_reading(rp, readings[*closest_wall_reading_index]);
+  if (closest_wall_reading_index.has_value()) {
+    const Reading &closest_reading = readings[*closest_wall_reading_index];
+    const Robot::Point closest_point = point_at_reading(rp, closest_reading);
     const Index2D index =
         get_cell_index_from(closest_point.x(), closest_point.y());
 
@@ -318,6 +310,7 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
 
     if (obstacle_cell->state == CellState::Occupied &&
         !obstacle_cell->frontier_id.has_value()) {
+      target_point = closest_point;
       phase = ExplorationPhase::WallAlignment;
       return;
     }
@@ -358,9 +351,9 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
 
   const Robot::Point rp = get_relative_position(grid);
 
-  if (closest_wall_reading_index) {
-    const Robot::Point closest_point =
-        point_at_reading(rp, readings[*closest_wall_reading_index]);
+  if (closest_wall_reading_index.has_value()) {
+    const Reading &closest_reading = readings[*closest_wall_reading_index];
+    const Robot::Point closest_point = point_at_reading(rp, closest_reading);
     const Index2D index =
         get_cell_index_from(closest_point.x(), closest_point.y());
 
@@ -369,6 +362,7 @@ void ExplorationBot::phase6_region_exploration(const OccupationGrid *grid) {
 
     if (obstacle_cell->state == CellState::Occupied &&
         !obstacle_cell->frontier_id.has_value()) {
+      target_point = closest_point;
       phase = ExplorationPhase::WallAlignment;
       return;
     }
@@ -402,10 +396,12 @@ void ExplorationBot::draw(const DrawData &draw_data) const {
 
   raylib::Color color;
 
-  if (phase == ExplorationPhase::WallDiscovery ||
-      phase == ExplorationPhase::WallAlignment ||
-      phase == ExplorationPhase::WallFollowing) {
+  if (phase == ExplorationPhase::WallDiscovery) {
     color = raylib::RED;
+  } else if (phase == ExplorationPhase::WallAlignment) {
+    color = raylib::ORANGE;
+  } else if (phase == ExplorationPhase::WallFollowing) {
+    color = raylib::PINK;
   } else if (phase == ExplorationPhase::Idle) {
     color = raylib::GRAY;
   } else if (phase == ExplorationPhase::RegionDiscovery) {
@@ -415,7 +411,7 @@ void ExplorationBot::draw(const DrawData &draw_data) const {
   } else if (phase == ExplorationPhase::RegionExploration) {
     color = raylib::VIOLET;
   } else {
-    color = raylib::ORANGE;
+    color = raylib::BLACK;
   }
 
   draw_body(draw_data, color);
