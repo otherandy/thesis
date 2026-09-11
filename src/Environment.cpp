@@ -7,6 +7,9 @@ EnvironmentPreset parse_environment(const std::string &name) {
   if (name == "polygon2") {
     return EnvironmentPreset::Polygon2;
   }
+  if (name == "polygon4") {
+    return EnvironmentPreset::Polygon4;
+  }
   if (name == "polygon2withholes") {
     return EnvironmentPreset::Polygon2WithHoles;
   }
@@ -25,8 +28,8 @@ EnvironmentPreset parse_environment(const std::string &name) {
   if (name == "square4") {
     return EnvironmentPreset::Square4;
   }
-  if (name == "square4withholes") {
-    return EnvironmentPreset::Square4WithHoles;
+  if (name == "bigroom") {
+    return EnvironmentPreset::BigRoom;
   }
   if (name == "maze") {
     return EnvironmentPreset::Maze;
@@ -62,6 +65,8 @@ std::string get_environment_name(EnvironmentPreset preset) {
     return "Polygon";
   case EnvironmentPreset::Polygon2:
     return "Polygon2";
+  case EnvironmentPreset::Polygon4:
+    return "Polygon4";
   case EnvironmentPreset::Polygon2WithHoles:
     return "Polygon2 With Holes";
   case EnvironmentPreset::Square:
@@ -74,8 +79,8 @@ std::string get_environment_name(EnvironmentPreset preset) {
     return "Square2 With Hole";
   case EnvironmentPreset::Square4:
     return "Square4";
-  case EnvironmentPreset::Square4WithHoles:
-    return "Square4 With Holes";
+  case EnvironmentPreset::BigRoom:
+    return "Big Room";
   case EnvironmentPreset::Maze:
     return "Maze";
   case EnvironmentPreset::Corridor:

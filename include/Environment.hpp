@@ -7,19 +7,20 @@
 
 using EnvData = std::pair<double, double>;
 
-constexpr double ENV_WIDTH = 40;
-constexpr double ENV_HEIGHT = 40;
+constexpr double ENV_WIDTH = 48;
+constexpr double ENV_HEIGHT = 48;
 
 enum class EnvironmentPreset {
   Polygon,
   Polygon2,
+  Polygon4,
   Polygon2WithHoles,
   Square,
   Triangle,
   Custom,
   Square2WithHole,
   Square4,
-  Square4WithHoles,
+  BigRoom,
   Maze,
   Corridor,
   Legs,
@@ -39,6 +40,10 @@ constexpr EnvData POLYGON_ENV_DATA[] = {
 
 constexpr EnvData POLYGON2_ENV_DATA[] = {
     {0, 0}, {16, 0}, {16, 12}, {24, 12}, {24, 24}, {8, 24}, {8, 12}, {0, 12},
+};
+
+constexpr EnvData POLYGON4_ENV_DATA[] = {
+    {0, 0}, {32, 0}, {32, 24}, {48, 24}, {48, 48}, {16, 48}, {16, 24}, {0, 24},
 };
 
 constexpr EnvData SQUARE_ENV_DATA[] = {
@@ -274,6 +279,10 @@ get_selected_environment_data(EnvironmentPreset preset) {
     return {POLYGON2_ENV_DATA,
             sizeof(POLYGON2_ENV_DATA) / sizeof(POLYGON2_ENV_DATA[0]),
             NO_HOLE_DATA, NO_HOLE_SIZES, 0};
+  case EnvironmentPreset::Polygon4:
+    return {POLYGON4_ENV_DATA,
+            sizeof(POLYGON4_ENV_DATA) / sizeof(POLYGON4_ENV_DATA[0]),
+            NO_HOLE_DATA, NO_HOLE_SIZES, 0};
   case EnvironmentPreset::Polygon2WithHoles:
     return {POLYGON2_ENV_DATA,
             sizeof(POLYGON2_ENV_DATA) / sizeof(POLYGON2_ENV_DATA[0]),
@@ -301,7 +310,7 @@ get_selected_environment_data(EnvironmentPreset preset) {
     return {SQUARE4_ENV_DATA,
             sizeof(SQUARE4_ENV_DATA) / sizeof(SQUARE4_ENV_DATA[0]),
             NO_HOLE_DATA, 0};
-  case EnvironmentPreset::Square4WithHoles:
+  case EnvironmentPreset::BigRoom:
     return {SQUARE4_ENV_DATA,
             sizeof(SQUARE4_ENV_DATA) / sizeof(SQUARE4_ENV_DATA[0]),
             SQUARE4_HOLE_DATA_LIST, SQUARE4_HOLE_SIZE_LIST,
