@@ -517,8 +517,6 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
       return (static_cast<uint64_t>(y) << 32) | static_cast<uint32_t>(x);
     };
 
-    std::unordered_set<Cell *> region_set(region.begin(), region.end());
-
     const int min_y = min.first - 1;
     const int min_x = min.second - 1;
     const int max_y = max.first + 1;
@@ -550,7 +548,7 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
 
         Cell *neighbor = grid[ny][nx].get();
 
-        if (region_set.count(neighbor)) {
+        if (neighbor->state == CellState::Occupied) {
           continue;
         }
 

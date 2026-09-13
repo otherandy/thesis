@@ -186,7 +186,8 @@ void CentralUnit::assign_frontier_regions() {
       }
     }
 
-    if (bot->phase == ExplorationPhase::Idle) {
+    if (bot->phase == ExplorationPhase::Idle ||
+        bot->phase == ExplorationPhase::EmergencyFind) {
       const auto grid = occupation_grid->get_data();
       const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
       auto vopt = frontier_scheduler->next_or_help(bot->target_vertex, *grid,
@@ -250,16 +251,10 @@ void CentralUnit::check_exterior() {
 
   if (occupation_grid->unmarked_obstacles_exist()) {
     for (auto bot : bots) {
-      if (bot->phase != ExplorationPhase::Idle) {
-        return;
+      if (bot->phase == ExplorationPhase::Idle) {
+        bot->phase = ExplorationPhase::EmergencyFind;
       }
     }
-
-    for (auto bot : bots) {
-      bot->phase = ExplorationPhase::WallDiscovery;
-    }
-
-    return;
   } else {
     for (auto bot : bots) {
       if (bot->phase == ExplorationPhase::WallDiscovery) {

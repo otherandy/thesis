@@ -83,6 +83,11 @@ void ExplorationBot::explore(const OccupationGrid *grid) {
     phase6_region_exploration(grid);
     return;
   }
+
+  if (phase == ExplorationPhase::EmergencyFind) {
+    phase7_emergency_find(grid);
+    return;
+  }
 }
 
 void ExplorationBot::phase1_wall_discovery(const OccupationGrid *grid) {
@@ -114,7 +119,10 @@ void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
   physical_time.start();
   alignment_time.start();
 
-  if (closest_wall_reading_index.has_value()) {
+  const Robot::Point rp = get_relative_position(grid);
+  const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
+
+  if (distance <= SPEED * 3 && closest_wall_reading_index.has_value()) {
     const Reading &closest_reading = readings[*closest_wall_reading_index];
 
     if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
@@ -133,8 +141,7 @@ void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
     }
   }
 
-  const Robot::Point rp = get_relative_position(grid);
-  Robot::Vector desired_vector = target_point - rp;
+  const Robot::Vector desired_vector = target_point - rp;
 
   move(desired_vector);
 }
@@ -263,9 +270,39 @@ void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
     left_contact_point = true;
   }
 
-  Robot::Vector desired_vector = compute_wall_following_vector(grid);
+  const Robot::Vector desired_vector = compute_wall_following_vector(grid);
 
-  const Robot::Vector delta = move(desired_vector);
+  move(desired_vector);
+}
+
+void ExplorationBot::phase7_emergency_find(const OccupationGrid *grid) {
+  physical_time.start();
+  alignment_time.start();
+
+  const Robot::Point rp = get_relative_position(grid);
+
+  for (const Reading &r : readings) {
+    if (r.distance == radius) {
+      continue;
+    }
+
+    const Robot::Point p = point_at_reading(rp, r);
+    const Index2D index = get_cell_index_from(p.x(), p.y());
+
+    const auto g = grid->get_data();
+    const Cell *obstacle_cell = (*g)[index.first][index.second].get();
+
+    if (obstacle_cell->state == CellState::Occupied &&
+        !obstacle_cell->frontier_id.has_value()) {
+      target_point = p;
+      phase = ExplorationPhase::WallAlignment;
+      return;
+    }
+  }
+
+  const Robot::Vector desired_vector = compute_wall_following_vector(grid);
+
+  move(desired_vector);
 }
 
 bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
