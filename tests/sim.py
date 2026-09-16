@@ -1,4 +1,5 @@
 import subprocess
+from datetime import datetime
 
 ENVIRONMENTS = [
     [
@@ -50,16 +51,35 @@ ROBOTS = [1, 2, 4, 8, 16]
 RADIUS = [0.5, 1, 2, 4]
 STRATEGIES = ["largest", "smallest", "closest"]
 REPEATS = 10
-TIMEOUT = 240
+TIMEOUT = 1560
+
 WIDTH = 400
 HEIGHT = 300
 
-for env, positions in ENVIRONMENTS:
-    for bots in ROBOTS:
-        for pos in positions:
-            for rad in RADIUS:
-                for strat in STRATEGIES:
-                    for i in range(REPEATS):
+total = (
+    REPEATS
+    * sum(len(positions) for _, positions in ENVIRONMENTS)
+    * len(ROBOTS)
+    * len(RADIUS)
+    * len(STRATEGIES)
+)
+
+completed = 0
+print(f"Total tests: {total}")
+
+for i in range(REPEATS):
+    for env, positions in ENVIRONMENTS:
+        for bots in ROBOTS:
+            for pos in positions:
+                for rad in RADIUS:
+                    for strat in STRATEGIES:
+                        completed += 1
+                        percent = completed / total * 100
+
+                        print(
+                            f"({datetime.now().strftime('%H:%M:%S')}) [{completed}/{total}] {percent:.2f}%"
+                        )
+
                         p = subprocess.Popen(
                             [
                                 "../build/ExplorationBot",
@@ -93,7 +113,7 @@ for env, positions in ENVIRONMENTS:
                             p.communicate(timeout=TIMEOUT)
                         except subprocess.TimeoutExpired:
                             print(
-                                f"Timed out: {env}, {bots} bots @ {pos} with {rad} radius and {strat} strategy, test {i + 1}"
+                                f"TIMED OUT: {env}, {bots} bots @ {pos}, radius {rad}, strategy {strat}, repeat {i + 1}",
                             )
                             p.kill()
                             p.communicate()
