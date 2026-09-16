@@ -26,7 +26,7 @@ public:
   void clean_cells();
   void compute_frontier_regions(DynamicScheduler *sched);
   void compute_physical_obstacles(DynamicScheduler *sched);
-  bool unmarked_obstacles_exist();
+  Cell *unmarked_obstacles_exist();
 
   void draw(const DrawData &draw_data) const;
   void draw_info(const DrawData &draw_data) const;

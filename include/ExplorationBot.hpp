@@ -16,7 +16,6 @@ enum class ExplorationPhase {
   RegionDiscovery,
   RegionAlignment,
   RegionExploration,
-  EmergencyFind,
   Complete
 };
 
@@ -56,8 +55,6 @@ public:
   void phase3_wall_following(const OccupationGrid *grid);
   void phase5_region_alignment(const OccupationGrid *grid);
   void phase6_region_exploration(const OccupationGrid *grid);
-  void phase7_emergency_find(const OccupationGrid *grid);
-
 
   void draw(const DrawData &draw_data) const;
 

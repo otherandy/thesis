@@ -656,17 +656,17 @@ void OccupationGrid::compute_physical_obstacles(DynamicScheduler *sched) {
   }
 }
 
-bool OccupationGrid::unmarked_obstacles_exist() {
+Cell *OccupationGrid::unmarked_obstacles_exist() {
   for (std::size_t y = grid_min.first; y <= grid_max.first; ++y) {
     for (std::size_t x = grid_min.second; x <= grid_max.second; ++x) {
-      const Cell *cell = grid[y][x].get();
+      Cell *cell = grid[y][x].get();
       if (cell->state == CellState::Occupied &&
           cell->frontier_id == std::nullopt) {
-        return true;
+        return cell;
       }
     }
   }
-  return false;
+  return nullptr;
 }
 
 void OccupationGrid::draw_cell(Index2D index, const DrawData &draw_data) const {

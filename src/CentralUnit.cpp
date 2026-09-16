@@ -186,8 +186,7 @@ void CentralUnit::assign_frontier_regions() {
       }
     }
 
-    if (bot->phase == ExplorationPhase::Idle ||
-        bot->phase == ExplorationPhase::EmergencyFind) {
+    if (bot->phase == ExplorationPhase::Idle) {
       const auto grid = occupation_grid->get_data();
       const Robot::Point rp = bot->get_relative_position(occupation_grid.get());
       auto vopt = frontier_scheduler->next_or_help(bot->target_vertex, *grid,
@@ -249,10 +248,13 @@ void CentralUnit::check_exterior() {
     return;
   }
 
-  if (occupation_grid->unmarked_obstacles_exist()) {
+  auto obstacle = occupation_grid->unmarked_obstacles_exist();
+
+  if (obstacle != nullptr) {
     for (auto bot : bots) {
       if (bot->phase == ExplorationPhase::Idle) {
-        bot->phase = ExplorationPhase::EmergencyFind;
+        bot->target_point = obstacle->center;
+        bot->phase = ExplorationPhase::RegionAlignment;
       }
     }
   } else {
