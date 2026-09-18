@@ -49,6 +49,11 @@ void OccupationGrid::mark_cell(Index2D index, CellState new_state,
     return;
   }
 
+  if (new_state == CellState::Occupied &&
+      !has_neighbor_state(cell->index, CellState::Free)) {
+    return;
+  }
+
   cell->times_viewed++;
 
   // Don't overrite Visited cells with states other than Occupied

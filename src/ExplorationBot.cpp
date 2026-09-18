@@ -117,7 +117,8 @@ void ExplorationBot::phase2_wall_alignment(const OccupationGrid *grid) {
   const Robot::Point rp = get_relative_position(grid);
   const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
 
-  if (distance <= SPEED * 3 && closest_wall_reading_index.has_value()) {
+  if (distance <= DESIRED_WALL_DISTANCE &&
+      closest_wall_reading_index.has_value()) {
     const Reading &closest_reading = readings[*closest_wall_reading_index];
 
     if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
@@ -271,23 +272,23 @@ void ExplorationBot::phase3_wall_following(const OccupationGrid *grid) {
 }
 
 bool ExplorationBot::path_blocked_to(const Robot::Vector &target) const {
-  if (!closest_wall_reading_index.has_value()) {
+  const double target_dist = std::sqrt(target.squared_length());
+
+  if (target_dist <= 0.0) {
     return false;
   }
 
   const double target_angle = std::atan2(target.y(), target.x());
-  const double target_dist = std::sqrt(target.squared_length());
 
   for (const auto &r : readings) {
-    const double diff = std::fmod(r.angle - target_angle, 2.0 * M_PI);
+    const double diff =
+        std::abs(std::remainder(r.angle - target_angle, 2.0 * M_PI));
 
-    if (std::abs(diff) > ANGLE_STEP * 2) {
+    if (diff > ANGLE_STEP * 2) {
       continue;
     }
 
-    if (r.distance < radius && r.distance < target_dist &&
-        r.distance <= readings[*closest_wall_reading_index].distance +
-                          DESIRED_WALL_DISTANCE / 2) {
+    if (r.distance < radius && r.distance < target_dist) {
       return true;
     }
   }
@@ -302,25 +303,29 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
   const Robot::Point rp = get_relative_position(grid);
 
   if (closest_wall_reading_index.has_value()) {
-    const Reading &closest_reading = readings[*closest_wall_reading_index];
-    const Robot::Point closest_point = point_at_reading(rp, closest_reading);
-    const Index2D index =
-        get_cell_index_from(closest_point.x(), closest_point.y());
+    for (const Reading &r : readings) {
+      if (r.distance > radius) {
+        continue;
+      }
 
-    const auto g = grid->get_data();
-    const Cell *obstacle_cell = (*g)[index.first][index.second].get();
+      const Robot::Point p = point_at_reading(rp, r);
+      const Index2D index = get_cell_index_from(p.x(), p.y());
 
-    if (obstacle_cell->state == CellState::Occupied &&
-        !obstacle_cell->frontier_id.has_value()) {
-      target_point = closest_point;
-      phase = ExplorationPhase::WallAlignment;
-      return;
+      const auto g = grid->get_data();
+      const Cell *obstacle_cell = (*g)[index.first][index.second].get();
+
+      if (obstacle_cell->state == CellState::Occupied &&
+          !obstacle_cell->frontier_id.has_value()) {
+        target_point = p;
+        phase = ExplorationPhase::WallAlignment;
+        return;
+      }
     }
   }
 
   const double distance = std::sqrt(CGAL::squared_distance(rp, target_point));
 
-  if (distance < SPEED * 2) {
+  if (distance <= DESIRED_WALL_DISTANCE) {
     started_surround = false;
     goal_distance = 0;
     phase = ExplorationPhase::RegionExploration;
@@ -331,17 +336,25 @@ void ExplorationBot::phase5_region_alignment(const OccupationGrid *grid) {
 
   const bool is_blocked = path_blocked_to(desired_vector);
 
-  if (is_blocked || (started_surround && distance > goal_distance)) {
-    if (!started_surround) {
+  if (is_blocked && !started_surround &&
+      closest_wall_reading_index.has_value()) {
+    const Reading &closest_reading = readings[*closest_wall_reading_index];
+    if (closest_reading.distance <= DESIRED_WALL_DISTANCE) {
       goal_distance = distance;
       started_surround = true;
+    } else {
+      const Robot::Point closest_point = point_at_reading(rp, closest_reading);
+      desired_vector = closest_point - rp;
     }
-
-    desired_vector = compute_wall_following_vector(grid);
   }
 
-  if (distance < goal_distance) {
-    goal_distance = distance;
+  if (started_surround) {
+    if (distance < goal_distance && !is_blocked) {
+      started_surround = false;
+      desired_vector = target_point - rp;
+    } else {
+      desired_vector = compute_wall_following_vector(grid);
+    }
   }
 
   move(desired_vector);
