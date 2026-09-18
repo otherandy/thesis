@@ -48,9 +48,9 @@ ENVIRONMENTS = [
     ],
 ]
 ROBOTS = [1, 2, 4, 8, 16]
-RADIUS = [0.5, 1, 2, 4]
+RADIUS = [1, 2, 4]
 STRATEGIES = ["largest", "smallest", "closest"]
-REPEATS = 10
+REPEATS = 5
 TIMEOUT = 1560
 
 WIDTH = 400
@@ -65,7 +65,6 @@ total = (
 )
 
 completed = 0
-print(f"Total tests: {total}")
 
 for i in range(REPEATS):
     for env, positions in ENVIRONMENTS:
